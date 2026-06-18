@@ -1,0 +1,30 @@
+{
+  "name": "datalad-cli",
+  "description": "Route data processing and file changes through DataLad for provenance tracking (datalad create, run, save). Follows YODA principles for reproducible local analysis projects.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["datalad", "provenance", "reproducibility", "yoda", "data-management"],
+  "skills": [
+    "./skills/datalad-init",
+    "./skills/datalad-run",
+    "./skills/datalad-save",
+    "./skills/datalad-container-run",
+    "./skills/datalad-status",
+    "./skills/datalad-diff",
+    "./skills/datalad-untrack",
+    "./skills/datalad-clone",
+    "./skills/datalad-get",
+    "./skills/datalad-siblings",
+    "./skills/datalad-push",
+    "./skills/datalad-update",
+    "./skills/datalad-subdatasets",
+    "./skills/datalad-addurls",
+    "./skills/datalad-configuration",
+    "./skills/datalad-export",
+    "./skills/datalad-log",
+    "./skills/datalad-credentials",
+    "./skills/datalad-fsck"
+  ],
+  "hooks": "./hooks/hooks.json"
+}
