@@ -1,0 +1,19 @@
+# Jupyter / notebook artifacts (skills are often drafted in notebook environments)
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# Local Claude state
+.claude/settings.local.json
