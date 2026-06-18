@@ -1,0 +1,9 @@
+{
+  "name": "nipoppy-cli",
+  "description": "Assist with nipoppy neuroimaging dataset management: initializing datasets, organizing DICOM files, BIDS conversion, running processing pipelines, tracking status, and extracting IDPs.",
+  "version": "0.1.0",
+  "author": { "name": "bcmcpher" },
+  "license": "MIT",
+  "keywords": ["nipoppy", "neuroimaging", "bids", "dicom", "fmriprep", "mriqc", "hpc", "pipeline"],
+  "skills": ["./skills/nipoppy-cli"]
+}
