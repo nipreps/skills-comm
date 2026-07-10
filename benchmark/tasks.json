@@ -1,0 +1,1646 @@
+{
+  "benchmark": "Neuroimaging LLM-Agent Benchmark",
+  "description": "A benchmark evaluating LLM agents on neuroimaging tasks. Platform-agnostic: tasks specify a scientific goal, a public dataset, and a ground-truth reference; agent outputs are graded against the reference.",
+  "schema": {
+    "structure": "Tasks nested within category divisions; flat within each category.",
+    "task_key": "id (slug: <category>-<what-it-does>)",
+    "categories": {
+      "data-handling": "Converting and organizing raw data into standard formats (DICOM->BIDS, DICOM->NIfTI).",
+      "structural": "Anatomical T1w/T2w analysis: reconstruction, segmentation, morphometry, registration.",
+      "functional": "fMRI processing: preprocessing, denoising, connectivity, activity metrics.",
+      "diffusion": "Diffusion MRI: preprocessing, tensor/FOD modeling, tractography, connectomes.",
+      "quantitative": "Quantitative mapping: susceptibility (QSM), SWI.",
+      "clinical": "Clinical/pathology workflows: lesion and subfield segmentation, clinical preprocessing.",
+      "electrophysiology": "EEG/MEG processing (property-graded; no external ground truth).",
+      "spinal": "Spinal cord imaging: segmentation."
+    },
+    "agent_grader_split": {
+      "prompt": "AGENT-VISIBLE. goal (scientific WHAT only), dataset (identity), required_output (artifact + format so it is gradable, not how). required_tool only if the task is intrinsically named.",
+      "solution": "GRADER-ONLY, never shown to agent. ground_truth (+location), metric, pass_criterion, tool_mode, tool_suggestions (NON-BINDING - agents may use novel/future tools), notes."
+    },
+    "tool_philosophy": "Tools are SUGGESTIONS, never gate grading, EXCEPT intrinsically-named tasks (tool_mode=named) where the tool is part of the goal. Grading is always output-vs-ground-truth, so novel/future tools that produce correct output pass.",
+    "anti_gaming": "Enforced by the SCORER (not per-task): (1) artifact must exist with correct shape/format [catches no-op/fabrication], (2) artifact must be structurally valid [mask binary, matrix symmetric], (3) artifact must match hidden ground truth by metric [catches wrong-but-plausible]. Ground truth is hidden from agents. required_output per task anchors the existence/shape check.",
+    "metrics_vocab": [
+      "dice",
+      "spatial_correlation",
+      "table_comparison",
+      "matrix_comparison",
+      "validity",
+      "distribution",
+      "spec_validation"
+    ]
+  },
+  "datasets_catalog": {
+    "stroke_rehab_fmri": {
+      "source": "openneuro",
+      "id": "ds003999",
+      "version_pin": "latest",
+      "subjects": [
+        "sub-01"
+      ],
+      "fetch_command": "datalad install ///openneuro/ds003999",
+      "notes": "Post-stroke rehab fMRI, 29 subj"
+    },
+    "clinical_motion_t1": {
+      "source": "openneuro",
+      "id": "ds004332",
+      "version_pin": "latest",
+      "subjects": [
+        "sub-01"
+      ],
+      "fetch_command": "datalad install ///openneuro/ds004332",
+      "notes": "Markerless prospective motion-correction study (Cimbi). 22 HEALTHY ADULTS (19-36y). Multi-contrast: 3D T1 MPRAGE (22), FLAIR (10), T1 STIR (22), T2 TSE (22), T2* GRE (19), DWI (10, under derivatives). Each sequence acquired as still + nod (+ shake for T1) deliberate-motion variants. NOT pediatric, NOT longitudinal. MOTION-TASK POTENTIAL: the still/nod/shake structure makes this a strong candidate for motion-robustness / motion-QC tasks not yet in the benchmark"
+    },
+    "eeg_meditation": {
+      "source": "openneuro",
+      "id": "ds001787",
+      "version_pin": "latest",
+      "subjects": [
+        "sub-01"
+      ],
+      "fetch_command": "datalad install ///openneuro/ds001787",
+      "notes": "EEG meditation, 24 subj"
+    },
+    "meg_omega_rest": {
+      "source": "openneuro",
+      "id": "ds000247",
+      "version_pin": "latest",
+      "subjects": [
+        "sub-emptyroom"
+      ],
+      "fetch_command": "datalad install ///openneuro/ds000247",
+      "notes": "OMEGA resting MEG, 6 subj"
+    },
+    "spine_single": {
+      "source": "openneuro",
+      "id": "ds002393",
+      "version_pin": "latest",
+      "subjects": [
+        "sub-01"
+      ],
+      "fetch_command": "datalad install ///openneuro/ds002393",
+      "notes": "Spinal Cord MRI, single-subject style, 19 subj"
+    },
+    "synthetic_or_byo_dicom": {
+      "source": "datalad",
+      "id": "///repronim/heudiconv-reproin-example",
+      "version_pin": "latest",
+      "subjects": [
+        "001"
+      ],
+      "fetch_command": "datalad install ///repronim/heudiconv-reproin-example && cd heudiconv-reproin-example && datalad get \"REPROIN/dicom/001/Patterson_Coben - 1/anatT1w_acqMPRAGE_6\"",
+      "notes": "Single-series T1w MPRAGE (241 slices) under heudiconv-reproin-example/REPROIN/dicom/001/Patterson_Coben - 1/anatT1w_acqMPRAGE_6/; quote the spaced path and cd into the dataset before datalad get. Verified: dcm2niix produces ~7.6MB.nii.gz + BIDS.json sidecar (UoA 3T Skyra)"
+    },
+    "ms_lesion_flair": {
+      "source": "git",
+      "id": "muschellij2/open_ms_data",
+      "version_pin": "master",
+      "subjects": [
+        "patient01"
+      ],
+      "fetch_command": "mkdir -p open_ms_data/patient01 && cd open_ms_data/patient01 && for m in FLAIR T1W; do wget -q https://raw.githubusercontent.com/muschellij2/open_ms_data/master/cross_sectional/raw/patient01/$m.nii.gz; done",
+      "notes": "MS T1/T2/FLAIR + consensus lesion masks (30 patients); ground truth consensus_gt.nii.gz for Dice grading"
+    },
+    "qsm_gre_osf": {
+      "source": "osf",
+      "id": "ru43c",
+      "version_pin": "latest",
+      "subjects": [
+        "subject01"
+      ],
+      "fetch_command": "osf -p ru43c clone. && tar xf osfstorage/dicoms-unsorted.tar && rm -rf osfstorage",
+      "notes": "Multi-echo GRE (mag+phase) + T1w DICOMs; the platform QSMxT tutorial dataset. For QSM (structural-cortical-reconstruction) and SWI (structural-cortical-reconstruction). Converted BIDS (verified): sub-1/sub-2, ses-20170705,.nii (uncompressed). QSM input = sub-1_ses-20170705_acq-acqqsmp21mmisote20_part-mag_T2starw.nii + _part-phase_T2starw.nii (single-echo T2*w GRE). Also T1w (MP2RAGE) part-mag. OSF download is DICOM; agent converts to BIDS first (QSMxT/dcm2niix)"
+    },
+    "t1t2flair_mpi": {
+      "source": "openneuro",
+      "id": "ds000221",
+      "version_pin": "latest",
+      "notes": "MPI-Leipzig Mind-Brain-Body. 225 subjects with T1w (MP2RAGE) + T2w + FLAIR (acq-lowres) all in ses-01. Single source covering both -T2pial and -FLAIRpial multi-contrast recon. sub-010002 verified"
+    },
+    "resting_eeg_ds004148": {
+      "source": "openneuro",
+      "id": "ds004148",
+      "version_pin": "latest",
+      "notes": "Test-retest resting + cognitive-state EEG (60 subj). Has eyesclosed AND eyesopen resting tasks (BrainVision.vhdr/.eeg/.vmrk), 3 sessions. Ideal for spectral/band-power + posterior-alpha checks"
+    },
+    "dwi_btc_ds001226": {
+      "source": "openneuro",
+      "id": "ds001226",
+      "version_pin": "latest",
+      "notes": "BTC_preop. 36 subjects incl. healthy controls (sub-CONxx). DWI has acq-AP + acq-PA (REVERSE PHASE ENCODE -> TOPUP works). Multi-shell b=0/700/1200/2800. ses-preop. The MRtrix tutorial dataset"
+    },
+    "ds001226_fmriprep": {
+      "source": "openneuro-derivatives",
+      "id": "ds001226-fmriprep",
+      "version_pin": "latest",
+      "repo": "https://github.com/OpenNeuroDerivatives/ds001226-fmriprep",
+      "notes": "fMRIPrep derivatives of ds001226 (resting). VERIFIED preproc_bold + confounds present for sub-CON01 (task-rest, MNI152NLin2009cAsym). Same base dataset as the DWI tasks. Best for connectivity/denoising/QC"
+    },
+    "ds000114_fmriprep": {
+      "source": "openneuro-derivatives",
+      "id": "ds000114-fmriprep",
+      "version_pin": "latest",
+      "repo": "https://github.com/OpenNeuroDerivatives/ds000114-fmriprep",
+      "notes": "fMRIPrep derivatives of ds000114. VERIFIED preproc_bold + confounds. Finger-foot-lips MOTOR task = highly reliable, spatially-predictable motor-cortex activation. Most scorable task-GLM dataset. events.tsv from the raw ds000114"
+    },
+    "ds002790": {
+      "source": "openneuro",
+      "id": "ds002790",
+      "version_pin": "2.0.0",
+      "repo": "https://openneuro.org/datasets/ds002790",
+      "notes": "AOMIC ID1000. 226 subjects, standard T1w (MPRAGE). Bundled derivatives: fmriprep, freesurfer, fs_stats, mriqc, vbm, dwipreproc. Rich demographics (age/sex/BMI/education/raven/NEO). Ground-truth backbone for structural tasks."
+    },
+    "_osf_qsiprep_qsirecon": {
+      "project": "q7v8c",
+      "note": "QSIPrep/QSIRecon reference outputs (sub-CON01). Parallel to y2dq4 (MRtrix series, sub-CON02)."
+    },
+    "_osf_groundtruth_main": {
+      "project": "zjqey",
+      "title": "the platform LLM-Agent Benchmark - Ground Truth Data",
+      "note": "Main GT project for fMRI + remaining-group references. Organized by category with slug-named task folders (e.g. structural-brain-extraction, functional-postprocessing-denoising). Companion to y2dq4 (MRtrix DWI) and q7v8c (QSIPrep/QSIRecon). Data on OSF, code/definitions on GitHub the benchmark repository."
+    },
+    "_osf_zjqey_slug_map": {
+      "clinical-cortical-parcellation": "clinical_gt/clinical-cortical-parcellation (recon-all-clinical: aparc.DKTatlas+aseg.mgz + synthseg.vol.csv)",
+      "clinical-subcortical-nuclei": "clinical_gt/clinical-subcortical-nuclei (FSL FIRST: sub-01_first_all_fast_firstseg.nii.gz + volumes.csv)",
+      "functional-roi-timeseries": "fmri_gt/functional-ROI-timeseries (sub-0015)",
+      "functional-connectome": "fmri_gt/functional-connectome (sub-0016)",
+      "functional-seed-to-voxel": "fmri_gt/functional-seed-to-voxel (sub-0017 PCC)",
+      "functional-motion-correction": "fmri_gt/functional-motion-correction (sub-CON01 mcflirt.par)",
+      "functional-alff-reho": "fmri_gt/functional-alff-reho (sub-0022 AFNI ALFF/fALFF/ReHo)",
+      "functional-postprocessing-denoising": "fmri_gt/functional-postprocessing-denoising (XCP-D ds004450 sub-20712: desc-denoised_bold + 4S156Parcels relmat)",
+      "quantitative-susceptibility-mapping": "quantitative_gt/quantitative-susceptibility-mapping (QSMxT Chimap)",
+      "quantitative-swi": "quantitative_gt/quantitative-swi (ClearSWI swi.nii + mip.nii)",
+      "spinal-cord-segmentation": "spinal_gt/spinal-cord-segmentation (SCT: t1w_seg.nii.gz)",
+      "clinical-brain-extraction": "clinical_gt/clinical-brain-extraction (HD-BET: sub-01_desc-brain_T1w_bet.nii.gz) - MOVED from structural (was misfiled)",
+      "structural-brain-extraction": "ds002790 SHIPPED fMRIPrep mask (sub-0004_desc-brain_mask.nii.gz) - NOT on zjqey, referenced from dataset"
+    },
+    "xcpd_walkthrough_ds004450": {
+      "id": "ds004450",
+      "source": "openneuro",
+      "description": "XCP-D walkthrough dataset (executive-function study). Ships fMRIPrep derivatives with modern confounds. Resting-state (task-restbold), 3 subjects.",
+      "used_by": "functional-postprocessing-denoising"
+    }
+  },
+  "categories": {
+    "data-handling": {
+      "description": "Converting and organizing raw data into standard formats (DICOM->BIDS, DICOM->NIfTI).",
+      "tasks": {
+        "data-handling-dicom-to-bids": {
+          "title": "DICOM to BIDS organization (full subject)",
+          "description": "Organize the DICOM data of subject 001 from the ReproIn/HeuDiConv example dataset into BIDS format using an automated converter (e.g. HeuDiConv).",
+          "prompt": {
+            "goal": "Organize the DICOM data for subject 001 of the ReproIn/HeuDiConv example dataset into a valid BIDS dataset, including the anatomical (T1w), the resting-state functional (BOLD), and the field-map series.",
+            "dataset": {
+              "source": "datalad",
+              "id": "///repronim/heudiconv-reproin-example",
+              "version_pin": "latest",
+              "subjects": [
+                "001"
+              ]
+            },
+            "required_output": "A valid BIDS dataset (NIfTI images with JSON sidecars, organized per the BIDS standard)."
+          },
+          "solution": {
+            "ground_truth": "No reference file: validate output BIDS with bids-validator (spec compliance).",
+            "ground_truth_location": "n/a (self-validating)",
+            "metric": "spec_validation",
+            "pass_criterion": "Output is a valid BIDS layout (passes basic BIDS structure checks); dataset_description.json present at the root; Anatomical T1w (NIfTI + JSON) organized for subject 001; Resting-state functional BOLD (NIfTI + JSON) organized for subject 001; Field-map series organized under fmap/; A session sub-directory (ses-1) may be present depending on the conversion tool; No conversion errors; BIDS structure validation passes (dataset_description.json present; sub-XX/ layout correct); NIfTI + JSON sidecar pairs present for each converted series; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "dataset_fetch_reference": "datalad install https://datasets.datalad.org/repronim/heudiconv-reproin-example && cd heudiconv-reproin-example/REPROIN/dicom/data-handling-dicom-to-bids && datalad get -J 4 \"Patterson_Coben - 1/anatT1w_acqMPRAGE_6\" \"Patterson_Coben - 1/fmap_acq4mm_7\" \"Patterson_Coben - 1/fmap_acq4mm_8\" \"Patterson_Coben - 1/func_taskrest_16\"",
+            "expected_files_detail": "A valid BIDS dataset directory containing dataset_description.json at the root; Per-subject subdirectories (sub-XX/) with modality folders and NIfTI+JSON pairs; participants.tsv and applicable *_events.tsv files"
+          }
+        },
+        "data-handling-dicom-to-nifti": {
+          "title": "DICOM to NIfTI Conversion (dcm2nii)",
+          "description": "Convert the DICOM files for subject 001 (downloaded via the fetch command) to NIfTI (.nii.gz) with BIDS-style JSON sidecars",
+          "prompt": {
+            "goal": "Convert the T1-weighted (MPRAGE) anatomical scan for subject 001 of the ReproIn/HeuDiConv example dataset to NIfTI (.nii.gz) with a BIDS-style JSON sidecar.",
+            "dataset": {
+              "source": "datalad",
+              "id": "///repronim/heudiconv-reproin-example",
+              "version_pin": "latest",
+              "subjects": [
+                "001"
+              ]
+            },
+            "required_output": "A NIfTI image (.nii.gz) with a JSON sidecar containing the acquisition metadata."
+          },
+          "solution": {
+            "ground_truth": "No reference file: verify NIfTI header/dims/affine against source DICOM.",
+            "ground_truth_location": "n/a (self-validating)",
+            "metric": "spec_validation",
+            "pass_criterion": "A valid.nii.gz is produced from the subject-001 T1w MPRAGE series; A BIDS-style JSON sidecar is produced alongside it; NIfTI geometry is consistent with the source DICOM (3D MPRAGE volume); No processing errors; command output/logs captured; NIfTI produced with correct geometry; JSON sidecar present with acquisition metadata; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "dataset_fetch_reference": "datalad install ///repronim/heudiconv-reproin-example && cd heudiconv-reproin-example && datalad get \"REPROIN/dicom/data-handling-dicom-to-bids/Patterson_Coben - 1/anatT1w_acqMPRAGE_6\"",
+            "expected_files_detail": "One or more NIfTI files (.nii.gz, ); JSON sidecar(s) with acquisition metadata"
+          }
+        }
+      }
+    },
+    "structural": {
+      "description": "Anatomical T1w/T2w analysis: reconstruction, segmentation, morphometry, registration.",
+      "tasks": {
+        "structural-brain-age-prediction": {
+          "title": "Brain age prediction from T1w",
+          "description": "Predict brain age (numerical, years) from the T1w of sub-0011 of OpenNeuro dataset ds002790 using a pretrained model; compare to chronological age.",
+          "prompt": {
+            "goal": "Predict brain age from the T1-weighted image of sub-0011 using a pretrained brain-age model. Report the predicted brain age as a numerical value in years.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0011"
+              ]
+            },
+            "required_output": "The predicted brain age (and/or brain-age gap) as a numeric value in years, in a tabular text format (CSV/TSV) one row per subject."
+          },
+          "solution": {
+            "ground_truth": "participants.tsv \"age\" column, row sub-0011 (chronological age). Compare predicted brain age numerically; brain-age gap = predicted - chronological. Prediction must come from imaging, not be read from participants.tsv.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "table_comparison",
+            "pass_criterion": "T1w preprocessed as the brain-age model requires; Pretrained brain-age model applied; Predicted brain age reported as a numerical value (years); Value in a plausible adult range; No processing errors; logs captured",
+            "output_validation": "Numeric: predicted brain age vs chronological age (report gap). Plausible adult range.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "brainageR"
+            ],
+            "tool_note": "Context: healthy. Currently brainageR is the only brain-age model available; kept agnostic so additional models (pyment, DeepBrainNet) can be added later. python models installable via pip if needed",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0011/anat/"
+          }
+        },
+        "structural-brain-extraction": {
+          "title": "Brain extraction (skull stripping)",
+          "description": "Skull-strip the T1w of sub-0004 of OpenNeuro dataset ds002790, producing a brain-extracted image and a binary brain mask in native T1w space.",
+          "prompt": {
+            "goal": "Skull-strip the T1-weighted image of sub-0004, producing a brain-extracted image and a binary brain mask in the native T1w space.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0004"
+              ]
+            },
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space."
+          },
+          "solution": {
+            "ground_truth": "derivatives/fmriprep/sub-0004/anat/sub-0004_desc-brain_mask.nii.gz (NATIVE T1w space - no MNI resampling needed since the task is native-space skull-stripping). Dice.",
+            "ground_truth_location": "dataset-shipped: ds002790 derivatives/fmriprep/sub-0004/anat/sub-0004_desc-brain_mask.nii.gz",
+            "metric": "dice",
+            "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input image; Brain mask is binary (values 0 and 1 only); Brain mask is anatomically plausible: skull/dura removed, brain retained; No processing errors; logs captured",
+            "output_validation": "Dice between agent brain mask (or implied mask from skull-stripped output) and the native fmriprep brain_mask.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "hdbet",
+              "synthstrip",
+              "ants",
+              "afni"
+            ],
+            "tool_note": "Context: healthy. Tool names from the reference tool comparison.md. All tools verified registry",
+            "notes": "[note] Native-space mask IS available in fmriprep derivatives, so no MNI-space requirement and no need to generate GT.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0004/anat/",
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined; e.g. *_bet.nii.gz, *BrainExtractionBrain.nii.gz, or caller-named via -o); A binary brain mask (NIfTI, any filename \u2014 tool-determined; e.g. *_bet_mask.nii.gz, *BrainExtractionMask.nii.gz, *_mask.nii.gz, or caller-named via -m)"
+          }
+        },
+        "structural-cortical-morphometry": {
+          "title": "Cortical ROI morphometry (thickness/area/volume)",
+          "description": "Compute per-ROI cortical morphometry (thickness, surface area, volume) from an existing FreeSurfer recon for sub-0008 of OpenNeuro dataset ds002790.",
+          "prompt": {
+            "goal": "From the pre-computed FreeSurfer reconstruction of sub-0008, compute per-region cortical morphometry - mean thickness, surface area, and grey-matter volume - for each cortical parcel in both hemispheres.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0008"
+              ]
+            },
+            "required_output": "A table of per-region cortical morphometry (thickness, surface area, volume), in a tabular text format (CSV/TSV/text).",
+            "required_tool": "freesurfer"
+          },
+          "solution": {
+            "ground_truth": "derivatives/fs_stats/data-cortical_type-aparc_measure-{thickness,area,volume}_hemi-{lh,rh}.tsv (row for sub-0008). BOTH hemispheres (lh + rh), aparc (Desikan-Killiany) atlas. Numeric per-ROI comparison.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "table_comparison",
+            "pass_criterion": "Desikan-Killiany (aparc.stats) per-ROI thickness, area, and volume extracted from the FreeSurfer stats files; Features aggregated into a structured table (CSV/TSV) with headers and numeric values; Row/column counts consistent with the DK atlas region set (~34 cortical ROIs per hemisphere); No processing errors; logs captured",
+            "output_validation": "Per-ROI numeric comparison of thickness/area/volume, lh and rh, vs fs_stats.",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. FreeSurfer stats parsing (e.g. aparcstats2table) or direct parse of aparc.stats; nibabel/pandas in Python for table assembly",
+            "notes": "[input_isolation] Agent parses mri/surf/label; must NOT read the existing stats/ files (GT).",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0008/anat/ && datalad get derivatives/freesurfer/sub-0008/",
+            "expected_files_detail": "Cortical morphometry statistics tables (any filename; e.g. *aparc_stats.txt or CSV)"
+          }
+        },
+        "structural-cortical-reconstruction": {
+          "title": "FreeSurfer cortical reconstruction (recon-all)",
+          "description": "Full FreeSurfer recon-all cortical surface reconstruction and subcortical segmentation from the T1w of sub-0001 of OpenNeuro dataset ds002790.",
+          "prompt": {
+            "goal": "Run a full FreeSurfer cortical reconstruction (recon-all) on the T1-weighted image of sub-0001, producing cortical surfaces, the subcortical segmentation, and the cortical parcellation.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0001"
+              ]
+            },
+            "required_output": "A cortical surface reconstruction (white and pial surfaces), a subcortical segmentation, and a cortical parcellation.",
+            "required_tool": [
+              "freesurfer-recon-all",
+              "fastsurfer"
+            ]
+          },
+          "solution": {
+            "ground_truth": "derivatives/freesurfer/sub-0001/mri/aseg.mgz (subcortical) + aparc+aseg.mgz (cortical parcellation). Compare agent recon to these via Dice on labels + volume correlation. FreeSurfer.mgz -> read with nibabel/mri_convert.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "dice",
+            "pass_criterion": "Cortical reconstruction completed; subject directory with surf/, mri/, stats/ present; White and pial surfaces produced for both hemispheres; Cortical parcellation (aparc+aseg) and subcortical segmentation (aseg.mgz) produced; aseg.stats and per-hemisphere aparc.stats tables produced; No processing errors; recon-all/FastSurfer log captured",
+            "output_validation": "Dice on aseg labels, volume correlation on aparc regions vs the bundled reference recon.",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. FreeSurfer full recon-all; FastSurfer alternative is its own task (structural-fastsurfer-recon)",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0001/anat/",
+            "expected_files_detail": "A FreeSurfer/FastSurfer subject directory (any name) with surf/, mri/, stats/ subdirectories; White and pial surfaces: surf/lh.white, surf/rh.white, surf/lh.pial, surf/rh.pial; Cortical parcellation: mri/aparc+aseg.mgz (or aparc.DKTatlas+aseg.mgz); Subcortical segmentation: mri/aseg.mgz; Statistics: stats/aseg.stats and stats/lh.aparc.stats, stats/rh.aparc.stats; Cortical thickness maps: surf/lh.thickness, surf/rh.thickness"
+          }
+        },
+        "structural-fastsurfer-recon": {
+          "title": "FastSurfer rapid recon-all alternative",
+          "description": "Run FastSurfer deep-learning cortical reconstruction on the T1w of sub-0009 of OpenNeuro dataset ds002790, producing the whole-brain segmentation.",
+          "prompt": {
+            "goal": "Run FastSurfer (deep-learning cortical reconstruction) on the T1-weighted image of sub-0009, producing the whole-brain segmentation (DKT-atlas cortical parcellation + subcortical structures).",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0009"
+              ]
+            },
+            "required_output": "A cortical surface reconstruction (white and pial surfaces), a subcortical segmentation, and a cortical parcellation.",
+            "required_tool": "fastsurfer"
+          },
+          "solution": {
+            "ground_truth": "derivatives/freesurfer/sub-0009/mri/aparc.DKTatlas+aseg.mgz (under mri/, not stats/). FastSurfer uses the DKT atlas so compare to the DKTatlas reference. Per-label Dice.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "dice",
+            "pass_criterion": "FastSurfer full reconstruction completed (segmentation + surface stream); aparc.DKTatlas+aseg segmentation produced (note: FastSurfer uses the DKT atlas, not DK); White and pial surfaces with thickness produced for both hemispheres; Stats tables produced; No processing errors; logs captured",
+            "output_validation": "Per-label Dice vs FreeSurfer aparc.DKTatlas+aseg (FastSurfer approximates FreeSurfer; expect high but not perfect overlap).",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. FastSurfer full recon (run_fastsurfer.sh, both --seg and --surf). Default atlas is DKT (aparc.DKTatlas+aseg), NOT the recon-all DK aparc+aseg filename",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0009/anat/",
+            "expected_files_detail": "A FastSurfer subject directory with mri/, surf/, stats/ subdirectories; Cortical parcellation + subcortical segmentation: mri/aparc.DKTatlas+aseg.mgz; White and pial surfaces for both hemispheres (surf/lh|rh.white, surf/lh|rh.pial); Cortical thickness (surf/lh|rh.thickness) and stats (stats/aseg.stats, stats/lh|rh.aparc.DKTatlas.stats)"
+          }
+        },
+        "structural-mni-registration": {
+          "title": "MNI152 registration (linear + nonlinear)",
+          "description": "Register the T1w of sub-0006 of OpenNeuro dataset ds002790 to MNI152 space (linear + nonlinear), producing the registered image and the transform.",
+          "prompt": {
+            "goal": "Register the T1-weighted image of sub-0006 to MNI152 standard space using linear then nonlinear registration. Produce the MNI-space registered image and the estimated transform.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0006"
+              ]
+            },
+            "required_output": "Registered/resampled NIfTI in target space; Transformation file (any format:.mat, warp.nii.gz,.h5 \u2014 tool-dependent)"
+          },
+          "solution": {
+            "ground_truth": "IMAGE: derivatives/fmriprep/sub-0006/anat/sub-0006_space-MNI152NLin2009cAsym_desc-preproc_T1w.nii.gz (compare via spatial correlation / overlap). TRANSFORM: sub-0006_from-T1w_to-MNI152NLin2009cAsym_mode-image_xfm.h5 (compare the warped result rather than raw h5 fields - apply both transforms to a grid and compare displacement).",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Linear (affine) registration to MNI152 performed; Nonlinear registration performed (warp field produced); T1w resampled into MNI152 space (output dims match the MNI template); Affine matrix and nonlinear warp/transform files produced; No processing errors; logs captured",
+            "output_validation": "Primary: registered image vs reference MNI T1w (correlation/overlap). Secondary: transform equivalence via applied-displacement comparison.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "ants",
+              "spm12",
+              "niftyreg",
+              "elastix"
+            ],
+            "tool_note": "Context: healthy. Target = MNI152. Both linear and nonlinear are required (this is what the task tests). The specific MNI template version and tool are the agent's choice; skills guidance can inform that selection",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0006/anat/"
+          }
+        },
+        "structural-morphometric-stats": {
+          "title": "FreeSurfer morphometric stats extraction",
+          "description": "Extract morphometric statistics (volumes, thickness, area) from an existing FreeSurfer recon for sub-0002 of OpenNeuro dataset ds002790, without re-running recon-all.",
+          "prompt": {
+            "goal": "From the pre-computed FreeSurfer reconstruction of sub-0002, extract the morphometric statistics: regional cortical thickness, surface area, and volumes. Do not re-run recon-all; parse the existing reconstruction.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0002"
+              ]
+            },
+            "required_output": "A table of regional morphometric statistics (cortical thickness, surface area, and volume per region), in a tabular text format (CSV/TSV/text)."
+          },
+          "solution": {
+            "ground_truth": "derivatives/fs_stats/*measure-{thickness,area,volume}*hemi-{lh,rh}.tsv (row for sub-0002) AND derivatives/freesurfer/sub-0002/stats/{aseg.stats,lh.aparc.stats,rh.aparc.stats}. Compare extracted values numerically.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "table_comparison",
+            "pass_criterion": "Thickness/area/volume statistics exported for standard parcellations; Tables contain numeric values for expected structures; No processing errors; logs captured",
+            "output_validation": "Numeric comparison of per-region thickness/area/volume vs the reference stats tables.",
+            "tool_mode": "agnostic",
+            "tool_note": "Context: healthy.",
+            "notes": "[input_isolation] CRITICAL: the agent must parse mri/surf/label to compute stats, NOT read the existing stats/ files (those are GT).",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0002/anat/ && datalad get derivatives/freesurfer/sub-0002/",
+            "expected_files_detail": "Cortical morphometry statistics tables (any filename; e.g. *aparc_stats.txt or CSV)"
+          }
+        },
+        "structural-normative-modeling": {
+          "title": "Normative modeling of cortical thickness",
+          "description": "Fit a normative model of cortical thickness against age and sex on a training cohort (~200 subjects) from OpenNeuro dataset ds002790, then compute deviation (Z) scores for a held-out test set (~26 subjects).",
+          "prompt": {
+            "goal": "Using the FreeSurfer cortical-thickness measures and demographic covariates (age, sex), fit a normative model on a training cohort of ~200 subjects that predicts regional cortical thickness from the covariates, then compute per-region deviation (Z) scores for the held-out test subjects (~26). Report the deviation scores for the test set.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0001..sub-0200 (train)",
+                "sub-0201..sub-0226 (test)"
+              ]
+            },
+            "required_output": "Normative deviation scores per subject (CSV/TSV)"
+          },
+          "solution": {
+            "ground_truth": "No single \"correct\" Z per se, but the GRADEABLE outcome is: the normative model fit + held-out Z-scores are well-formed and statistically sane. Reference: on healthy held-out subjects, Z-scores should be ~N(0,1) (mean ~0, sd ~1) per region since the cohort is healthy. Check: Z-matrix shape [n_test x n_ROIs], values finite, distribution approximately standard normal, no region collapsed. Model must be fit on TRAIN only (no leakage from test).",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "matrix_comparison",
+            "pass_criterion": "fs_stats cortical-thickness table and participants.tsv (age/sex) loaded; Train/test split applied (~200 train / ~26 held-out test); Normative model fit on the training cohort (thickness ~ age + sex per region); Per-region deviation (Z) scores computed for the held-out test subjects; No processing errors; logs captured",
+            "output_validation": "Z-scores for held-out test: shape [~26 x 37], finite, approx N(0,1) across healthy test subjects, model trained on train split only.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "python:pcntoolkit"
+            ],
+            "tool_note": "Context: healthy. pcntoolkit (normative modeling). Fit on train covariates->thickness, evaluate Z on held-out test.",
+            "notes": "[input_files] derivatives/fs_stats/data-cortical_type-aparc_measure-thickness_hemi-{lh,rh}.tsv + participants.tsv (age, sex).",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fs_stats/ participants.tsv",
+            "expected_files_detail": "Normative deviation scores per subject (CSV or TSV, any filename; e.g. Z-scores)"
+          }
+        },
+        "structural-subcortical-segmentation": {
+          "title": "Subcortical segmentation (T1)",
+          "description": "Subcortical grey-matter segmentation from the T1w of sub-0007 of OpenNeuro dataset ds002790.",
+          "prompt": {
+            "goal": "Segment the subcortical grey-matter structures (e.g. thalamus, caudate, putamen, pallidum, hippocampus, amygdala, accumbens) from the T1-weighted image of sub-0007.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0007"
+              ]
+            },
+            "required_output": "A labeled subcortical segmentation (NIfTI) and per-structure volumes (tabular text)."
+          },
+          "solution": {
+            "ground_truth": "derivatives/freesurfer/sub-0007/mri/aseg.mgz - extract the subcortical labels (10/11/12/13/17/18/26/49/50/51/52/53/54/58 etc). Per-structure Dice.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "dice",
+            "pass_criterion": "Subcortical segmentation produced with standard structures (hippocampus, amygdala, thalamus, caudate, putamen, pallidum, accumbens); Label map is integer-valued; geometry matches input T1; No processing errors; logs captured",
+            "output_validation": "Per-structure Dice on subcortical labels vs FreeSurfer aseg.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "freesurfer"
+            ],
+            "tool_note": "Context: healthy.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0007/anat/",
+            "expected_files_detail": "A labelled subcortical segmentation volume (NIfTI, any filename; integer labels per structure); Per-structure meshes or volume statistics (tool-dependent; e.g. *.vtk from FSL FIRST, aseg.mgz from FreeSurfer)"
+          }
+        },
+        "structural-t1w-preprocessing": {
+          "title": "Structural T1w preprocessing (bias-correct, brain-extract, segment)",
+          "description": "Structural T1w preprocessing (bias-field correction, brain extraction, tissue segmentation) for sub-0003 of OpenNeuro dataset ds002790.",
+          "prompt": {
+            "goal": "Preprocess the T1-weighted image of sub-0003: apply bias-field correction, brain extraction, and tissue segmentation, producing a brain-extracted image, a brain mask, and tissue class maps.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0003"
+              ]
+            },
+            "required_output": "Bias-field-corrected T1w NIfTI; Brain-extracted T1w and mask; MNI-registered T1w and transformation files"
+          },
+          "solution": {
+            "ground_truth": "derivatives/fmriprep/sub-0003/anat/sub-0003_desc-brain_mask.nii.gz (native) + sub-0003_dseg.nii.gz + label-{CSF,GM,WM}_probseg.nii.gz. Dice on mask + tissue overlap.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "dice",
+            "pass_criterion": "Bias correction, brain extraction, and MNI registration completed; All output NIfTIs present with correct geometry; No processing errors; logs captured",
+            "output_validation": "Dice on brain mask; per-tissue Dice/overlap on segmentation vs fmriprep reference.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "ants",
+              "freesurfer"
+            ],
+            "tool_note": "Context: healthy. fsl_anat (FSL), antsBrainExtraction+antsRegistration (ANTs), or a custom chain are all valid. The task tests whether the agent assembles the correct pipeline steps, not which tool it uses",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0003/anat/"
+          }
+        },
+        "structural-tissue-segmentation": {
+          "title": "Tissue segmentation (T1)",
+          "description": "Tissue-type segmentation (GM/WM/CSF) of the T1w of sub-0005 of OpenNeuro dataset ds002790.",
+          "prompt": {
+            "goal": "Segment the T1-weighted image of sub-0005 into the three tissue classes - grey matter, white matter, and CSF - producing tissue probability or label maps.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0005"
+              ]
+            },
+            "required_output": "A tissue label map (NIfTI) with CSF/GM/WM labels, and per-tissue probability or partial-volume maps (NIfTI)."
+          },
+          "solution": {
+            "ground_truth": "derivatives/fmriprep/sub-0005/anat/sub-0005_dseg.nii.gz + label-{CSF,GM,WM}_probseg.nii.gz (native space). Per-tissue Dice.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "dice",
+            "pass_criterion": "A 3-class tissue segmentation (CSF/GM/WM) produced from a brain-extracted T1; Tissue label map is integer-valued with at least 3 distinct classes; Per-tissue probability or partial-volume maps produced (one per class); Geometry matches input; No processing errors; logs captured",
+            "output_validation": "Per-tissue Dice/overlap vs fmriprep tissue segmentation.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "ants",
+              "spm12"
+            ],
+            "tool_note": "Context: healthy. FAST (fsl), Atropos (ants), or SPM tissue segmentation. FreeSurfer excluded (segments only within full recon)",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0005/anat/",
+            "expected_files_detail": "A tissue label map (NIfTI, any filename; integer labels for CSF/GM/WM); Per-tissue probability or partial-volume maps (NIfTI, any filename \u2014 tool-dependent; e.g. *_pve_0/1/2.nii.gz from FAST, or probability maps from Atropos)"
+          }
+        },
+        "structural-voxel-based-morphometry": {
+          "title": "Voxel-based morphometry (GM maps for group analysis)",
+          "description": "Voxel-based morphometry: produce smoothed, modulated grey-matter volume maps in template space from the T1w of sub-0010 of OpenNeuro dataset ds002790.",
+          "prompt": {
+            "goal": "Perform voxel-based morphometry on the T1-weighted image of sub-0010: segment grey matter, register to template space, modulate, and smooth, producing a grey-matter volume map in template space.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002790",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0010"
+              ]
+            },
+            "required_output": "Modulated, normalized grey-matter maps (NIfTI) suitable for voxelwise analysis."
+          },
+          "solution": {
+            "ground_truth": "derivatives/vbm/sub-0010/sub-0010_desc-VBM_GMvolume.nii.gz. Spatial correlation of the GM volume map (in the same template space). Was HARD before ds002790 - now has a reference.",
+            "ground_truth_location": "dataset-shipped derivatives (ds002790 fMRIPrep/FreeSurfer outputs)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Per-subject grey-matter maps segmented and normalised to template space; Maps modulated (Jacobian-scaled) to preserve volume; Smoothing applied with an isotropic Gaussian kernel (kernel size reported); Outputs ready for second-level group analysis (consistent space/dimensions across subjects); No processing errors; logs captured",
+            "output_validation": "Spatial correlation / voxelwise agreement of GM volume map vs the bundled VBM reference.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "cat12",
+              "spm12",
+              "fsl"
+            ],
+            "tool_note": "Context: healthy. CAT12 and SPM12 run as standalone compiled builds on the free MATLAB Compiler Runtime (MCR) - no MATLAB license needed. FSL-VBM is the FSL-native path. All three are open-source-testable",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0010/anat/",
+            "expected_files_detail": "Modulated normalised grey-matter maps in template space (NIfTI, any filename; e.g. mwp1*.nii from CAT12 or similar); QC report (any format); ROI volume table (CSV or TSV, any filename)"
+          }
+        }
+      }
+    },
+    "functional": {
+      "description": "fMRI processing: preprocessing, denoising, connectivity, activity metrics.",
+      "tasks": {
+        "functional-alff-reho": {
+          "title": "ALFF / ReHo local fMRI activity",
+          "description": "ALFF/fALFF/ReHo voxel-wise maps from the fMRIPrep BOLD of sub-CON01 (ses-preop) of ds001226",
+          "prompt": {
+            "goal": "Compute ALFF, fALFF, and ReHo from the fMRIPrep-preprocessed resting-state BOLD of sub-0022 (resting-state, task-restingstate) (fMRIPrep derivatives), producing three voxel-wise scalar maps.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0022"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "One or more quantitative scalar maps (NIfTI)"
+          },
+          "solution": {
+            "ground_truth": "GENERATE: run AFNI 3dRSFC (ALFF+fALFF, 0.01-0.08Hz) and 3dReHo (-nneigh 27) once; store THREE maps. Compare by spatial correlation in brain mask; plausibility grey>white.",
+            "ground_truth_location": "OSF zjqey: fmri_gt/functional-alff-reho/",
+            "metric": "spatial_correlation",
+            "pass_criterion": "ALFF, fALFF, and ReHo computed within the brain mask from the preprocessed BOLD; Three voxel-wise scalar maps produced (NIfTI); geometry matches BOLD; ALFF/ReHo higher in grey matter than white matter/CSF (plausibility); No processing errors; logs captured",
+            "output_validation": "Three maps vs reference (spatial correlation) + grey>white.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "afni",
+              "python:nilearn",
+              "fsl"
+            ],
+            "tool_note": "Context: healthy. ALFF/fALFF (low-freq power) + ReHo (Kendall W of neighbours). AFNI (3dRSFC/3dReHo), or python",
+            "notes": "[input_files] preproc_bold (TR from sidecar) + brain_mask",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0022/",
+            "expected_files_detail": "One or more quantitative scalar maps (NIfTI, any filename; e.g. FA, MD, CBF, ALFF, ReHo)"
+          }
+        },
+        "functional-bold-to-mni": {
+          "title": "BOLD-to-MNI alignment via composed transform",
+          "description": "Align the resting-state BOLD of sub-0019 of OpenNeuro dataset ds002790 to MNI152 space by composing the BOLD-to-anatomical and anatomical-to-MNI transforms into a SINGLE transform, and applying it in one resampling step.",
+          "prompt": {
+            "goal": "Align the resting-state BOLD of sub-0019 to MNI152 space. Estimate the BOLD-to-anatomical and anatomical-to-MNI transforms, then COMPOSE them into a single transform that maps BOLD directly to MNI. Output both that composed transform and the BOLD resampled into MNI space by applying the composed transform in a single interpolation.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0019"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "A single composed BOLD->MNI transform (one transform file/spec, not two separate ones); The BOLD resampled into MNI152 space by applying the composed transform in one interpolation"
+          },
+          "solution": {
+            "ground_truth": "fMRIPrep ships the component transforms as reference: sub-0019_from-orig_to-T1w_mode-image_xfm.txt (BOLD->anat) and sub-0019_from-T1w_to-MNI152NLin2009cAsym_mode-image_xfm.h5 (anat->MNI). The MNI target is sub-0019_task-restingstate_*_space-MNI152NLin2009cAsym_boldref.nii.gz. GRADE: (1) agent outputs a SINGLE composed transform (not two files) - this is what proves the two transforms were merged into one step; (2) applying the composed transform to the BOLD produces an MNI image matching the reference MNI boldref (spatial correlation); (3) the composed transform, when applied, agrees with sequentially applying the two reference transforms (displacement-field comparison).",
+            "ground_truth_location": "(to be added)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "BOLD-to-anatomical transform estimated; Anatomical-to-MNI152 transform estimated; The two transforms COMPOSED into a single BOLD->MNI transform (output as one transform); BOLD resampled into MNI152 by applying the composed transform in a single interpolation; MNI-space BOLD has correct MNI dimensions; composed transform maps BOLD->MNI correctly; No processing errors; logs captured",
+            "output_validation": "Composed transform exists as ONE artifact; applying it lands BOLD in MNI matching the reference MNI boldref (spatial correlation); displacement agrees with the reference two-transform chain.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "ants",
+              "afni"
+            ],
+            "tool_note": "Context: healthy. Compose transforms (e.g. ANTs antsApplyTransforms with a transform LIST -> single output, or convertwarp/c3d_affine_tool to merge). The COMPOSED SINGLE transform is the graded output.",
+            "notes": "[resolves] Earlier SCORING_LIMITATION resolved: requiring the COMPOSED TRANSFORM as an explicit output makes the single-step composition gradable (a single BOLD->MNI transform can only exist if the two were merged). Distinct from structural-mni-registration (T1w->MNI image); functional-bold-to-mni grades the composed BOLD->MNI transform.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0019/"
+          }
+        },
+        "functional-confound-regression": {
+          "title": "fMRI confound regression",
+          "description": "Confound regression (motion + WM/CSF) on the fMRIPrep BOLD of sub-CON01 (ses-preop) of ds001226",
+          "prompt": {
+            "goal": "Apply confound regression to the fMRIPrep-preprocessed resting-state BOLD of sub-0014 (session ses-preop). Regress out the fMRIPrep confounds (motion parameters, ICA-AROMA components, and white-matter and CSF signals) to produce a denoised BOLD timeseries.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0014"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "Denoised BOLD series (NIfTI) ); Record of confounds used"
+          },
+          "solution": {
+            "ground_truth": "SELF-CHECKING - no reference. After regressing chosen confounds from preproc_bold, residual BOLD must have ~zero correlation with the regressed confound timeseries. Plus variance reduction.",
+            "ground_truth_location": "(to be added)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Preprocessed BOLD, confounds table, and brain mask loaded from the DataLad derivatives; Confound regression applied (motion/AROMA components + white_matter + csf); Cleaned 4D BOLD produced; shape/affine/dtype preserved; masked; Residual confound correlation ~0 and variance reduced vs input; No processing errors; logs captured",
+            "output_validation": "Cleaned BOLD: residual-confound correlation ~0, variance reduced, geometry preserved.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "afni",
+              "fsl",
+              "python:nilearn"
+            ],
+            "tool_note": "Context: healthy. Resting-state confound regression as a standalone step (afni 3dTproject, fsl_regfilt, nilearn signal.clean). NOTE: for TASK fMRI the cleaner practice is to fold confounds into the GLM design matrix rather than pre-denoise; this task is resting-state (ds002896) so standalone regression is appropriate",
+            "notes": "[input_files] derivatives/fmriprep/sub-0014/func/*task-restingstate*desc-preproc_bold.nii.gz + *desc-confounds_regressors.tsv",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0014/",
+            "expected_files_detail": "Denoised BOLD series (NIfTI, any filename); Record of confounds used (any filename; e.g. TSV or text file)"
+          }
+        },
+        "functional-connectome": {
+          "title": "ROI-to-ROI functional connectome (from fMRIPrep derivatives)",
+          "description": "ROI-to-ROI functional connectivity matrix (atlas-based, confound-cleaned correlations) from the fMRIPrep derivatives of sub-CON01 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Compute an ROI-to-ROI functional connectivity matrix from the fMRIPrep-preprocessed resting-state BOLD of sub-0016 (resting-state, task-restingstate): extract atlas ROI time series with confound cleaning, then compute pairwise Pearson correlations. Produce the ROI x ROI correlation matrix with ROI labels.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0016"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "A connectivity matrix (CSV)/TSV/NIfTI; n_ROI \u00d7 n_ROI); ROI time series if kept as intermediate"
+          },
+          "solution": {
+            "ground_truth": "GENERATE: reference ROI-to-ROI Pearson matrix from reference timeseries. Compare edgewise. Bounded [-1,1], symmetric, diagonal ~1.",
+            "ground_truth_location": "OSF zjqey: fmri_gt/functional-connectome/",
+            "metric": "matrix_comparison",
+            "pass_criterion": "Derivatives loaded; ROI timeseries extracted with confound cleaning; Pairwise Pearson correlation -> N_ROIs x N_ROIs matrix; Matrix symmetric, diagonal ~1, values in [-1,1]; Saved with ROI labels; No processing errors; logs captured",
+            "output_validation": "Connectome vs reference (edgewise correlation) + structure checks.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "python:nilearn",
+              "afni",
+              "fsl"
+            ],
+            "tool_note": "Context: healthy. ROI timeseries + correlation matrix. nilearn (ConnectivityMeasure), AFNI, or FSL. Agnostic",
+            "notes": "[input_files] same as functional-roi-timeseries",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0016/"
+          }
+        },
+        "functional-fmriprep-preprocessing": {
+          "title": "fMRIPrep preprocessing of a BIDS dataset",
+          "description": "fMRIPrep preprocessing of sub-CON01 (ses-preop) of OpenNeuro dataset ds001226 (BIDS) to standard space with QC",
+          "prompt": {
+            "goal": "Run fMRIPrep on sub-0020 (session ses-preop) to produce preprocessed BOLD and anatomical derivatives in standard space, with confounds and a QC report.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0020"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_tool": "fmriprep"
+          },
+          "solution": {
+            "ground_truth": "Published ds002790 fMRIPrep derivative IS the reference. NOT voxel-wise (versions differ). Grade OUTCOME = key outputs exist + well-formed vs reference file set: preproc_bold (MNI152NLin2009cAsym), confounds_regressors.tsv, brain_mask, desc-preproc_T1w, QC HTML.",
+            "ground_truth_location": "(to be added)",
+            "metric": "table_comparison",
+            "pass_criterion": "fMRIPrep completed on the BIDS dataset; Preprocessed BOLD produced in standard space (e.g. MNI152NLin2009cAsym) and/or T1w space; Confounds timeseries produced; Subject QC HTML report generated; No processing errors; logs captured",
+            "output_validation": "Key fMRIPrep outputs present + well-formed (spaces, confounds, QC) matching reference tree. Not voxel-wise.",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0020/"
+          }
+        },
+        "functional-ica-aroma": {
+          "title": "ICA-AROMA BOLD denoising",
+          "description": "ICA-AROMA non-aggressive denoising of the fMRIPrep-preprocessed BOLD of sub-CON01 (ses-preop) of OpenNeuro dataset ds001226: noise-component classification + denoised BOLD",
+          "prompt": {
+            "goal": "Apply ICA-AROMA denoising to the fMRIPrep-preprocessed resting-state BOLD of sub-CON01 (session ses-preop): identify motion-related noise components and regress them out non-aggressively to produce a denoised BOLD.",
+            "dataset": {
+              "id": "ds001226-fmriprep",
+              "source": "openneuro-derivatives",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-CON01"
+              ],
+              "session": "ses-preop",
+              "task": "rest"
+            },
+            "required_output": "Denoised BOLD series (NIfTI) ); Noise component classification or label file",
+            "required_tool": "fsl"
+          },
+          "solution": {
+            "ground_truth": "ds001226-fmriprep ships AROMA reference: sub-CON01_ses-preop_task-rest_AROMAnoiseICs.csv, desc-MELODIC_mixing.tsv, desc-aroma_bold.svg, space-MNI152NLin6Asym_desc-smoothAROMAnonaggr_bold.nii.gz. Compare noise-IC overlap + denoised BOLD correlation; reportlet exists.",
+            "ground_truth_location": "(to be added)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "ICA-AROMA run on the fMRIPrep MELODIC decomposition of the preprocessed BOLD; Noise-component classification produced (AROMAnoiseICs.csv) and an AROMA reportlet (e.g. desc-aroma_bold.svg); Non-aggressively denoised BOLD produced (e.g. desc-smoothAROMAnonaggr_bold.nii.gz); geometry matches input; Motion-correlated variance reduced relative to input; No processing errors; logs captured",
+            "output_validation": "Denoised BOLD exists (geometry matches), classification produced, motion variance reduced; compare to shipped AROMA reference.",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. ICA-AROMA (within fsl). Operates on fMRIPrep MELODIC components. Produces AROMAnoiseICs.csv + the aroma reportlet + a non-aggressively denoised BOLD. FIX dropped per review (AROMA is the cleaner, fMRIPrep-integrated choice and the derivatives already contain MELODIC mixing + AROMA outputs)",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds001226-fmriprep.git && cd ds001226-fmriprep && datalad get sub-CON01/"
+          }
+        },
+        "functional-ica-decomposition": {
+          "title": "Resting-state ICA decomposition",
+          "description": "Resting-state spatial ICA decomposition (~20-30 components) of the BOLD of sub-CON01 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Decompose the resting-state BOLD of sub-0013 (session ses-preop) into spatial independent components using ICA (e.g. ~20-30 components). Produce the component spatial maps and their time courses.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0013"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "A set of independent component spatial maps (NIfTI) and their associated timecourses."
+          },
+          "solution": {
+            "ground_truth": "NO GT (decompositions not reproducibly comparable). VALIDITY-graded: ~20-30 components, spatial maps correct dims, timecourses length=timepoints, non-degenerate. Correctness NOT graded.",
+            "ground_truth_location": "n/a (property/validity-graded, no reference)",
+            "metric": "validity",
+            "pass_criterion": "BOLD decomposed into spatial ICs (MELODIC / CanICA); Component spatial maps + time courses produced (~20-30 components); Maps brain-shaped (correct dims); time courses length = number of volumes; No processing errors; logs captured",
+            "output_validation": "Structure/validity: ~20-30 components, maps correct dims, timecourses=timepoints, non-degenerate.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "python:nilearn"
+            ],
+            "tool_note": "Context: healthy. Spatial ICA decomposition - NOT denoising. FSL MELODIC or nilearn CanICA. This is the general ICA-decomposition task (distinct from functional-alff-reho which is ICA-AROMA *denoising*). ~20-30 components is a reasonable resting-state dimensionality; exact count is the agent's choice within reason",
+            "notes": "[gt_status] VALIDITY-ONLY (property task)",
+            "grading_type": "property/plausibility (no external ground truth)",
+            "status": "property-graded; explicit validity criteria to be finalized by community",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0013/",
+            "expected_files_detail": "Spatial component maps (4D NIfTI, any filename; e.g. melodic_IC.nii.gz or similar); Component time courses / mixing matrix (any filename); Report or QC output (tool-dependent)"
+          }
+        },
+        "functional-motion-correction": {
+          "title": "fMRI motion correction",
+          "description": "Motion correction (realignment) of the resting BOLD of sub-CON01 (ses-preop) of ds001226",
+          "prompt": {
+            "goal": "Apply motion correction (volume realignment) to the 4D resting-state BOLD of sub-CON01 (session ses-preop). Produce the motion-corrected BOLD and the motion parameters.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-CON01"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "A motion-corrected 4D BOLD series (NIfTI) ); A per-volume motion parameter file"
+          },
+          "solution": {
+            "ground_truth": "Motion-corrected BOLD + 6 motion parameters (mcflirt .par), sub-CON01 ds001226.",
+            "ground_truth_location": "OSF zjqey: fmri_gt/functional-motion-correction/",
+            "metric": "table_comparison",
+            "pass_criterion": "4D BOLD realigned to a reference volume; Motion-corrected BOLD produced; geometry preserved; 6 motion parameters saved (translations + rotations); No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "afni",
+              "spm12"
+            ],
+            "tool_note": "Context: healthy.",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON01",
+            "expected_files_detail": "A motion-corrected 4D BOLD series (NIfTI, any filename); A per-volume motion parameter file (any filename; e.g. *.par from MCFLIRT, or equivalent)"
+          }
+        },
+        "functional-mriqc-quality": {
+          "title": "MRIQC quality report on a BIDS dataset",
+          "description": "MRIQC participant-level image-quality metrics + HTML reports for sub-CON01 (ses-preop) of OpenNeuro dataset ds001226 (BIDS)",
+          "prompt": {
+            "goal": "Run MRIQC at the participant level on sub-0021 (session ses-preop) to produce image-quality metrics and visual QC reports.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0021"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "A QC report (HTML, ); Image quality metrics (IQMs) in JSON or TSV format",
+            "required_tool": "mriqc"
+          },
+          "solution": {
+            "ground_truth": "ds002790 derivatives/mriqc/: GT is the JSON IQM files (sub-XX/anat/*_T1w.json, sub-XX/func/*_bold.json) - NOT the HTML. Grade: (1) output structure (per-image JSON + HTML) produced, (2) numeric IQMs (SNR, FBER, EFC, tSNR, FD) match reference within tolerance. HTML existence secondary.",
+            "ground_truth_location": "(to be added)",
+            "metric": "table_comparison",
+            "pass_criterion": "MRIQC participant-level run completed; Image-quality-metric files produced (per-modality IQMs as JSON/TSV); Visual QC HTML report(s) generated (anatomical and/or functional); No processing errors; logs captured",
+            "output_validation": "MRIQC JSON IQMs match reference within tolerance (primary); dir structure + HTML exist (secondary).",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0021/"
+          }
+        },
+        "functional-postprocessing-denoising": {
+          "title": "Post-fMRIPrep denoising with XCP-D",
+          "description": "XCP-D post-fMRIPrep denoising (nuisance regression + bandpass + motion censoring) of sub-CON01 (ses-preop) fMRIPrep derivatives of OpenNeuro dataset ds001226, with QC",
+          "prompt": {
+            "goal": "Run XCP-D to post-process the fMRIPrep derivatives of sub-20712 (resting-state, task-restingstate): apply a standard nuisance-regression denoising strategy, temporal bandpass filtering, and motion censoring, producing a denoised resting-state BOLD with a QC report.",
+            "dataset": {
+              "id": "ds004450",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-20712"
+              ],
+              "task": "restbold",
+              "session": "ses-12367"
+            },
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_tool": "xcpd"
+          },
+          "solution": {
+            "ground_truth": "3 subjects, task-restbold (2 runs), MNI152NLin6Asym. Grade denoised BOLD similarity + connectome structure (156x156).",
+            "ground_truth_location": "OSF zjqey: fmri_gt/functional-postprocessing-denoising/",
+            "metric": "matrix_comparison",
+            "pass_criterion": "XCP-D run on the fMRIPrep derivatives; A defined nuisance-regression strategy applied (e.g. 36-parameter, or aCompCor); Temporal bandpass filtering applied; Motion censoring/scrubbing applied at a defined FD threshold; Denoised BOLD (standard space) + QC report (HTML) with motion traces produced; No processing errors; logs captured",
+            "output_validation": "Denoised BOLD vs reference (correlation); denoising components present.",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. XCP-D is a BIDS-App that POST-processes fMRIPrep output. --participant-label; needs fMRIPrep derivatives as input. Distinct from functional-alff-reho (ICA) and clinical-ms-lesion-segmentation (manual confound regression): XCP-D is a full denoising pipeline",
+            "notes": "[input_files] fMRIPrep derivatives dir for sub-0018 [prompt_design_decision] COMPATIBILITY-FIX DESIGN (parallels diffusion-preprocessing but resolves differently). KEY DISTINCTION from diffusion-preprocessing: there the required transform (PA->fmap/) was a CORRECT BIDS operation worth testing, so we stated-the-fact-in-prompt and let the agent execute. [dataset_resolved] RESOLVED: ds004450 = clean drop-in (verified: derivatives/fmriprep/ shipped, desc-confounds_timeseries.tsv naming, 0 _regressors, task-restbold resting-state, aparcaseg present, 3 subjects). Command uses --task-id restbold --participant-label 20712.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds004450.git && cd ds004450 && datalad get sub-20712/"
+          }
+        },
+        "functional-roi-timeseries": {
+          "title": "ROI time-series extraction (from fMRIPrep derivatives)",
+          "description": "Per-ROI BOLD time-series extraction (atlas-based, confound-cleaned) from the fMRIPrep derivatives of sub-CON01 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Extract per-ROI BOLD time series from the fMRIPrep-preprocessed resting-state BOLD of sub-0015 (resting-state, task-restingstate), using a brain atlas/parcellation and applying confound cleaning with the fMRIPrep confounds. Produce the cleaned per-ROI time series as a 2D array (time x ROI) with ROI labels.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0015"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "ROI time series (CSV/TSV); n_timepoints \u00d7 n_ROIs)"
+          },
+          "solution": {
+            "ground_truth": "GENERATE: reference ROI-timeseries (nilearn NiftiLabelsMasker on aparcaseg, confound-cleaned); store [T x N_ROIs]. Compare by per-ROI correlation.",
+            "ground_truth_location": "OSF zjqey: fmri_gt/functional-ROI-timeseries/",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Derivatives loaded; atlas/parcellation applied; Per-ROI mean timeseries extracted with confound cleaning; 2D array (time x ROI) saved with ROI labels; No processing errors; logs captured",
+            "output_validation": "Timeseries [T x N_ROIs], per-ROI correlation vs reference.",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "python:nilearn",
+              "afni",
+              "fsl"
+            ],
+            "tool_note": "Context: healthy. Atlas-based ROI timeseries with confound regression. nilearn (NiftiLabelsMasker), AFNI, or FSL. Agnostic - nilearn is one option, not required",
+            "notes": "[input_files] preproc_bold + confounds_regressors.tsv + space-MNI152NLin2009cAsym_desc-aparcaseg_dseg.nii.gz",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0015/"
+          }
+        },
+        "functional-seed-to-voxel": {
+          "title": "Seed-to-voxel correlation map (from fMRIPrep derivatives)",
+          "description": "Seed-to-voxel functional connectivity map (whole-brain correlation with a seed ROI) from the fMRIPrep derivatives of sub-CON01 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Compute a seed-to-voxel functional connectivity map from the fMRIPrep-preprocessed resting-state BOLD of sub-0017 (resting-state, task-restingstate): define a posterior cingulate cortex (PCC) seed, extract its confound-cleaned time series, and correlate it against every brain voxel. Produce the seed-to-voxel correlation map as a 3D NIfTI in BOLD space.",
+            "dataset": {
+              "id": "ds002790",
+              "source": "openneuro",
+              "version_pin": "2.0.0",
+              "subjects": [
+                "sub-0017"
+              ],
+              "task": "restingstate"
+            },
+            "required_output": "A connectivity matrix (CSV)/TSV/NIfTI; n_ROI \u00d7 n_ROI); ROI time series if kept as intermediate"
+          },
+          "solution": {
+            "ground_truth": "GENERATE: reference PCC seed-to-voxel map (PCC = aparcaseg DK labels 1026/2026, confound-cleaned). Compare by spatial correlation in brain mask.",
+            "ground_truth_location": "OSF zjqey: fmri_gt/functional-seed-to-voxel/",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Derivatives loaded; PCC seed defined from the atlas; Confound-cleaned PCC mean timeseries extracted; Voxelwise Pearson correlation map produced (3D NIfTI, BOLD space/affine); Values in [-1,1]; autocorrelation ~1 near seed; No processing errors; logs captured",
+            "output_validation": "Seed map vs reference (spatial correlation); values [-1,1].",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "python:nilearn",
+              "afni",
+              "fsl"
+            ],
+            "tool_note": "Context: healthy. Seed timeseries -> voxelwise correlation map. nilearn, AFNI (3dTcorr1D), or FSL. Agnostic",
+            "notes": "[input_files] preproc_bold + confounds + aparcaseg (PCC seed)",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get derivatives/fmriprep/sub-0017/"
+          }
+        },
+        "functional-task-glm": {
+          "title": "First-level task GLM (motor activation)",
+          "description": "First-level task GLM on the motor (finger-foot-lips) fMRIPrep derivatives of sub-01 ses-test of OpenNeuro dataset ds000114: events design + confounds -> movement-vs-baseline contrast map",
+          "prompt": {
+            "goal": "Run a first-level task GLM on the fMRIPrep-preprocessed BOLD of sub-01, session ses-test, task fingerfootlips. The finger-foot-lips paradigm alternates finger, foot, and lip movements; build the design from the task events, include standard nuisance confounds, and produce a movement-vs-baseline activation contrast map. the task events.tsv come from the raw OpenNeuro dataset.",
+            "dataset": {
+              "source": "openneuro-derivatives",
+              "id": "ds000114-fmriprep",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ],
+              "session": "ses-test",
+              "task": "fingerfootlips"
+            },
+            "required_output": "A design matrix (any format:.mat,.tsv, or equivalent); Contrast/statistic maps (NIfTI)"
+          },
+          "solution": {
+            "ground_truth": "No ready-made contrast (fMRIPrep produces no GLM). GT is ANATOMICAL: movement-vs-baseline contrast must peak in precentral/postcentral gyrus - check peak falls in a motor-cortex atlas ROI (e.g. Harvard-Oxford). Optionally generate a reference nilearn GLM for map correlation.",
+            "ground_truth_location": "(to be added)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "fMRIPrep preproc_bold (MNI152NLin2009cAsym), confounds_timeseries.tsv, and task events loaded; First-level design built from events (HRF-convolved) with nuisance confounds (6 motion params + WM + CSF; optionally aCompCor/FD) as regressors; Movement-vs-baseline contrast map produced as a statistical NIfTI; Activation in the expected motor regions (pre/postcentral gyrus) for the movement contrast; No processing errors; logs captured",
+            "output_validation": "Contrast map exists, MNI dims; peak activation in motor cortex (atlas ROI).",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "python:nilearn",
+              "fsl",
+              "spm12",
+              "afni"
+            ],
+            "tool_note": "Context: healthy. First-level GLM: nilearn FirstLevelModel, FSL FEAT, SPM, or AFNI 3dDeconvolve. Events define the design; include confounds as nuisance regressors",
+            "notes": "[input_files] Derivatives repo: https://github.com/OpenNeuroDerivatives/ds000114-fmriprep.git (datalad). preproc_bold (MNI152NLin2009cAsym) + confounds_timeseries.tsv under sub-01/ses-test/func/; events.tsv from raw ///openneuro/ds000114. Confounds: 6 motion + WM + CSF (optional aCompCor/FD). Contrast: movement vs baseline",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDerivatives/ds000114-fmriprep.git && cd ds000114-fmriprep && datalad get sub-01/ses-test/; datalad install ///openneuro/ds000114 && cd ds000114 && datalad get sub-01/ses-test/func/*events.tsv",
+            "expected_files_detail": "A design matrix (any format:.mat,.tsv, or equivalent); Contrast/statistic maps (NIfTI, any filename; e.g. z-stat, t-stat, or effect-size maps)"
+          }
+        }
+      }
+    },
+    "diffusion": {
+      "description": "Diffusion MRI: preprocessing, tensor/FOD modeling, tractography, connectomes.",
+      "tasks": {
+        "diffusion-brain-mask": {
+          "title": "DWI Brain Mask from b0",
+          "description": "Brain mask from the b0 of the DWI of sub-CON02 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Extract a b0 volume from the DWI of sub-CON02 (session ses-preop) and create a brain mask from it.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON02"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "A skull-stripped brain image (NIfTI) ); A binary brain mask (NIfTI) )"
+          },
+          "solution": {
+            "ground_truth": "Brain mask. Reference mask.mif on OSF y2dq4. NOTE: reference mask was made via dwi2mask on the PREPROCESSED (unbiased) DWI, so the task input should be the preprocessed DWI (sub-02_den_preproc_unbiased.mif), not raw. Grade by Dice to reference mask.",
+            "ground_truth_location": "OSF y2dq4: preprocessed/mask.mif",
+            "metric": "dice",
+            "pass_criterion": "b0 extracted from the DWI; Binary brain mask produced; geometry matches the DWI; Mask covers brain, excludes non-brain; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "mrtrix3"
+            ],
+            "tool_note": "Context: healthy. Extract b0 (fslroi / dwiextract -bzero) then mask (fsl bet / mrtrix3 dwi2mask). fsl + mrtrix3 are sufficient; no need to over-list",
+            "notes": "[input_note] Task input = PREPROCESSED DWI (sub-02_den_preproc_unbiased.mif), because the reference mask was computed on the unbiased DWI. Do not grade a mask made from raw DWI against this reference. [subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE).",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02"
+          }
+        },
+        "diffusion-denoising": {
+          "title": "DWI denoising (MP-PCA)",
+          "description": "MP-PCA denoising of the DWI of sub-CON02 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Apply MP-PCA denoising to the DWI of sub-CON02 (session ses-preop). Produce the denoised 4D DWI.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON02"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "Denoised 4D DWI series (NIfTI) ); Noise map or residual map (NIfTI); not all tools produce this)"
+          },
+          "solution": {
+            "ground_truth": "MP-PCA denoised DWI. Reference sub-02_den.mif on OSF y2dq4. Grade by similarity to reference denoised DWI (not voxel-exact; denoising impl varies). Input = raw DWI.",
+            "ground_truth_location": "OSF y2dq4: preprocessed/sub-02_den.mif",
+            "metric": "spatial_correlation",
+            "pass_criterion": "DWI denoised with an MP-PCA-based method; Denoised 4D DWI produced; spatial dimensions and volume count preserved; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "mrtrix3",
+              "dwidenoise2",
+              "python:dipy"
+            ],
+            "tool_note": "Context: healthy. MP-PCA: mrtrix3 (dwidenoise) or the dwidenoise2; DIPY via pip in the Python env",
+            "notes": "[subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE).",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02"
+          }
+        },
+        "diffusion-distortion-eddy-correction": {
+          "title": "DWI distortion and eddy-current correction",
+          "description": "Distortion (TOPUP, using AP+PA) and eddy-current correction of the DWI of sub-CON02 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Run susceptibility distortion correction and eddy-current/motion correction on the DWI of sub-CON02 (session ses-preop), which provides opposite phase-encode (AP and PA) acquisitions. Produce the corrected DWI.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON02"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "Eddy/motion-corrected 4D DWI series (NIfTI) ); Rotated bvecs file; Motion/eddy outlier parameters or QC report (tool-dependent)"
+          },
+          "solution": {
+            "ground_truth": "Distortion + eddy/motion corrected DWI. Reference sub-02_den_preproc.mif on OSF y2dq4 (end of dwifslpreproc, before bias correction). Grade by similarity to reference. Input = denoised DWI.",
+            "ground_truth_location": "OSF y2dq4: preprocessed/sub-02_den_preproc.mif",
+            "metric": "spatial_correlation",
+            "pass_criterion": "DWI corrected for eddy-current and motion artefacts; Corrected 4D DWI and rotated bvecs produced; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "mrtrix3",
+              "qsiprep"
+            ],
+            "tool_note": "Context: healthy. TOPUP (fsl, needs the AP+PA pair) + eddy (fsl), or MRtrix3 dwifslpreproc wrapper, or QSIPrep. ds001226 has reverse-PE so TOPUP is applicable",
+            "notes": "[subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE).",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02"
+          }
+        },
+        "diffusion-dti-metrics": {
+          "title": "DTI core metrics (FA/MD/AD/RD)",
+          "description": "Diffusion-tensor fit producing FA/MD/AD/RD scalar maps for sub-CON02 (ses-preop) of OpenNeuro dataset ds001226 (healthy control, multi-shell DWI)",
+          "prompt": {
+            "goal": "Fit a diffusion tensor and compute the four core DTI scalar maps - FA (fractional anisotropy), MD (mean diffusivity), AD (axial diffusivity), and RD (radial diffusivity) - for sub-CON02 (session ses-preop). Save each metric as a NIfTI map.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON02"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "One or more quantitative scalar maps (NIfTI)"
+          },
+          "solution": {
+            "ground_truth": "Four DTI scalar maps (FA/MD/AD/RD). References under dti/ on OSF y2dq4, generated via dwi2tensor -> tensor2metric on sub-02_den_preproc_unbiased.mif. Grade each map by spatial correlation to reference (masked). Input = preprocessed DWI.",
+            "ground_truth_location": "OSF y2dq4: dti/",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Diffusion tensor fit on the appropriate (lower) b-shells with bvals/bvecs and a brain mask; FA, MD, AD, RD maps produced as NIfTI; geometry matches the input DWI; FA values within [0,1]; diffusivities non-negative and in plausible range; Numerical safety applied (clip negative eigenvalues; NaN/Inf -> 0; mask out non-brain); No processing errors; logs captured",
+            "output_validation": "Content checks: FA in [0,1], MD/AD/RD finite non-negative, plausible white-matter FA ~0.4-0.8 in core WM. Geometry matches input. Any filename",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl",
+              "mrtrix3",
+              "python:dipy"
+            ],
+            "tool_note": "Context: healthy. FSL dtifit, MRtrix3 dwi2tensor+tensor2metric, or DIPY tensor model. DTI fit uses the lower b-shells (b<=1200); the b=2800 shell is for higher-order models, not the tensor",
+            "notes": "[subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE).",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02",
+            "expected_files_detail": "One or more quantitative scalar maps (NIfTI, any filename; e.g. FA, MD, CBF, ALFF, ReHo)"
+          }
+        },
+        "diffusion-fod-peaks": {
+          "title": "Multi-fibre orientation peaks (CSD)",
+          "description": "CSD multi-fibre modelling with peak extraction (4D peaks NIfTI) from the multi-shell DWI of sub-CON02 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "From the multi-shell DWI of sub-CON02 (session ses-preop), estimate the fibre response function, compute fibre orientation distributions (constrained spherical deconvolution), and extract the peak directions as a 4D NIfTI peaks image.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON02"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "Fibre orientation model output"
+          },
+          "solution": {
+            "ground_truth": "CSD fibre-orientation peaks. Reference peaks.mif on OSF y2dq4 (sh2peaks on wmfod_norm.mif). Input = provided normalized FODs (wmfod_norm.mif) OR preprocessed DWI. Grade by peak-direction agreement in WM.",
+            "ground_truth_location": "OSF y2dq4: fod/peaks.mif",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Response function estimated; FODs computed via CSD (uses the high b-shell); Peak directions extracted as a 4D NIfTI (e.g. peaks.nii.gz); Peaks geometry matches the DWI; vectors unit-normalised; Peak directions plausible in canonical tracts (e.g. left-right in corpus callosum, inferior-superior in CST); No processing errors; logs captured",
+            "output_validation": "Score by PEAK DIRECTION in known tracts, not raw SH coefficients: in the corpus callosum the primary peak should be ~left-right; in the corticospinal tract ~inferior-superior. Coarse but real. Peaks 4D NIfTI is far more scorable than SH-coefficient FODs",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "mrtrix3",
+              "fsl",
+              "python:dipy"
+            ],
+            "tool_note": "Context: healthy. CSD via MRtrix3 (dwi2fod), FSL bedpostx, or DIPY. Multi-fibre/CSD benefits from the high b-shell (b=2800)",
+            "notes": "[input_note] Provide the normalized WM FOD (wmfod_norm.mif) as input, OR the preprocessed DWI if testing the full CSD->peaks chain. Reference peaks derived from wmfod_norm. [subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE). [note] Reframed from raw-FOD output (unscorable SH coefficients) to peak-direction output per expert review",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02",
+            "expected_files_detail": "Fibre orientation model output (any filename/format; e.g. per-voxel fibre orientations, FODs, or bedpostX directory)"
+          }
+        },
+        "diffusion-preprocessing": {
+          "title": "DWI preprocessing (QSIPrep)",
+          "description": "QSIPrep DWI preprocessing (denoise + distortion/eddy via AP+PA) to MNI152NLin2009cAsym for sub-CON01 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Preprocess the diffusion-weighted data of sub-CON01 (session ses-preop) using QSIPrep. Note: the reverse phase-encoded (PA) acquisition is a b0 fieldmap for susceptibility distortion correction; QSIPrep expects such short reverse-PE scans in the fmap/ directory as an EPI fieldmap (dir-PA_epi) with an IntendedFor entry pointing at the AP DWI, rather than in dwi/. Organize the data accordingly and run QSIPrep to produce the preprocessed DWI.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON01"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_tool": "qsiprep"
+          },
+          "solution": {
+            "ground_truth": "QSIPrep preprocessed DWI with SDC applied (verified: pepolar_qc.tsv + topupsummary present). GT files on OSF q7v8c: qsiprep/groundtruth/sub-CON01_desc-preproc_dwi.nii.gz (+.bval/.bvec + desc-brain_mask.nii.gz). Grade by similarity to reference + confirm SDC applied. Not voxel-exact (version differences).",
+            "ground_truth_location": "OSF q7v8c: qsiprep/groundtruth/",
+            "metric": "table_comparison",
+            "pass_criterion": "QSIPrep completed on the BIDS DWI; Denoising + distortion + eddy/motion correction applied; Preprocessed DWI + updated bvals/bvecs produced; QC report generated; No processing errors; logs captured",
+            "output_validation": "TWO components: (1) reorganization is BIDS-valid; (2) preprocessed DWI exists with SDC applied (check report), compared to reference on OSF q7v8c. Not voxel-exact.",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. QSIPrep BIDS-App: --participant-label, output-resolution, uses AP+PA for SDC",
+            "notes": "[dataset_setup] RESOLVED design: the prompt STATES the domain fact (PA is a b0 fieldmap, QSIPrep wants it in fmap/ as dir-PA_epi + IntendedFor) but the agent must EXECUTE the reorganization + run. This tests real BIDS-manipulation + pipeline competence without testing obscure dataset-trivia (the needed knowledge is given). Two gradable components: (1) BIDS-valid reorganization - fmap/ dir-PA_epi (.nii.gz +.json only, NO bval/bvec), correct IntendedFor path, PA removed from dwi/; (2) QSIPrep ran and produced a preprocessed DWI with SDC applied. Grader can distinguish failure modes (reorg failed vs QSIPrep failed vs full success). Reference GT produced the same way - see DWI_GT_GENERATION_PLAN.md. [subject_note] sub-CON01 (clean reverse-PE metadata; CON02 PA PE is mislabeled i-). [tool_specific_operational] QSIPrep is a BIDS-App: --participant-label, --output-resolution, uses AP+PA for SDC. May require a FreeSurfer license ($FS_LICENSE) for its anatomical workflow - same license dependency as aslprep. Without a license it degrades to --dwi-only and \"documented space\" weakens. This is a tool-specific requirement -> QSIPrep SKILL.md, and the environment must provide FS_LICENSE",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON01"
+          }
+        },
+        "diffusion-structural-connectome": {
+          "title": "DWI structural connectome (QSIRecon)",
+          "description": "QSIRecon structural connectome (orientation -> tractography -> ROI-to-ROI matrix) for sub-CON01 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Reconstruct a structural connectome from preprocessed DWI using QSIRecon for sub-CON01 (session ses-preop): estimate fibre orientations, run tractography, and produce an ROI-to-ROI connectivity matrix using a standard atlas.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON01"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_tool": "qsirecon"
+          },
+          "solution": {
+            "ground_truth": "QSIRecon structural connectome: sub-CON01_AAL116_connectivity.mat (116x116, AAL116 nodes). Pipeline: MRtrix3 no-ACT, MSMT-CSD + iFOD2 tractography + SIFT2 weighting. Reference on OSF q7v8c under qsirecon/groundtruth/. Node labels in atlas-AAL116_dseg.tsv. WEAKEST-graded: verify matrix is 116x116, symmetric, non-negative, plausible density/sparsity - structure/presence not exact edge weights (tractography is stochastic + SIFT2 weights vary run-to-run).",
+            "ground_truth_location": "OSF q7v8c: qsirecon/groundtruth/",
+            "metric": "table_comparison",
+            "pass_criterion": "QSIRecon reconstruction completed; Whole-brain tractography produced; ROI-to-ROI connectivity matrix produced (N_ROIs x N_ROIs) with a named atlas; Matrix symmetric/undirected; non-negative weights; No processing errors; logs captured",
+            "output_validation": "HONEST LIMITATION: the connectome matrix is the LEAST precisely scorable output in the DWI family. Two reasonable pipelines produce different matrices with no ground truth for which is correct. Gradable only at STRUCTURE level: square N_ROIs x N_ROIs, symmetric, non-negative, finite, non-degenerate (not all-zero/constant), atlas labels present. This is structure-plus-presence grading, weaker than the content grading used elsewhere. Kept because connectome generation is a major DWI use case (coverage), but do not over-claim its scoring precision",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. QSIRecon recon workflow (e.g. mrtrix_multishell_msmt) -> connectome. Typically consumes QSIPrep output",
+            "notes": "[input_note] QSIRecon input = the QSIPrep derivatives directory. For the reference, fetch the QSIPrep output tarball from OSF q7v8c (qsiprep/qsiprep-CON01.tar.gz), untar, point qsirecon at it. [dataset_setup] Consumes diffusion-preprocessing QSIPrep output (sub-CON01). Same dataset-setup lineage as diffusion-preprocessing. [subject_note] sub-CON01. [atlas] AAL116 (116 nodes -> 116x116 connectome). Atlas choice defines expected matrix dimensions. [recon_spec] mrtrix_multishell_msmt_noACT + --atlases AAL116 (output dir: qsirecon-MRtrix3_act-None)",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON01"
+          }
+        },
+        "diffusion-tractography-tdi": {
+          "title": "White-matter tractography + track-density image",
+          "description": "Whole-brain tractography + track-density image (TDI scalar NIfTI) on the DWI of sub-CON02 (ses-preop) of OpenNeuro dataset ds001226",
+          "prompt": {
+            "goal": "Perform whole-brain white-matter tractography on the DWI of sub-CON02 (session ses-preop), then convert the tractogram to a track-density image (TDI): a voxel-wise scalar NIfTI giving streamline density on the DWI grid.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001226",
+              "version_pin": "5.0.1",
+              "subjects": [
+                "sub-CON02"
+              ],
+              "session": "ses-preop"
+            },
+            "required_output": "Per-tract density or segmentation maps (NIfTI) ); Tract streamlines file"
+          },
+          "solution": {
+            "ground_truth": "Whole-brain tractography track-density image. Reference tdi.mif on OSF y2dq4 (tckgen ACT 1M streamlines -> tckmap). Inputs provided on OSF: 5tt_coreg.mif, gmwmSeed_coreg.mif, wmfod_norm.mif. Grade by spatial correlation of TDI to reference (tractography is stochastic; grade density map not individual streamlines).",
+            "ground_truth_location": "OSF y2dq4: tractography/tdi.mif",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Fibre orientations estimated; whole-brain tractogram generated; Tractogram converted to a track-density image (tckmap -template) as a 3D NIfTI; TDI geometry matches the DWI grid; intensities non-negative; High track density in major white-matter pathways (e.g. corpus callosum, CST), low in CSF/GM; No processing errors; logs captured",
+            "output_validation": "Score the TDI scalar map (not the raw tractogram): non-negative, geometry matches DWI, high density in major WM tracts and low in CSF/cortex. A tckmap TDI turns an unscorable tractogram into a gradable voxel-wise map",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "mrtrix3",
+              "fsl",
+              "python:dipy"
+            ],
+            "tool_note": "Context: healthy. MRtrix3 (tckgen after dwi2fod CSD), FSL probtrackx (after bedpostx), or DIPY. Whole-brain tractogram",
+            "notes": "[input_note] Provide preprocessed inputs (wmfod_norm.mif, 5tt_coreg.mif, gmwmSeed_coreg.mif) from OSF y2dq4 - the task is tractography+TDI, not full preprocessing. TDI graded by spatial correlation (stochastic streamlines). [subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE).",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02",
+            "expected_files_detail": "Per-tract density or segmentation maps (NIfTI, any filename); Tract streamlines file (any filename/format \u2014 tool-dependent; e.g..tck,.trk)"
+          }
+        }
+      }
+    },
+    "quantitative": {
+      "description": "Quantitative mapping: susceptibility (QSM), SWI.",
+      "tasks": {
+        "quantitative-susceptibility-mapping": {
+          "title": "QSM reconstruction",
+          "description": "Run QSMxT on magnitude + phase data to produce a susceptibility map; verify spatial coherence in deep grey matter",
+          "prompt": {
+            "goal": "Reconstruct a quantitative susceptibility map (QSM) for sub-1 (session ses-20170705) from the QSMxT tutorial dataset (OSF ). The data is supplied as gradient-echo (T2*-weighted) DICOMs with magnitude and phase, plus a T1w; organise it as needed and produce the susceptibility map.",
+            "dataset": {
+              "source": "osf",
+              "id": "ru43c",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-1"
+              ],
+              "session": "ses-20170705"
+            },
+            "required_output": "A quantitative susceptibility map (NIfTI) in ppm.",
+            "required_tool": "qsmxt"
+          },
+          "solution": {
+            "ground_truth": "QSM susceptibility map (Chimap.nii), QSMxT on ru43c sub-1.",
+            "ground_truth_location": "OSF zjqey: quantitative_gt/quantitative-susceptibility-mapping/",
+            "metric": "spatial_correlation",
+            "pass_criterion": "DICOMs converted to BIDS with part-mag + part-phase T2starw NIfTIs present; QSM reconstructed from phase + magnitude via phase unwrapping, background field removal, and dipole inversion; Susceptibility map produced in NIfTI; geometry consistent with input GRE; Values within plausible susceptibility range (approx. -0.5 to +0.5 ppm in tissue); No processing errors; logs captured",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. QSMxT is the single QSM tool (SEPIA not available). Effectively named",
+            "notes": "[tool_specific_operational] QSMxT workflow: (1) convert DICOM->BIDS with `dicom-convert` (QSMxT ships it); the conversion must identify the T2*w/GRE series for QSM vs the T1w series for segmentation - not in the DICOM header, so QSMxT guesses from ProtocolName (patterns *qsm*/*t2starw*) or the user specifies. (2) Run `qsmxt <bids_dir>` with a premade pipeline (e.g. --premade fast/gre) and **--auto_yes** to avoid the INTERACTIVE CLI that otherwise hangs a non-interactive run. (3) Optional --do_segmentation/--do_analysis for ROI stats [known_obstacle] The interactive CLI is the key trap: `qsmxt bids_dir` without --auto_yes launches an interactive setup and will hang an agent run. Knowing --auto_yes (and the dicom-convert step) is exactly the operational knowledge the QSMxT skill should supply - and whether it does is the signal we measure",
+            "dataset_fetch_reference": "osf -p ru43c clone. && tar xf osfstorage/dicoms-unsorted.tar && rm -rf osfstorage",
+            "expected_files_detail": "A quantitative susceptibility map (NIfTI, any filename; e.g. *Chimap*.nii*, *QSM*.nii*, or *susceptibility*.nii*)"
+          }
+        },
+        "quantitative-swi": {
+          "title": "Phase unwrapping + SWI with ClearSWI",
+          "description": "ClearSWI susceptibility-weighted imaging (SWI + minIP) from the gradient-echo magnitude and phase of sub-1 (ses-20170705) from OSF dataset ru43c",
+          "prompt": {
+            "goal": "Using ClearSWI, produce a susceptibility-weighted image (SWI) and a minimum-intensity projection (minIP) for sub-1 (session ses-20170705) from the OSF dataset. The data is supplied as gradient-echo magnitude and phase (with echo time metadata); organise it as needed and produce the SWI and minIP.",
+            "dataset": {
+              "source": "osf",
+              "id": "ru43c",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-1"
+              ],
+              "session": "ses-20170705"
+            },
+            "required_output": "A susceptibility-weighted image (NIfTI) and a minimum-intensity projection (NIfTI).",
+            "required_tool": "clearswi"
+          },
+          "solution": {
+            "ground_truth": "SWI image + minimum-intensity projection (swi.nii, mip.nii), ClearSWI on ru43c sub-1.",
+            "ground_truth_location": "OSF zjqey: quantitative_gt/quantitative-swi/",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Phase unwrapped; SWI produced by combining magnitude with a phase mask; Minimum-intensity projection (minIP) produced; SWI and minIP geometry consistent with the input GRE; No processing errors; logs captured",
+            "tool_mode": "named",
+            "tool_note": "Context: healthy. ClearSWI; SEPIA is a possible alternative NOTE: this dataset is single-echo T2*w; ClearSWI is multi-echo-oriented but runs on single-echo. SEPIA is an alternative",
+            "notes": "[tool_specific_operational] ClearSWI runs two ways: (a) the clearswi command-line binary (bin/clearswi, NO Julia needed), or (b) a short Julia script (CLEARSWI.jl): readmag/readphase -> Data(mag,phase,header,TEs) -> calculateSWI -> createMIP -> savenii. Needs magnitude + phase NIfTI and the echo time(s) TEs. DICOM->BIDS conversion same as QSMxT (dicom-convert). GE data needs readphase(...; fix_ge=true) - not needed for this tutorial data [known_obstacle] Echo time(s) must be supplied to ClearSWI; multi-echo needs the TE list. The command-line clearswi binary is the agent-friendly path (avoids Julia). Unlike LCModel, SWI is genuinely scriptable/CLI-runnable",
+            "dataset_fetch_reference": "osf -p ru43c clone. && tar xf osfstorage/dicoms-unsorted.tar && rm -rf osfstorage"
+          }
+        }
+      }
+    },
+    "clinical": {
+      "description": "Clinical/pathology workflows: lesion and subfield segmentation, clinical preprocessing.",
+      "tasks": {
+        "clinical-brain-extraction": {
+          "title": "Brain extraction (clinical T1)",
+          "description": "Clinical brain extraction (skull-strip + mask) from the T1w of sub-01 (ses-pre) of OpenNeuro dataset ds003999",
+          "prompt": {
+            "goal": "Skull-strip this clinical brain scan and produce a brain mask. Use the T1w of sub-01 (session ses-pre).",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds003999",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ],
+              "session": "ses-pre"
+            },
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI)."
+          },
+          "solution": {
+            "ground_truth": "HD-BET brain mask sub-01_desc-brain_T1w_bet.nii.gz (ds003999 sub-01 ses-pre, clinical T1). Grade by Dice to reference mask. Binary mask (0/1).",
+            "ground_truth_location": "OSF zjqey: clinical_gt/clinical-brain-extraction/",
+            "metric": "dice",
+            "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input image; Brain mask is binary (values 0 and 1 only); Brain mask is anatomically plausible: skull/dura removed, brain retained; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "ants",
+              "fsl"
+            ],
+            "tool_note": "Context: clinical. Skill guidance: difficult anatomy / low contrast / high accuracy -> HD-BET or mri_synthstrip. BET known to fail on non-brain pathology near boundary and non-standard intensity profiles",
+            "notes": "Preferred: hdbet, synthstrip Known to fail: afni",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds003999 && cd ds003999 && datalad get sub-01",
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined; e.g. *_bet.nii.gz, *BrainExtractionBrain.nii.gz, or caller-named via -o); A binary brain mask (NIfTI, any filename \u2014 tool-determined; e.g. *_bet_mask.nii.gz, *BrainExtractionMask.nii.gz, *_mask.nii.gz, or caller-named via -m)"
+          }
+        },
+        "clinical-cortical-parcellation": {
+          "title": "FreeSurfer recon-all-clinical on heterogeneous scan",
+          "description": "recon-all-clinical on a 2D T1 STIR (clinical, heterogeneous contrast) scan of sub-01 from OpenNeuro dataset ds004332; produces aparc+aseg via SynthSeg/SynthSR. Scan pinned to remove selection ambiguity",
+          "prompt": {
+            "goal": "Run a clinical cortical reconstruction pipeline (recon-all-clinical) on a clinical, heterogeneous-contrast T1 scan of sub-01, producing a cortical parcellation and subcortical segmentation. No FreeSurfer license required.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds004332",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ]
+            },
+            "required_output": "A cortical parcellation and subcortical segmentation (NIfTI/label volume), and a table of regional volumes (tabular text).",
+            "required_tool": "freesurfer"
+          },
+          "solution": {
+            "ground_truth": "Cortical parcellation + subcortical seg (aparc.DKTatlas+aseg.mgz) + volume table, recon-all-clinical on ds004332.",
+            "ground_truth_location": "OSF zjqey: clinical_gt/clinical-cortical-parcellation/",
+            "metric": "dice",
+            "pass_criterion": "recon-all-clinical.sh completed on the clinical/low-resolution scan; Cortical parcellation + subcortical segmentation produced (aparc+aseg); SynthSR-upsampled volume produced; Morphometry stats produced; No FS_LICENSE error (recon-all-clinical does not require it); No processing errors; logs captured",
+            "tool_mode": "named",
+            "tool_note": "Context: clinical. recon-all-clinical.sh (FreeSurfer 7.4+ synthetic pipeline for clinical/heterogeneous scans). Produces aparc+aseg via SynthSeg/SynthSR, NOT the full classical pial/white surface stream",
+            "notes": "[dataset_setup] ds004332 has 15+ T1w variants - use sub-01_acq-mpragepmcoff_rec-wore_run-01_T1w.nii as the reference input; the agent prompt must specify this exact acquisition to be unambiguous. [tool_specific_operational] recon-all-clinical.sh does NOT require an FS_LICENSE (unlike classical recon-all). SUBJECTS_DIR setup still applies. Belongs in FreeSurfer SKILL.md Input scan: sub-01/anat/sub-01_acq-t1tirmpmcoff_rec-wore_run-01_T1w.nii (2D T1 STIR).",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds004332 && cd ds004332 && datalad get sub-01/anat/sub-01_acq-t1tirmpmcoff_rec-wore_run-01_T1w.nii",
+            "expected_files_detail": "A FreeSurfer/FastSurfer subject directory (any name) with surf/, mri/, stats/ subdirectories; White and pial surfaces: surf/lh.white, surf/rh.white, surf/lh.pial, surf/rh.pial; Cortical parcellation: mri/aparc+aseg.mgz (or aparc.DKTatlas+aseg.mgz); Subcortical segmentation: mri/aseg.mgz; Statistics: stats/aseg.stats and stats/lh.aparc.stats, stats/rh.aparc.stats; Cortical thickness maps: surf/lh.thickness, surf/rh.thickness"
+          }
+        },
+        "clinical-hippocampal-subfields": {
+          "title": "ASHS hippocampal subfield segmentation",
+          "description": "ASHS hippocampal subfield segmentation from the T1w+T2w pair of sub-010003 (ses-01) from OpenNeuro dataset ds000221, using the downloaded UPenn PMC atlas. Per-subfield volumes reported",
+          "prompt": {
+            "goal": "Segment hippocampal subfields with ASHS from the T1w and T2w pair of sub-010003 (session ses-01), and report per-subfield volumes. ASHS requires an atlas: download the UPenn PMC atlas from the ASHS project (NITRC), extract it, and point ASHS at the extracted atlas directory.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds000221",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-010003"
+              ],
+              "session": "ses-01"
+            },
+            "required_output": "A labeled hippocampal-subfield segmentation (NIfTI) and per-subfield volumes (tabular text).",
+            "required_tool": "ashs"
+          },
+          "solution": {
+            "ground_truth": "No external ground truth; graded on structural validity/plausibility.",
+            "ground_truth_location": "n/a (property/validity-graded, no open subfield reference)",
+            "metric": "validity",
+            "pass_criterion": "UPenn PMC atlas downloaded, extracted, and supplied to ASHS via -A; ASHS run on the T1w+T2w pair without pipeline failure; Left and right hippocampal subfield segmentations produced; Per-subfield volume table generated; No processing errors; logs captured",
+            "tool_mode": "named",
+            "tool_note": "Context: clinical. ASHS requires an external atlas (UPenn PMC) downloaded from NITRC; the agent must fetch+extract it and pass it via -A",
+            "grading_type": "property/plausibility (no external ground truth)",
+            "status": "property-graded; explicit validity criteria to be finalized by community",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds000221 && cd ds000221 && datalad get sub-010003",
+            "expected_files_detail": "Hippocampal subfield segmentation volumes (NIfTI, any filename; left and right); Per-subfield volume table (e.g. *_volumes.txt / CSV with CA1, CA2, CA3, DG, subiculum, etc.)"
+          }
+        },
+        "clinical-ms-lesion-segmentation": {
+          "title": "MS white-matter lesion segmentation",
+          "description": "Automatic MS white-matter lesion segmentation for patient01 of the open_ms_data cross-sectional dataset (FLAIR-based), with Dice against the provided consensus ground truth",
+          "prompt": {
+            "goal": "Segment the white-matter (FLAIR-hyperintense) lesions for patient01 of the open_ms_data cross-sectional dataset. Use the co-registered data (all sequences registered to FLAIR space, with a provided brain mask). Produce a binary lesion mask in FLAIR space, restricted to the brain mask. The dataset provides an expert consensus ground truth that may be used to report Dice, but the segmentation must be produced automatically.",
+            "dataset": {
+              "source": "github",
+              "id": "muschellij2/open_ms_data",
+              "version_pin": "latest",
+              "subjects": [
+                "patient01"
+              ]
+            },
+            "required_output": "Binary lesion mask (NIfTI) {0,1}) in FLAIR space/affine, restricted to the brain mask",
+            "required_tool": "lstai"
+          },
+          "solution": {
+            "ground_truth": "Binary MS lesion mask; reference consensus_gt.nii.gz ships with open_ms_data patient01.",
+            "ground_truth_location": "(to be added)",
+            "metric": "spatial_correlation",
+            "pass_criterion": "Co-registered FLAIR (+optional T1W) and brain mask loaded; MS lesion segmentation run automatically (e.g. LST-AI); Binary lesion mask produced in FLAIR space; values {0,1}; within brain mask; Dice overlap vs consensus_gt.nii.gz reported; No processing errors; logs captured",
+            "output_validation": "Binary mask {0,1} in FLAIR space/affine, within brain mask. PRIMARY metric: Dice vs consensus_gt.nii.gz (real ground truth -> objectively scorable, unlike most segmentation tasks). Plausible lesion-volume range for MS",
+            "tool_mode": "named",
+            "tool_note": "Context: clinical. LST-AI (tool lstai/1.2.0, CLI `lst`) - deep-learning MS-lesion ensemble. Other options exist (SAMSEG, BIANCA) but LST-AI is the MS-specific tool. Input FLAIR (+optional T1W); restrict to brain mask",
+            "notes": "[input_files] cross_sectional/coregistered_resampled/patient01/: FLAIR.nii.gz, T1W.nii.gz, T2W.nii.gz, T1WKS.nii.gz (all FLAIR space), brainmask.nii.gz, consensus_gt.nii.gz (ground truth) [tool_specific_operational] LST-AI: tool load lstai/1.2.0; CLI `lst`; feed FLAIR (+optional T1W); outputs lesion probability + binary mask",
+            "dataset_fetch_reference": "git clone https://github.com/muschellij2/open_ms_data"
+          }
+        },
+        "clinical-subcortical-nuclei": {
+          "title": "Subcortical nuclei segmentation (T1)",
+          "description": "Subcortical nuclei segmentation from the T1w of sub-01 of OpenNeuro dataset ds004332, with per-structure volumes reported",
+          "prompt": {
+            "goal": "Segment subcortical nuclei from the T1w of sub-01 and report per-structure volumes.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds004332",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ]
+            },
+            "required_output": "A labeled subcortical-nuclei segmentation (NIfTI) and per-structure volumes (tabular text)."
+          },
+          "solution": {
+            "ground_truth": "FSL FIRST labeled subcortical segmentation: sub-01_first_all_fast_firstseg.nii.gz (ds004332 sub-01 T1w). Grade by per-structure Dice on the standard subcortical set. Per-structure volume table also expected (fslstats -K). Store GT on GitHub nipreps/ (benchmark GT folder).",
+            "ground_truth_location": "OSF zjqey: clinical_gt/clinical-subcortical-nuclei/",
+            "metric": "dice",
+            "pass_criterion": "Subcortical nuclei segmented from the T1w; Labelled segmentation volume produced; geometry matches input; Per-structure volume table produced with standard subcortical structures; No processing errors; logs captured",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "fsl (FIRST)",
+              "freesurfer (aseg)",
+              "totalsegmentator (total_mr, if it yields subcortical nuclei)",
+              "subcortical segmentation"
+            ],
+            "tool_note": "Context: clinical. Reference GT generated with FSL FIRST (run_first_all) - the classic tool for subcortical NUCLEI (thalamus/caudate/putamen/pallidum/hippocampus/amygdala/accumbens/brainstem). Original build named TotalSegmentator, but TS total_mr does not reliably produce fine subcortical nuclei (same tool-fit concern flagged for WMH-via-TS). Prompt stays agnostic (no tool named to agent); grade output vs FIRST reference by per-structure Dice. FreeSurfer aseg is an acceptable alternative producing the same label set.",
+            "notes": "[dataset_setup] ds004332 has 15+ T1w variants - use sub-01_acq-mpragepmcoff_rec-wore_run-01_T1w.nii as the reference input; the agent prompt must specify this exact acquisition to be unambiguous. [SCORING_LIMITATION] FIRST vs FreeSurfer aseg subcortical labels differ slightly in boundaries; use moderate Dice threshold, not exact match.",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds004332",
+            "expected_files_detail": "A labelled subcortical segmentation volume (NIfTI, any filename; integer labels per nucleus); A per-structure volume table (CSV/TSV; e.g. thalamus, caudate, putamen, pallidum, hippocampus, amygdala, accumbens)"
+          }
+        }
+      }
+    },
+    "electrophysiology": {
+      "description": "EEG/MEG processing (property-graded; no external ground truth).",
+      "tasks": {
+        "electrophysiology-eeg-preprocessing": {
+          "title": "EEG preprocessing pipeline with MNE-Python",
+          "description": "MNE-Python EEG preprocessing (filter + ICA artefact rejection + epoching) producing a cleaned dataset and QC report, for sub-01 from OpenNeuro dataset ds001787",
+          "prompt": {
+            "goal": "In MNE-Python, run a BIDS EEG dataset through filtering, ICA-based artefact rejection, and epoching for sub-01 (a meditation EEG dataset). Produce a cleaned dataset with a QC report.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds001787",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ]
+            },
+            "required_output": "Preprocessed EEG data (any format:.set,.fif,.mat \u2014 tool-dependent); Extracted features or ERP/connectivity estimates",
+            "required_tool": "mne"
+          },
+          "solution": {
+            "ground_truth": "No external ground truth; graded on structural validity/plausibility.",
+            "ground_truth_location": "n/a (property/validity-graded, no reference)",
+            "metric": "validity",
+            "pass_criterion": "Filtered, artefact-cleaned data saved as valid FIF (mne.read_raw succeeds); Bad channels and removed ICA components documented; HTML report generated; No processing errors; logs captured",
+            "tool_mode": "named",
+            "notes": "[expert_review] EEG specialist: confirm filter band, ICA method/component count, epoch definition. ds001787 is a meditation EEG dataset property/plausibility (no external ground truth) - criteria in output_validation/notes",
+            "grading_type": "property/plausibility (no external ground truth)",
+            "status": "property-graded; explicit validity criteria to be finalized by community",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds001787"
+          }
+        },
+        "electrophysiology-eeg-spectral": {
+          "title": "EEG spectral / band-power features",
+          "description": "EEG preprocessing + sensor-level spectral features (PSD, band power per channel) on the eyes-closed resting EEG of sub-01 (ses-session1) from OpenNeuro dataset ds004148",
+          "prompt": {
+            "goal": "Run EEG preprocessing (filtering, artefact rejection) and compute sensor-level spectral features - power spectral density and band power (delta/theta/alpha/beta/gamma) - on the eyes-closed resting EEG of sub-01 (session ses-session1). Report band power per channel.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds004148",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ],
+              "session": "ses-session1",
+              "task": "eyesclosed"
+            },
+            "required_output": "Preprocessed EEG data (any format:.set,.fif,.mat \u2014 tool-dependent); Extracted features or ERP/connectivity estimates"
+          },
+          "solution": {
+            "ground_truth": "No external ground truth; graded on structural validity/plausibility.",
+            "ground_truth_location": "n/a (property/validity-graded, no reference)",
+            "metric": "validity",
+            "pass_criterion": "Eyes-closed resting EEG loaded from BIDS (BrainVision) and preprocessed (filtering, artefact rejection); Power spectral density computed; band power (delta/theta/alpha/beta/gamma) per channel; Band-power table saved in a documented format (CSV/FIF/SET); No processing errors; logs captured",
+            "output_validation": "Grade by content: band-power table ~[channels x bands], finite non-negative. Any loadable format",
+            "tool_mode": "agnostic",
+            "tool_suggestions": [
+              "mne",
+              "eeglab"
+            ],
+            "notes": "[physiological_plausibility] Eyes-closed resting EEG: ALPHA (8-13 Hz) should dominate POSTERIOR sensors. A valid content check: mean alpha power in occipital/parietal channels (O1/O2/Oz/POz/Pz) > mean alpha power in frontal channels (Fp1/Fp2/Fz). This holds for eyes-closed rest (would NOT hold on visual-task data - the reason this task moved off ds002718) [expert_review] EEG specialist: confirm filter band, PSD method (Welch/multitaper), band definitions, and the posterior-alpha check thresholds property/plausibility (no external ground truth) - criteria in output_validation/notes",
+            "grading_type": "property/plausibility (no external ground truth)",
+            "status": "property-graded; explicit validity criteria to be finalized by community",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds004148 && cd ds004148 && datalad get sub-01"
+          }
+        },
+        "electrophysiology-meg-preprocessing": {
+          "title": "MEG preprocessing with FieldTrip",
+          "description": "FieldTrip preprocessing (filter, downsample, artefact removal) + sensor-level power spectra on the resting MEG of sub-0002 (ses-01) from OpenNeuro dataset ds000247",
+          "prompt": {
+            "goal": "Using FieldTrip, preprocess (filter, downsample, artefact removal) and compute sensor-level power spectra on the resting-state MEG of sub-0002 (session ses-01). Save the power spectra to a file.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds000247",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-0002"
+              ],
+              "session": "ses-01"
+            },
+            "required_output": "Preprocessed MEG data (any format:.fif,.mat \u2014 tool-dependent); Source estimates or connectivity/feature outputs",
+            "required_tool": "fieldtrip"
+          },
+          "solution": {
+            "ground_truth": "No external ground truth; graded on structural validity/plausibility.",
+            "ground_truth_location": "n/a (property/validity-graded, no reference)",
+            "metric": "validity",
+            "pass_criterion": "Preprocessed FieldTrip data struct saved (.trial and.time fields present); Artefact rejection applied and documented; Channel selection recorded; Sensor-level power spectra produced; No processing errors; logs captured",
+            "output_validation": "Grade by CONTENT, not filename. Accept any loadable power-spectrum artifact: a PSD array roughly [channels x frequencies] with finite positive values over a plausible frequency range. Do NOT require a specific filename or format (.mat /.csv /.json all acceptable)",
+            "tool_mode": "named",
+            "tool_note": "FieldTrip is a STANDALONE compiled build on the free MATLAB Compiler Runtime (MCR) - no MATLAB license. Run via `run_fieldtrip.sh /opt/MCR/v99 script.m` (tool fieldtrip/20220617). The agent must author a FieldTrip.m script and invoke it through the MCR wrapper",
+            "notes": "[tool_specific_operational] FieldTrip standalone/MCR, VERIFIED headless-runnable: `run_fieldtrip.sh /opt/MCR/v99 script.m` - the compiled binary executes the.m script directly as its entry point (ft_defaults + ft_freqanalysis confirmed on synthetic data). Agent writes ft_preprocessing -> ft_resampledata -> artefact -> ft_freqanalysis. CTF.ds input. No MATLAB license [expert_review] MEG specialist: confirm filter band, downsample rate, and artefact method are sensible; confirm scripted FieldTrip (vs GUI) is the intended path property/plausibility (no external ground truth) - criteria in output_validation/notes",
+            "grading_type": "property/plausibility (no external ground truth)",
+            "status": "property-graded; explicit validity criteria to be finalized by community",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds000247 && cd ds000247 && datalad get sub-0002"
+          }
+        }
+      }
+    },
+    "spinal": {
+      "description": "Spinal cord imaging: segmentation.",
+      "tasks": {
+        "spinal-cord-segmentation": {
+          "title": "Spinal cord segmentation with SCT",
+          "description": "Run Spinal Cord Toolbox sct_deepseg on a T2w cervical scan and report per-level cross-sectional area.",
+          "prompt": {
+            "goal": "Segment the spinal cord on a T2w cervical scan and report the per-level cross-sectional area. Use subject sub-01.",
+            "dataset": {
+              "source": "openneuro",
+              "id": "ds002393",
+              "version_pin": "latest",
+              "subjects": [
+                "sub-01"
+              ]
+            },
+            "required_output": "Spinal cord segmentation mask (NIfTI) ); Per-level cross-sectional area table (CSV/TSV) )",
+            "required_tool": "spinalcordtoolbox"
+          },
+          "solution": {
+            "ground_truth": "Spinal cord segmentation mask (t1w_seg.nii.gz), SCT sct_deepseg on ds002393.",
+            "ground_truth_location": "OSF zjqey: spinal_gt/spinal-cord-segmentation/",
+            "metric": "dice",
+            "pass_criterion": "Spinal cord segmentation mask produced; Mask binary and geometry matches input; Segmented structure is a single plausible cord (no gross over-/under-segmentation); Spinal cord segmented on the T2w scan; CSA values reported per vertebral level; No processing errors; logs captured",
+            "tool_mode": "named",
+            "dataset_fetch_reference": "datalad install ///openneuro/ds002393"
+          }
+        }
+      }
+    }
+  }
+}
