@@ -26,10 +26,12 @@ The submission is a **binary lesion mask in native T1w space**.
 Dice alone is misleading for lesions (a small lesion tanks Dice even when correctly found), so quality
 combines three:
 
-- **Dice** (weight 0.5) — overlap; full marks at 0.70, pass at 0.50.
-- **lesion-wise detection F1** (0.3) — precision/recall over *lesion instances* (connected
+- **Dice** (weight 0.7) — overlap; full marks at 0.70, pass at 0.50.
+- **lesion-wise detection F1** (0.1) — precision/recall over *lesion instances* (connected
   components); a predicted blob overlapping no true lesion is a false positive, a missed lesion a
-  false negative. Full 1.0, pass 0.5.
+  false negative. Full 1.0, pass 0.5. It carries little weight here because every subject has
+  exactly one expert lesion, so detection can only report "found it" or "did not", which Dice
+  already covers — see `weight_basis` in the rubric.
 - **absolute volume error %** (0.2) — full ≤ 15 %, pass ≤ 50 %.
 
 Verdict: `within_reference_variability` when all three hit full marks; else `acceptable`/`marginal`/

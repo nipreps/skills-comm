@@ -100,6 +100,53 @@ published tool, so a submission reproducing DeepLesionBrain's published performa
 this cohort (0.55/0.37) scored 28.1 and graded `unacceptable`. It now scores 55.1. The
 `full` anchors were correct throughout.
 
+### `metric_thresholds` for `clinical-stroke-lesion-segmentation` (Dice)
+
+One expert tracing per subject, so there is no panel and no leave-one-out envelope; the
+Dice anchors come from the literature instead. Both verified against the sources.
+
+**Full marks, 0.70** — the inter-rater ceiling for manual tracing of chronic stroke
+lesions on T1w. Two trained raters following a standardised protocol agree at Dice 0.727
+(intra-rater 0.839).
+
+> Tavenner BP, Donnelly MR, Barisano G, Liew S-L. A standardized protocol for manually
+> segmenting stroke lesions on high-resolution T1-weighted MR images. *Frontiers in
+> Neuroimaging* 2023;1:1098604. doi:10.3389/fnimg.2022.1098604
+
+**Pass, 0.50** — automated state of the art on ATLAS v2.0, where the best benchmarked
+models reach Dice 0.504 (3D residual U-Net) and 0.583 (2D transformer).
+
+> Deb P, Baru LB, Dadi K, Bapi RS. BeSt-LeS: Benchmarking Stroke Lesion Segmentation
+> using Deep Supervision. arXiv:2310.07060
+
+Population: chronic-stroke T1w manual tracing from ATLAS v2.0 (Liew et al. 2022,
+*Scientific Data* 9:320, doi:10.1038/s41597-022-01401-7).
+
+So the band runs from "as good as automated methods manage" to "as good as two humans
+agree with each other" — the same shape as the MS task, with raters in place of tools.
+
+The task's `lesion_f1` thresholds (full 1.0, pass 0.5) are **not** from the literature and
+carry only weight 0.1, because every subject has exactly one expert lesion and detection
+F1 can then only report "found it" or "did not".
+
+### `consensus.max_core_loss = 0.10`
+
+`no_catastrophic_core_loss` fails a submission retaining less than 90 % of the core. The
+floor is set below the worst core recall any reference tool achieves, so no panel member
+can trip it:
+
+| task | worst leave-one-out core recall | headroom above the 90 % line |
+|---|---|---|
+| pediatric | 0.9825 | +9.2 % |
+| 3T | 0.9782 | +8.7 % |
+| stroke | 0.9599 | +6.7 % |
+| diffusion | 0.9591 | +6.6 % |
+| motion | 0.9457 | +5.1 % |
+| 7T and 7T no-dura | 0.9296 | +3.3 % |
+
+7T is the binding case at +3.3 %. The same principle as the pass mark: a tool a competent
+person would run must not fail the gate.
+
 ---
 
 ## Derived
@@ -129,6 +176,37 @@ between them.
 cross each other — 15–34 cm³ of consensus lies outside the envelope and 36–59 cm³ of
 envelope lies outside the consensus. A perfect answer therefore consumes most of the
 gate's budget before a submission is examined, so the gate is coarse by construction.
+
+### `slack`, `verdict_thresholds.acceptable` and `.marginal` are one decision, not three
+
+`subscore` maps the median panel tool to 1.0 and reaches 0 at
+`worst + slack × (worst − median)`. Substituting the worst panel tool gives
+
+```
+subscore(worst) = slack / (1 + slack)
+```
+
+independent of the metric and of its values. At `slack = 1.5` that is exactly **0.60**, so
+a submission as good as the weakest tool in the panel scores exactly **60** — verified
+numerically on four tasks.
+
+So `acceptable ≥ 60` means **"no worse overall than the weakest tool in the reference
+panel"**, which is the benchmark's intent: an agent should not have to beat a competent
+human running a standard tool.
+
+Read in that direction, the free choice is not a number at all. It is the policy *the
+pass mark is the weakest panel tool*, and `acceptable = 60` with `slack = 1.5` are two
+expressions of it, tied by `slack = q / (1 − q)` for a pass mark of q. Pick either and
+the other follows; changing one alone breaks the correspondence and the pass mark stops
+meaning anything. `marginal = 30` is then half of the pass mark — a subdivision of a
+derived quantity, not an independent threshold.
+
+This section sits under *Derived* rather than *Literature* because the policy itself is a
+choice. It is a defensible one, and it is the choice to state in a methods section, but no
+external source sets it.
+
+`within_reference_variability` is the stricter, per-metric form of the same bar: every
+metric at least as good as the worst panel tool, rather than the weighted average.
 
 ### `plausible_volume_cm3`
 
@@ -169,42 +247,45 @@ These have no external source and no derivation. Ordered by how much they move r
 
 | threshold | value | scope | note |
 |---|---|---|---|
-| `slack` | 1.5 | 8 consensus tasks | sets the whole score scale — see below |
 | `weights` | NSD .30, core recall .25, bg FP .20, HD95 .15, volume .10 | 7 tasks | relative importance of the five metrics; nothing supports this split |
-| `verdict_thresholds.marginal` | 30 | all 10 tasks | halfway between 60 and 0 |
-| `consensus.max_core_loss` | 0.10 | all | `no_catastrophic_core_loss` fires below 90 % core retained |
-| `focal_bg_max_cm3` | 40.0 | 7 tasks | fixed policy; a leave-one-out anchor was attempted and rejected, below |
+| `focal_bg_max_cm3` | 40.0 | 7 tasks | fixed policy; measured against real tools below, and known to pass one genuine over-inclusion |
 | `lesion_retained_min` | 0.85 | stroke | |
 | `min_lesion_voxels` | 3 (MS), 10 (stroke) | 2 tasks | |
 | `collapse_margin` | 0.2 | tissue | |
 | `copy_suspect_dice` | 0.995 | MS | |
-| `metric_thresholds` | stroke: Dice full 0.7 / pass 0.5, F1 full 1.0 / pass 0.5 | stroke | round numbers |
+| `metric_thresholds.lesion_f1` | stroke: full 1.0 / pass 0.5 | stroke | the Dice pair is cited (above); this pair is not |
 | `metric_thresholds.abs_volume_err_pct` | full 15 %, pass 50 % | MS, stroke | the one part of the MS thresholds not taken from the literature |
 | `overlap_frac_for_match` | 0.1 | MS, stroke | matches Anima's detection convention, so defensible for MS; unexamined for stroke |
 
-### `slack` and `verdict_thresholds.acceptable` are one decision, not two
+### `focal_bg_max_cm3 = 40` — what the evidence actually shows
 
-`subscore` maps the median panel tool to 1.0 and reaches 0 at
-`worst + slack × (worst − median)`. Substituting the worst panel tool gives
+Every non-panel mask on disk, scored through the grader (39 masks across 7T, motion,
+pediatric and diffusion):
 
-```
-subscore(worst) = slack / (1 + slack)
-```
+| group | n | `focal_bg_incl_cm3` |
+|---|---|---|
+| well-chosen tool invocations (HD-BET and SynthStrip at defaults, BET −R, BET default on paediatric) | 16 | 0.00 – 3.87 |
+| masks that *under*-include (AFNI and BET −R at 7T, dwi2mask, AFNI automask, BET f0.5) | 21 | 0.00 – 0.78 |
+| BET at its defaults on motion-corrupted T1w | 5 | **16.67 – 113.27** |
 
-independent of the metric and of its values. At `slack = 1.5` that is exactly **0.60**, so
-a submission as good as the weakest tool in the panel scores exactly **60** — verified
-numerically on four tasks.
+The under-inclusive group registers nothing, as expected — those masks fail the *core*
+gate, not this one. So the whole discriminating evidence for this cap is five masks, all
+BET at its defaults on the motion task.
 
-So `acceptable ≥ 60` means **"no worse overall than the weakest tool in the reference
-panel"**, which is the benchmark's intent: an agent should not have to beat a competent
-human running a standard tool. The threshold is principled, but it is *determined* by
-`slack`. Changing either alone breaks the correspondence, and `slack = 1.5` is the single
-free parameter behind both.
+There is an empty band between 3.87 and 16.67, and a cap anywhere inside it separates
+every case. **40 sits above that band**, so it passes two of the five: `sub-723372` at
+35.30, and `sub-281888` at 16.67 — which was rendered and characterised as a genuine
+swallowed chunk (18.9 mm thick, only 43 % of it within 5 mm of the boundary), not a rim.
+That is a false pass, not merely a loose threshold.
 
-`within_reference_variability` is the stricter, per-metric form of the same bar: every
-metric at least as good as the worst panel tool, rather than the weighted average.
+Lowering the cap to roughly 10 cm³ — the same `SLACK × worst legitimate` rule the core cap
+uses, applied to the 3.87 cm³ worst legitimate value — would catch all five. **Not
+changed**, for two reasons: it is a behaviour change that flips published verdicts, and
+the evidence is thin and lopsided. Sixteen legitimate masks from three tasks, with no
+over-inclusive legitimate tool at all for 3T, stroke or diffusion, is a narrow basis for
+a cap that applies to seven tasks.
 
-### Why `focal_bg_max_cm3` was not calibrated from leave-one-out
+### Why it was not calibrated from leave-one-out
 
 The core cap's leave-one-out construction was tried on the background side and rejected on
 inspection. Holding a tool out and measuring what it admits of the reduced panel's
@@ -221,8 +302,12 @@ there is a better anchor.
 
 - The MS thresholds are now verified against the paper's supplementary table. The stroke
   task's `metric_thresholds` have had no such check and are round numbers.
-- `plausible_volume_cm3` is derived by decision, not cited. Its upper bound catches
-  nothing and has the tightest margin to a reference; widening it is an open change.
-- `slack`, `weights` and `marginal` are unjustified and apply everywhere.
+- `plausible_volume_cm3` is derived by decision, not cited. Bounds left as they are: they
+  work for the current subjects.
+- `focal_bg_max_cm3` passes a genuine over-inclusion (`sub-281888`, 16.67 cm³). Lowering
+  it to about 10 would catch every case measured, but rests on 16 legitimate masks from
+  three tasks.
+- `weights` is unjustified and applies everywhere. No measurement settles it; it needs
+  an argument about what matters in a brain mask.
 - τ is calibrated on tool disagreement, not rater disagreement, and must not be reported
   as if it were the latter.

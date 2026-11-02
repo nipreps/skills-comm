@@ -21,8 +21,12 @@ lesions. So the pass/fail lines are **fixed from the literature** [1–3]:
 | lesion-wise F1 | 1.0 | 0.5 | detect the lesion instance(s) |
 | abs. volume error | 15 % | 50 % | gross size plausibility |
 
-Weights: Dice 0.5, lesion-wise F1 0.3, volume error 0.2. A connected component counts as detected when
-a prediction overlaps ≥ 10 % of it.
+Weights: Dice 0.7, lesion-wise F1 0.1, volume error 0.2. A connected component counts as detected
+when a prediction overlaps ≥ 10 % of it. F1 was lowered from 0.3 and the weight given to Dice:
+every subject here carries exactly one expert lesion, so detection F1 can only report "found it"
+or "did not", and at 0.3 a single stray voxel cost about 12 quality points because the metric
+counts a one-voxel component as a whole false lesion. That is a policy choice, not a calibrated
+threshold — with one expert tracing there is no inter-rater disagreement to derive one from.
 
 ## Validation
 
