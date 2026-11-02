@@ -162,6 +162,14 @@ apart, and they name the failure.
 Symmetric within a voxel, and both two-voxel failures are caught — erosion on core loss,
 dilation on retained background.
 
+## Scoring scale and weights
+
+The subscore mapping, what `acceptable = 60` means (a submission as good as the weakest
+panel tool), the `slack` relationship behind it, and the weight rationale with its
+sensitivity analysis are documented once in
+[`../structural-brain-extraction/PROVENANCE.md`](../structural-brain-extraction/PROVENANCE.md)
+and apply unchanged here.
+
 ## Reference data
 
 `reference/consensus_mask.nii.gz` and `consensus_zones.nii.gz` are **not** in git — they belong

@@ -39,6 +39,14 @@ is a fluid-filled cavity, dark and CSF-like on T1 — a natural failure point:
    way), and **`lesion_retained_min`
    = 0.85** (fixed) — a competent stripper keeps ≥ 94 % of the lesion; BET's 52 % fails with margin.
 
+## Scoring scale and weights
+
+The subscore mapping, what `acceptable = 60` means (a submission as good as the weakest
+panel tool), the `slack` relationship behind it, and the weight rationale with its
+sensitivity analysis are documented once in
+[`../structural-brain-extraction/PROVENANCE.md`](../structural-brain-extraction/PROVENANCE.md)
+and apply unchanged here.
+
 ## Reference data
 
 `consensus_mask.nii.gz`, `consensus_zones.nii.gz`, `lesion_mask.nii.gz` are on the Hugging Face Hub

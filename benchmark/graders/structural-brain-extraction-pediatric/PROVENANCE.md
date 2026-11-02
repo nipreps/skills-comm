@@ -36,6 +36,14 @@ Four tools were run on the T1w and were all mutually coherent (pairwise Dice ~0.
    measured the same way
    (fixed) for localised background inclusion.
 
+## Scoring scale and weights
+
+The subscore mapping, what `acceptable = 60` means (a submission as good as the weakest
+panel tool), the `slack` relationship behind it, and the weight rationale with its
+sensitivity analysis are documented once in
+[`../structural-brain-extraction/PROVENANCE.md`](../structural-brain-extraction/PROVENANCE.md)
+and apply unchanged here.
+
 ## Reference data
 
 The `reference/` NIfTIs are on the Hugging Face Hub (`neurodeskorg/skills-comm-ground-truth`,

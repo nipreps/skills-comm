@@ -69,6 +69,14 @@ a missed denoising step.
    one-voxel erosion asks for only 1.9 mm of thickness, which a dura rind clears, so it is the
    millimetre floor rather than the voxel floor that binds here on both gates.
 
+## Scoring scale and weights
+
+The subscore mapping, what `acceptable = 60` means (a submission as good as the weakest
+panel tool), the `slack` relationship behind it, and the weight rationale with its
+sensitivity analysis are documented once in
+[`../structural-brain-extraction/PROVENANCE.md`](../structural-brain-extraction/PROVENANCE.md)
+and apply unchanged here.
+
 ## Reference data
 
 The `reference/` NIfTIs are **not** in git — they live on the Hugging Face Hub (`neurodeskorg/skills-comm-ground-truth`,

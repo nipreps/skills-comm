@@ -39,6 +39,14 @@ ANTs and BET remain as scored **candidates** (they come out `invalid`), which va
    *not* LOTO-calibrated: a competent tool retains ~0 contiguous background by construction, and with
    a small panel leave-one-out would be fooled by the loosest tool's dura.
 
+## Scoring scale and weights
+
+The subscore mapping, what `acceptable = 60` means (a submission as good as the weakest
+panel tool), the `slack` relationship behind it, and the weight rationale with its
+sensitivity analysis are documented once in
+[`../structural-brain-extraction/PROVENANCE.md`](../structural-brain-extraction/PROVENANCE.md)
+and apply unchanged here.
+
 ## Reference data
 
 The `reference/` NIfTIs are **not** stored in git — they live on the Hugging Face Hub (`neurodeskorg/skills-comm-ground-truth`,

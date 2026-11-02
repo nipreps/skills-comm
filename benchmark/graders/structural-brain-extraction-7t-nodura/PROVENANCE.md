@@ -60,6 +60,14 @@ which is exactly what the prompt asks a submission not to do, and the STAPLE con
 produce passes comfortably. It does mean this gate, alone among the gates here, is not satisfied
 by every tool that built the reference — worth knowing before reading a failure on it.
 
+## Scoring scale and weights
+
+The subscore mapping, what `acceptable = 60` means (a submission as good as the weakest
+panel tool), the `slack` relationship behind it, and the weight rationale with its
+sensitivity analysis are documented once in
+[`../structural-brain-extraction/PROVENANCE.md`](../structural-brain-extraction/PROVENANCE.md)
+and apply unchanged here.
+
 ## Caveats
 
 - **HD-BET's 7.3–17.7 cm³ is mostly an inferior
