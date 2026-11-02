@@ -250,6 +250,30 @@ them.
 Worth stating with the caveat attached: 368 of 425 masks cannot move under any weighting,
 so a figure quoted against the full 425 would understate the effect by a factor of seven.
 
+### `collapse_margin = 0.2` — tissue parcellation
+
+`no_class_collapse` fails a submission recovering less of a class's unanimous core than
+`max(0.25, worst panel core recall − 0.20)`. Same "slack below the weakest reference"
+construction as the pass mark and `max_core_loss`, and like them it needs a check from
+outside the panel: CEREBRUM7T and FreeSurfer v6/v7 define the core between them.
+
+SynthSeg, on the cleaned UNI masked by the brain-extraction task's own consensus mask,
+clears every floor on all three subjects:
+
+| | tightest class | SynthSeg | floor | headroom |
+|---|---|---|---|---|
+| sub-025 | basal ganglia | 0.9374 | 0.7121 | +0.2253 |
+| sub-045 | ventricles | 0.9265 | 0.7217 | +0.2048 |
+| sub-075 | ventricles | 0.9051 | 0.7043 | **+0.2009** |
+
+It exceeds the panel's worst member on all 18 class-subject combinations, so the margin
+is not too tight. Nor is it inert: a swapped or missing class — the failures the gate is
+named for — gives core recall near zero.
+
+An intensity tissue classifier cannot be the comparator here. This task grades six
+classes (GM, basal ganglia, WM, ventricles, cerebellum, brainstem); FAST and Atropos
+produce three tissues and have no label for the last three.
+
 ### `plausible_volume_cm3`
 
 `[900, 1900]` structural, `[1020, 2290]` diffusion. A validity bound that rejects a mask
@@ -342,7 +366,6 @@ core machinery.
 
 | threshold | value | scope | consequence if wrong |
 |---|---|---|---|
-| `collapse_margin` | 0.2 | tissue | **gates** — a wrong value invalidates submissions. The only calibrated gate with no external anchor |
 | `metric_thresholds.abs_volume_err_pct` | full 15 %, pass 50 % | MS, stroke | scores, at weight 0.2 |
 | `copy_suspect_dice` | 0.995 | MS | none — diagnostic only, see `copy_suspect_basis` |
 
@@ -357,7 +380,5 @@ core machinery.
 - `focal_bg_max_cm3` passes a genuine over-inclusion (`sub-281888`, 16.67 cm³). Lowering
   it to about 10 would catch every case measured, but rests on 16 legitimate masks from
   three tasks.
-- `collapse_margin` (tissue) is the one calibrated gate with no external anchor; a
-  non-panel tissue segmentation is needed to check it.
 - τ is calibrated on tool disagreement, not rater disagreement, and must not be reported
   as if it were the latter.
