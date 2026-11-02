@@ -67,15 +67,38 @@ back to a raw component volume. No grid resolves a layer thinner than its own vo
 > MS lesion segmentation. *NeuroImage: Clinical* 2024;42:103611.
 > doi:10.1016/j.nicl.2024.103611. PMID 38703470, PMCID PMC11088188
 
-Table 4 reports LST-AI on `msljub` — the same Ljubljana 30-patient cohort and the same
-multi-rater consensus reference used here — at **Dice 0.74 ± 0.10** and **lesion-wise
-F1 0.70 ± 0.10**. Those are the task's `full` anchors, matched exactly.
+Anchored on the `msljub` rows of supplementary table `anima_mean_scores` (mmc1.xlsx) —
+the same Ljubljana 30-patient cohort and the same three-rater consensus reference used
+here:
 
-**Unverified**: the `pass` anchors (Dice 0.53, F1 0.33) are attributed in the rubric to
-LST-LGA as the weakest published tool on this cohort. The paper's main text reports
-per-dataset figures for LST-AI only; comparator tools appear per-dataset in supplementary
-material or not at all. These two numbers have not been checked against the source and
-must be before they are cited.
+| tool | Dice | lesion-wise F1 |
+|---|---|---|
+| LST-AI | **0.7425** | **0.6972** |
+| DeepLesionBrain | 0.5541 | 0.3748 |
+| samseg-7.3.2 | 0.4804 | 0.2564 |
+| nnUNet | 0.4435 | 0.3116 |
+| LST-LPA | 0.3957 | 0.1822 |
+| LST-LGA | **0.3727** | **0.1545** |
+
+`full` = LST-AI, the best published method on this cohort. `pass`, the zero-credit line,
+= LST-LGA, the weakest. The four other published tools fall inside the band, so a
+submission matching any of them scores above zero on both metrics, which is the intent.
+
+The F1 anchors transfer because the detection convention matches: Anima counts a
+reference lesion as detected at ≥ 10 % overlap, and `overlap_frac_for_match` is 0.1 here.
+One difference remains — `min_lesion_voxels` drops components below 3 voxels on both
+sides, which Anima does not do — so the F1 anchors are close rather than exact.
+
+`abs_volume_err_pct` (full 15 %, pass 50 %) is **not** from the paper. It is a tolerance
+of this benchmark's own choosing and belongs in the unjustified list below.
+
+**Corrected 2026-11-02.** The rubric previously set `pass` at Dice 0.53 / F1 0.33,
+attributed to LST-LGA, with SAMSEG at 0.62/0.47 and nnU-Net at 0.58/0.54 described as
+mid-band. None of those six figures appear in the paper; the real values are in the table
+above. The error ran the wrong way: the old pass line was stricter than the weakest
+published tool, so a submission reproducing DeepLesionBrain's published performance on
+this cohort (0.55/0.37) scored 28.1 and graded `unacceptable`. It now scores 55.1. The
+`full` anchors were correct throughout.
 
 ---
 
@@ -132,6 +155,8 @@ These have no external source and no derivation. Ordered by how much they move r
 | `collapse_margin` | 0.2 | tissue | |
 | `copy_suspect_dice` | 0.995 | MS | |
 | `metric_thresholds` | stroke: Dice full 0.7 / pass 0.5, F1 full 1.0 / pass 0.5 | stroke | round numbers |
+| `metric_thresholds.abs_volume_err_pct` | full 15 %, pass 50 % | MS, stroke | the one part of the MS thresholds not taken from the literature |
+| `overlap_frac_for_match` | 0.1 | MS, stroke | matches Anima's detection convention, so defensible for MS; unexamined for stroke |
 
 ### `slack` and `verdict_thresholds.acceptable` are one decision, not two
 
@@ -170,7 +195,8 @@ there is a better anchor.
 
 ## Known gaps
 
-- The MS `pass` anchors are unverified against their cited source.
+- The MS thresholds are now verified against the paper's supplementary table. The stroke
+  task's `metric_thresholds` have had no such check and are round numbers.
 - `plausible_volume_cm3` has no normative citation.
 - `slack`, `weights` and `marginal` are unjustified and apply everywhere.
 - τ is calibrated on tool disagreement, not rater disagreement, and must not be reported
