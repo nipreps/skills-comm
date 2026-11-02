@@ -81,5 +81,6 @@
         1.0
       ]
     ]
-  }
+  },
+  "copy_suspect_basis": "DIAGNOSTIC, not a grading threshold. Reported in the result and never scored: it flags a submission whose overlap with the reference is too close to perfect to have been produced by segmenting the image, which is a leak signal rather than a quality judgement. It gates nothing, enters no weight and cannot change a verdict, so the particular value only sets how loud the flag is. 0.995 sits above the highest Dice any run has reached (0.997 across waves 5-7, and 0.994 among runs already flagged for other reasons)."
 }

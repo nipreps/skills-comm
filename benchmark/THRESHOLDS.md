@@ -208,6 +208,48 @@ external source sets it.
 `within_reference_variability` is the stricter, per-metric form of the same bar: every
 metric at least as good as the worst panel tool, rather than the weighted average.
 
+### `weights` — reasoned ordering, robust magnitudes
+
+NSD 0.30, core recall 0.25, background FP 0.20, HD95 0.15, volume error 0.10, on the
+seven consensus tasks. Two stated principles produce the ordering:
+
+- **Core recall outranks background FP** because losing brain is unrecoverable — the data
+  is gone and downstream analysis is silently wrong — whereas retained skull is visible
+  and recoverable, degrading registration and segmentation without destroying anything.
+  The same asymmetry sets `focal_bg_max_cm3` looser than `focal_max_cm3`.
+- **Volume error is weighted lowest** because `volume_plausible` already gates it. A high
+  weight would price the same property twice.
+
+What those principles do not fix is the exact split: nothing says 0.30/0.25/0.20/0.15/0.10
+rather than 0.35/0.25/0.15/0.15/0.10. So the question is whether the magnitudes matter,
+and that is measurable.
+
+**Sensitivity, measured on 425 graded wave-7 agent masks.** Quality is
+`100 × Σ(wₖ · subscoreₖ)`, so every alternative weighting is a recombination of stored
+subscores. Of the 425, 78 are forced invalid by a gate and 290 are
+`within_reference_variability` — a per-metric test independent of the weighting — leaving
+**57 masks the weighting actually governs**. Among those 57:
+
+| weighting | acceptable | Δ | verdicts changed |
+|---|---|---|---|
+| shipped .30/.25/.20/.15/.10 | 18 | — | — |
+| core recall first .25/.35/.20/.10/.10 | 18 | 0 | 0 % |
+| volume ignored .33/.28/.22/.17/.00 | 17 | −1 | 4 % |
+| equal weights .20 × 5 | 18 | 0 | 16 % |
+| background doubled .25/.20/.35/.10/.10 | 19 | +1 | 18 % |
+| surface only (NSD + HD95) | 9 | −9 | 67 % |
+| overlap only (core + bg) | 47 | +29 | 67 % |
+
+**Results are robust to how the five metrics are balanced and not to dropping metric
+families.** Any plausible rebalancing moves the pass count by at most ±1 of 425; removing
+the surface or the overlap metrics entirely moves it by 9 to 29 and changes two-thirds of
+the verdicts it can touch. So the ordering above is load-bearing, the magnitudes are not,
+and the decision that matters is including all five metrics rather than the split between
+them.
+
+Worth stating with the caveat attached: 368 of 425 masks cannot move under any weighting,
+so a figure quoted against the full 425 would understate the effect by a factor of seven.
+
 ### `plausible_volume_cm3`
 
 `[900, 1900]` structural, `[1020, 2290]` diffusion. A validity bound that rejects a mask
@@ -241,60 +283,68 @@ behaviour change and should be made deliberately, not folded into a documentatio
 
 ---
 
-## Unjustified
+## Policy choices
 
-These have no external source and no derivation. Ordered by how much they move results.
+Deliberate design decisions with stated reasoning. Not derived from data, and they do not
+pretend to be.
 
-| threshold | value | scope | note |
+| threshold | value | scope | reasoning |
 |---|---|---|---|
-| `weights` | NSD .30, core recall .25, bg FP .20, HD95 .15, volume .10 | 7 tasks | relative importance of the five metrics; nothing supports this split |
-| `focal_bg_max_cm3` | 40.0 | 7 tasks | fixed policy; measured against real tools below, and known to pass one genuine over-inclusion |
-| `lesion_retained_min` | 0.85 | stroke | |
-| `min_lesion_voxels` | 3 (MS), 10 (stroke) | 2 tasks | |
-| `collapse_margin` | 0.2 | tissue | |
-| `copy_suspect_dice` | 0.995 | MS | |
-| `metric_thresholds.lesion_f1` | stroke: full 1.0 / pass 0.5 | stroke | the Dice pair is cited (above); this pair is not |
-| `metric_thresholds.abs_volume_err_pct` | full 15 %, pass 50 % | MS, stroke | the one part of the MS thresholds not taken from the literature |
-| `overlap_frac_for_match` | 0.1 | MS, stroke | matches Anima's detection convention, so defensible for MS; unexamined for stroke |
+| `focal_bg_max_cm3` | 10.0 | 7 tasks | below, measured |
+| `lesion_retained_min` | 0.85 | stroke | the lesion must survive extraction; 15 % slack for boundary disagreement |
+| `min_lesion_voxels` | 3 (MS), 10 (stroke) | 2 tasks | stroke's is derived from resampling debris (see `weight_basis`); MS's is not |
+| `overlap_frac_for_match` | 0.1 | MS, stroke | matches Anima's detection convention, which is what lets the MS anchors transfer; unexamined for stroke |
 
-### `focal_bg_max_cm3 = 40` — what the evidence actually shows
+### `focal_bg_max_cm3 = 10`
 
-Every non-panel mask on disk, scored through the grader (39 masks across 7T, motion,
-pediatric and diffusion):
+Two independent measurements, agreeing.
+
+**Tool masks.** Every non-panel mask on disk, scored through the grader (39 across 7T,
+motion, pediatric and diffusion):
 
 | group | n | `focal_bg_incl_cm3` |
 |---|---|---|
-| well-chosen tool invocations (HD-BET and SynthStrip at defaults, BET −R, BET default on paediatric) | 16 | 0.00 – 3.87 |
+| well-chosen invocations (HD-BET and SynthStrip at defaults, BET −R, BET default on paediatric) | 16 | 0.00 – 3.87 |
 | masks that *under*-include (AFNI and BET −R at 7T, dwi2mask, AFNI automask, BET f0.5) | 21 | 0.00 – 0.78 |
 | BET at its defaults on motion-corrupted T1w | 5 | **16.67 – 113.27** |
 
-The under-inclusive group registers nothing, as expected — those masks fail the *core*
-gate, not this one. So the whole discriminating evidence for this cap is five masks, all
-BET at its defaults on the motion task.
+The under-inclusive group registers nothing — those fail the *core* gate instead. So the
+discriminating evidence is five masks, with an empty band between 3.87 and 16.67.
 
-There is an empty band between 3.87 and 16.67, and a cap anywhere inside it separates
-every case. **40 sits above that band**, so it passes two of the five: `sub-723372` at
-35.30, and `sub-281888` at 16.67 — which was rendered and characterised as a genuine
-swallowed chunk (18.9 mm thick, only 43 % of it within 5 mm of the boundary), not a rim.
-That is a false pass, not merely a loose threshold.
+**Agent masks.** The 425 graded wave-7 masks put p90 at 2.50, p95 at 5.15 and p99 at
+7.03 cm³, with the next value above 40. **No mask falls between 10 and 40**, so moving
+the cap from 40 to 10 changes no verdict in wave 7 while closing a demonstrated false
+pass: `sub-281888` at 16.67 cm³ was rendered and characterised as a genuine swallowed
+chunk (18.9 mm thick, only 43 % within 5 mm of the boundary), not a rim.
 
-Lowering the cap to roughly 10 cm³ — the same `SLACK × worst legitimate` rule the core cap
-uses, applied to the 3.87 cm³ worst legitimate value — would catch all five. **Not
-changed**, for two reasons: it is a behaviour change that flips published verdicts, and
-the evidence is thin and lopsided. Sixteen legitimate masks from three tasks, with no
-over-inclusive legitimate tool at all for 3T, stroke or diffusion, is a narrow basis for
-a cap that applies to seven tasks.
+10 is `SLACK × worst legitimate` rounded up — the same rule the core cap uses, applied to
+the 3.87 cm³ worst legitimate value. It sits mid-band in both measurements, so it would
+take a legitimate tool at 2.6× the worst yet seen, or a failure below 10, to break it.
 
-### Why it was not calibrated from leave-one-out
+The cap is deliberately looser than the core cap, because lost brain is unrecoverable
+while retained skull is visible and downstream-recoverable. The gate catches gross
+inclusion; `bg_fp_frac_of_ref` at weight 0.20 prices the gradient.
 
-The core cap's leave-one-out construction was tried on the background side and rejected on
-inspection. Holding a tool out and measuring what it admits of the reduced panel's
-background gives 0.1–69.2 cm³ across 28 subjects, which would set per-subject caps from
-5 to 104 cm³. The 69.2 cm³ case (`structural-brain-extraction-motion` `sub-723372`) was
-rendered and is a continuous rim of dura and inner skull table around the whole cortical
-surface — 87 % of it within 5 mm of the consensus boundary. Calibrating from it would
-write a boundary convention into a permissive threshold. The fixed 40 cm³ stands until
-there is a better anchor.
+**It is not calibrated from leave-one-out**, unlike the core cap. That construction was
+tried and rejected on inspection: holding a tool out and measuring what it admits of the
+reduced panel's background gives 0.1–69.2 cm³ across 28 subjects, which would set
+per-subject caps from 5 to 104. The 69.2 cm³ case (`motion sub-723372`) was rendered and
+is a continuous rim of dura and inner skull table around the whole cortical surface, 87 %
+of it within 5 mm of the boundary. Calibrating from it would write a boundary convention
+into a permissive threshold.
+
+---
+
+## Undocumented
+
+Nobody recorded why these particular values. Three single-task constants; none is in the
+core machinery.
+
+| threshold | value | scope | consequence if wrong |
+|---|---|---|---|
+| `collapse_margin` | 0.2 | tissue | **gates** — a wrong value invalidates submissions. The only calibrated gate with no external anchor |
+| `metric_thresholds.abs_volume_err_pct` | full 15 %, pass 50 % | MS, stroke | scores, at weight 0.2 |
+| `copy_suspect_dice` | 0.995 | MS | none — diagnostic only, see `copy_suspect_basis` |
 
 ---
 
@@ -307,7 +357,7 @@ there is a better anchor.
 - `focal_bg_max_cm3` passes a genuine over-inclusion (`sub-281888`, 16.67 cm³). Lowering
   it to about 10 would catch every case measured, but rests on 16 legitimate masks from
   three tasks.
-- `weights` is unjustified and applies everywhere. No measurement settles it; it needs
-  an argument about what matters in a brain mask.
+- `collapse_margin` (tissue) is the one calibrated gate with no external anchor; a
+  non-panel tissue segmentation is needed to check it.
 - τ is calibrated on tool disagreement, not rater disagreement, and must not be reported
   as if it were the latter.
