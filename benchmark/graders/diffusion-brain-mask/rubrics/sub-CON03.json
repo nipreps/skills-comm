@@ -1,9 +1,4 @@
 {
-  "reference_tools": [
-    "SynthStrip",
-    "HD_BET",
-    "AFNI_SS"
-  ],
   "weights": {
     "nsd": 0.3,
     "core_recall": 0.25,
@@ -79,46 +74,6 @@
       ]
     ]
   },
-  "consensus": {
-    "method": "STAPLE p>=0.5",
-    "volume_cm3": 1357.6719,
-    "core_cm3": 1280.7188,
-    "margin_cm3": 146.0938
-  },
-  "tau_mm": 4.330127018922194,
-  "envelope": {
-    "nsd": {
-      "best": 0.9785,
-      "median": 0.9634,
-      "worst": 0.9314
-    },
-    "core_recall": {
-      "best": 0.9902,
-      "median": 0.9809,
-      "worst": 0.9699
-    },
-    "assd_mm": {
-      "best": 1.315,
-      "median": 1.4948,
-      "worst": 1.7666
-    },
-    "hd95_mm": {
-      "best": 3.5355,
-      "median": 3.5355,
-      "worst": 5.5902
-    },
-    "bg_fp_frac_of_ref": {
-      "best": 0.0144,
-      "median": 0.0152,
-      "worst": 0.0196
-    },
-    "abs_volume_err_pct": {
-      "best": 2.7761,
-      "median": 3.8081,
-      "worst": 3.85
-    }
-  },
-  "focal_max_cm3": 5.0,
-  "focal_basis": "max(1.5 x worst held-out focal miss, 5.0 cm3 floor), both measured as the largest component surviving a max(1.5 mm, one voxel) shave, as the scorer measures a submission; shave 2.5 mm here, worst held-out miss 1.42 cm3",
-  "focal_bg_basis": "max(1.5 x worst legitimate non-panel inclusion, 10 cm3 backstop). Measured on every non-panel mask available: well-chosen invocations (HD-BET and SynthStrip at defaults, BET -R, BET default on paediatric) admit 0.00-3.87 cm3, while BET at its defaults on motion-corrupted T1w admits 16.67-113.27 cm3. The cap sits in the empty band between them. It is deliberately looser than the core cap: lost brain is unrecoverable, whereas retained skull is visible and downstream-recoverable, so the gate catches only gross inclusion and bg_fp_frac_of_ref (weight 0.20) prices the gradient. Evidence is thin -- 16 legitimate masks from three tasks, none over-inclusive for 3T, stroke or diffusion."
+  "focal_bg_basis": "max(1.5 x worst legitimate non-panel inclusion, 10 cm3 backstop). Measured on every non-panel mask available: well-chosen invocations (HD-BET and SynthStrip at defaults, BET -R, BET default on paediatric) admit 0.00-3.87 cm3, while BET at its defaults on motion-corrupted T1w admits 16.67-113.27 cm3. The cap sits in the empty band between them. It is deliberately looser than the core cap: lost brain is unrecoverable, whereas retained skull is visible and downstream-recoverable, so the gate catches only gross inclusion and bg_fp_frac_of_ref (weight 0.20) prices the gradient. Evidence is thin -- 16 legitimate masks from three tasks, none over-inclusive for 3T, stroke or diffusion.",
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
 }

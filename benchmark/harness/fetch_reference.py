@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Fetch a task's grader-side reference NIfTIs into its pack/reference/.
 
-Policy: code on GitHub, reference data on the Hugging Face Hub. This runs in the GRADING plane
+Policy: code on GitHub, reference data on the Hugging Face Hub. A rubric straddles the
+two -- its policy half is code and stays in the repo, its calibrated half describes the
+reference and ships gated -- so this script merges them into the reference/rubric.json
+the scorer reads. This runs in the GRADING plane
 only — never in the plane where the agent produces its answer, so the ground truth is never
 exposed to the model.
 
@@ -43,6 +46,7 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
     # pin, so one default for the whole manifest would move references nobody rebuilt.
     rev = revision or spec.get("reference_revision") or defaults.get("reference_revision")
     ref_dir = spec["ref_dir"]                        # e.g. clinical_gt/clinical-wmh-segmentation
+    calib_dir = defaults.get("calibration_dir", "calibration")
     # A per-subject task keeps one reference directory per subject, so the subject has to
     # be named. It is checked against the manifest rather than interpolated blindly: a
     # typo would otherwise come back as a confusing 404 from the Hub.
@@ -94,16 +98,45 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
         # Copy out of the shared cache so the pack owns its reference and a later cache sweep
         # cannot empty it mid-run.
         shutil.copyfile(got, local)
-    # The rubric is code, not reference data: thresholds stay in the repo so the grading
-    # criteria can be read without access to the gated dataset, and so they version with
-    # the scorer that applies them. A per-subject task keeps one per subject; the chosen
-    # one is placed where the scorer looks.
+    # The rubric arrives in two halves. Policy -- gates, weights, slack, the verdict
+    # thresholds, the fixed caps and every *_basis that explains them -- lives in the
+    # repo, so grading criteria can be read and reviewed without gated access and so they
+    # version with the scorer that applies them. The calibrated half -- which tools made
+    # the consensus, tau, the envelope, the focal cap and the reference volumes -- is
+    # answer key: it describes this reference and, in the case of reference_tools, says
+    # exactly how to reproduce it. Benchmark wave 7 recorded 22 runs reading rubric text
+    # off public GitHub, so that half ships with the gated reference instead and is
+    # merged here, where the agent cannot reach it.
     if subject:
         src = root / spec["pack_dir"] / "rubrics" / f"{subject}.json"
         if not src.is_file():
             raise SystemExit(f"ERROR: no rubric for {subject} at {src}")
-        shutil.copyfile(src, dest / "rubric.json")
-        print(f"  [rubric] {src.name} -> {dest / 'rubric.json'}")
+        rubric = json.loads(src.read_text())
+        merged_from = None
+        if rubric.pop("_calibration", None) is not None:
+            remote = f"{calib_dir}/{task_id}/{subject}.json"
+            print(f"  [fetch] {repo_id}@{rev or 'main'}:{remote}")
+            try:
+                got = hf_hub_download(repo_id=repo_id, repo_type=repo_type,
+                                      filename=remote, revision=rev,
+                                      force_download=force)
+            except Exception as e:
+                raise SystemExit(
+                    f"ERROR: {src.name} expects gated calibration but {remote} could not "
+                    f"be fetched from {repo_id}\n{type(e).__name__}: {e}\n"
+                    "The rubric is policy-only without it and would grade against the "
+                    "wrong thresholds, so this is fatal rather than a warning.")
+            calib = json.loads(Path(got).read_text())
+            clash = sorted(set(calib) & set(rubric))
+            if clash:
+                raise SystemExit(f"ERROR: {remote} and {src.name} both define {clash}; "
+                                 "the split is supposed to be disjoint")
+            rubric.update(calib)
+            merged_from = remote
+        (dest / "rubric.json").write_text(json.dumps(rubric, indent=2) + "\n")
+        print(f"  [rubric] {src.name}"
+              + (f" + {merged_from}" if merged_from else "")
+              + f" -> {dest / 'rubric.json'}")
 
     if subject:
         marker.write_text(subject + "\n")

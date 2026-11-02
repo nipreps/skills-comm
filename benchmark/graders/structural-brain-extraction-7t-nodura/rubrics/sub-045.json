@@ -1,9 +1,4 @@
 {
-  "reference_tools": [
-    "ANTs_INV2",
-    "HD_BET",
-    "SynthStrip_b2"
-  ],
   "weights": {
     "nsd": 0.3,
     "core_recall": 0.25,
@@ -12,7 +7,6 @@
     "abs_volume_err_pct": 0.1
   },
   "slack": 1.5,
-  "focal_basis": "max(1.5 x worst held-out focal miss, 5.0 cm3 floor), both measured as the largest component surviving a max(1.5 mm, one voxel) shave, as the scorer measures a submission; shave 1.5 mm here, worst held-out miss 1.30 cm3",
   "focal_bg_max_cm3": 10.0,
   "plausible_volume_cm3": [
     900.0,
@@ -35,7 +29,6 @@
     "nonempty"
   ],
   "dura_max_cm3": 50.0,
-  "dura_basis": "Recalibrated for the HD-BET + SynthStrip(-b -2) + ANTs(INV2) panel. The reference consensus reaches 15.2-33.7 cm3 beyond the pial envelope across the three subjects, so the cap must exceed 33.7 for the ground truth to pass its own gate; it must stay below 117.7, the smallest over-envelope volume among masks the gate exists to reject (SynthStrip at its default border, 117.7-194.8 cm3 across subjects). 50 cm3 gives the reference about 48% headroom inside that window. Deliberately tighter than the widest single panel member (ANTs at 33.2-73.1 cm3): a panel member is one opinion used to form the consensus, not a model answer, and the task asks for a mask with the dura removed.",
   "item": "skullstrip_ds003642_sub-045_nodura",
   "prompt": "Skull-strip the 7T MP2RAGE image of sub-045 (ds003642, OpenNeuro) AND remove the dura, producing a brain-extracted image and a binary brain mask in the input's native space.",
   "grid": {
@@ -82,45 +75,6 @@
       ]
     ]
   },
-  "consensus": {
-    "method": "STAPLE p>=0.5",
-    "volume_cm3": 1227.3072,
-    "core_cm3": 1130.7924,
-    "margin_cm3": 192.8393
-  },
-  "tau_mm": 4.148807057456397,
-  "envelope": {
-    "nsd": {
-      "best": 0.9898,
-      "median": 0.989,
-      "worst": 0.8907
-    },
-    "core_recall": {
-      "best": 0.9971,
-      "median": 0.9933,
-      "worst": 0.9296
-    },
-    "assd_mm": {
-      "best": 1.4813,
-      "median": 1.5128,
-      "worst": 2.6716
-    },
-    "hd95_mm": {
-      "best": 2.7951,
-      "median": 3.066,
-      "worst": 4.9045
-    },
-    "bg_fp_frac_of_ref": {
-      "best": 0.0028,
-      "median": 0.0206,
-      "worst": 0.0524
-    },
-    "abs_volume_err_pct": {
-      "best": 2.2223,
-      "median": 3.5504,
-      "worst": 13.2383
-    }
-  },
-  "focal_max_cm3": 5.0,
-  "focal_bg_basis": "max(1.5 x worst legitimate non-panel inclusion, 10 cm3 backstop). Measured on every non-panel mask available: well-chosen invocations (HD-BET and SynthStrip at defaults, BET -R, BET default on paediatric) admit 0.00-3.87 cm3, while BET at its defaults on motion-corrupted T1w admits 16.67-113.27 cm3. The cap sits in the empty band between them. It is deliberately looser than the core cap: lost brain is unrecoverable, whereas retained skull is visible and downstream-recoverable, so the gate catches only gross inclusion and bg_fp_frac_of_ref (weight 0.20) prices the gradient. Evidence is thin -- 16 legitimate masks from three tasks, none over-inclusive for 3T, stroke or diffusion."
+  "focal_bg_basis": "max(1.5 x worst legitimate non-panel inclusion, 10 cm3 backstop). Measured on every non-panel mask available: well-chosen invocations (HD-BET and SynthStrip at defaults, BET -R, BET default on paediatric) admit 0.00-3.87 cm3, while BET at its defaults on motion-corrupted T1w admits 16.67-113.27 cm3. The cap sits in the empty band between them. It is deliberately looser than the core cap: lost brain is unrecoverable, whereas retained skull is visible and downstream-recoverable, so the gate catches only gross inclusion and bg_fp_frac_of_ref (weight 0.20) prices the gradient. Evidence is thin -- 16 legitimate masks from three tasks, none over-inclusive for 3T, stroke or diffusion.",
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
 }
