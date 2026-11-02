@@ -132,10 +132,34 @@ gate's budget before a submission is examined, so the gate is coarse by construc
 
 ### `plausible_volume_cm3`
 
-`[900, 1900]` structural, `[1020, 2290]` diffusion. Intended as a sanity bound that
-rejects a mask which is not a brain at all, not a normative range. **These should be
-anchored to published brain-volume norms and currently are not** — a cheap fix and worth
-doing before publication.
+`[900, 1900]` structural, `[1020, 2290]` diffusion. A validity bound that rejects a mask
+which is not a brain at all, not a normative range.
+
+**Deliberately derived rather than cited.** The quantity is a skull-strip *mask* volume,
+which includes CSF to a tool-dependent degree: it sits between brain parenchyma and
+intracranial volume at a position that depends on which tool produced it, so no published
+norm measures it. The paediatric task (ds000228) is children, so adult norms would not
+cover it in any case. And the gate's job is to reject gross error, not to enforce
+normality — the right calibration is "outside every legitimate reference, inside every
+gross failure", which is a property of this benchmark's data.
+
+Literature is quoted only to show the bounds sit in a sensible region, not to justify
+them: for adults aged 40+, total brain volume is about 1245 ± 125 cm³ and total
+intracranial volume about 1397 ± 133 cm³, so `[900, 1900]` is roughly ICV mean ± 3.7 SD.
+
+Where the bounds actually stand against this benchmark's data:
+
+| | bound | nearest reference | nearest failure it catches |
+|---|---|---|---|
+| structural lower | 900 | 1067.5 (`sub-pixar017`), 15.7 % headroom | 838 (AFNI automask), 546 (BET −R at 7T) |
+| structural upper | 1900 | 1717.8 (`sub-0023`), 10.6 % headroom | nothing measured |
+| diffusion | [1020, 2290] | references span 1357.7–1812.5 | 838 (AFNI automask) |
+
+The lower bound is load-bearing and well placed, separating cleanly between the smallest
+reference and the largest gross failure. **The upper bound catches nothing in any test
+and carries the tightest margin to a real reference**, so it is pure false-fail risk;
+widening it to about 2200 would cost no discrimination. Not changed here — it is a
+behaviour change and should be made deliberately, not folded into a documentation pass.
 
 ---
 
@@ -197,7 +221,8 @@ there is a better anchor.
 
 - The MS thresholds are now verified against the paper's supplementary table. The stroke
   task's `metric_thresholds` have had no such check and are round numbers.
-- `plausible_volume_cm3` has no normative citation.
+- `plausible_volume_cm3` is derived by decision, not cited. Its upper bound catches
+  nothing and has the tightest margin to a reference; widening it is an open change.
 - `slack`, `weights` and `marginal` are unjustified and apply everywhere.
 - τ is calibrated on tool disagreement, not rater disagreement, and must not be reported
   as if it were the latter.
