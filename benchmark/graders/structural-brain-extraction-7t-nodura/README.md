@@ -1,7 +1,7 @@
 # Grader: `structural-brain-extraction-7t-nodura`
 
 A **consensus-calibrated grader with an added dura gate** for the *same* 7T MP2RAGE subject as
-`structural-brain-extraction-7t` (CEREBRUM-7T `ds003642`, `sub-025`), but for an **explicit
+`structural-brain-extraction-7t` (CEREBRUM-7T `ds003642`; sub-025, sub-045 and sub-075), but for an **explicit
 "remove the dura" prompt**. It tests **instruction-following**: does the submission not only extract
 the brain but also strip the dura the prompt asked for?
 
@@ -28,7 +28,7 @@ Grading composes two things:
    (the brain, incl. cerebellum + brainstem, must be kept).
 2. **The `no_dura_inclusion` gate** — the submission must not extend past the **dura-out pial
    envelope** into the dura/skull. `dura_over_env_cm3 = volume(mask AND NOT envelope)`; the gate
-   fails (→ `invalid`) when it exceeds **`dura_max_cm3` = 30 cm³** (fixed). The gate is one-sided:
+   fails (→ `invalid`) when it exceeds **`dura_max_cm3` = 50 cm³** (fixed). The gate is one-sided:
    keeping *less* than the envelope is not penalised here (the core/focal gates already guard
    against cutting brain).
 
@@ -45,16 +45,19 @@ cerebellum + brainstem (which the cerebrum-focused segmentations alone miss); th
 
 ## Same output, different verdict
 
+![How the 7T no-dura gate works: four coronal panels of sub-025. The first shades the consensus core, which is scored, and the margin, which never is. The second draws the pial envelope against the consensus reference, which itself sits 21.4 cm3 outside it. The third shows HD-BET at its defaults with 15.9 cm3 beyond the envelope, passing the 50 cm3 cap. The fourth shows SynthStrip at its defaults with 117.7 cm3 beyond the envelope, a thick rim over the vertex and inferior surface, failing the cap.](nodura_dura_gate.png)
+
+
 The point of the task, scored on this subject's tools:
 
-| tool       | dura beyond envelope | `-7t` (standard) | `-7t-nodura` (this pack) |
-|------------|----------------------|------------------|--------------------------|
-| AFNI       | 7 cm³                | within_reference_variability | within_reference_variability        |
-| HD-BET     | 18 cm³               | within_reference_variability | within_reference_variability        |
-| SynthStrip | **118 cm³**          | within_reference_variability | **invalid** (`no_dura_inclusion`) |
+| tool, at its defaults | dura beyond envelope | `-7t` (standard) | `-7t-nodura` (this pack) |
+|---|---|---|---|
+| HD-BET     | 5.2–15.9 cm³ | within_reference_variability | within_reference_variability |
+| SynthStrip | **117.7–194.8 cm³** | marginal | **invalid** (`no_dura_inclusion`) |
 
-SynthStrip's identical mask passes the standard task and fails the no-dura task — the
-instruction-following signal.
+SynthStrip's identical mask is merely mediocre on the standard task and fails outright here — the
+instruction-following signal. The consensus reference itself sits 15.2–33.7 cm³ outside the
+envelope, so the cap has to clear that before it can fail anything.
 
 ## Layout
 

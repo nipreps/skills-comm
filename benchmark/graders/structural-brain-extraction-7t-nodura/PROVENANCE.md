@@ -39,20 +39,31 @@ The 3.1 mm radius was chosen from a sweep: 1.9 mm leaves some sulci open (riskin
 
 `dura_over_env_cm3 = volume(mask AND NOT envelope)` measured on the subject's tools:
 
-| tool       | over-envelope | reading                       |
-|------------|---------------|-------------------------------|
-| AFNI       | 7 cm³         | dura-out                      |
-| HD-BET     | 18 cm³        | small inferior brainstem nub  |
-| SynthStrip | 118 cm³       | thick CSF + dura rim          |
+| mask                      | over-envelope | reading                           |
+|---------------------------|---------------|-----------------------------------|
+| the consensus reference   | 15.2–33.7 cm³   | the floor the cap must clear      |
+| HD-BET (panel)            | 7.3–17.7 cm³   | small inferior brainstem nub      |
+| SynthStrip `-b -2` (panel)| 28.0–55.0 cm³  | border pulled in, most dura gone  |
+| ANTs INV2 (panel)         | 33.2–73.1 cm³  | template fit carries a dura rim   |
+| HD-BET, defaults          | 5.2–15.9 cm³    | dura-out                          |
+| SynthStrip, defaults      | 117.7–194.8 cm³ | thick CSF + dura rim             |
 
-**`dura_max_cm3` = 30 cm³ (fixed)** passes the dura-out tools (AFNI, HD-BET) and fails the
-rim-retaining tool (SynthStrip) with wide margin. It is a *fixed* cap, not LOTO-calibrated: with two
-dura-out reference tools a leave-one-out estimate would be too noisy, and a competent no-dura mask
-retains ~0 dura by construction.
+**`dura_max_cm3` = 50 cm³ (fixed)** sits between the reference's own worst over-envelope
+volume (33.7 cm³, which a perfect answer must clear) and the smallest
+rim-retaining failure (117.7 cm³). It is a *fixed* cap, not
+LOTO-calibrated: the panel is not the target here. The task asks for a mask **tighter** than the
+panel consensus, so calibrating the cap from the panel's own spread would defeat it.
+
+**Two panel members fail this gate** — ANTs INV2 on sub-025 and sub-045, SynthStrip `-b -2` on
+sub-045. That is a consequence of the above rather than a miscalibration: both carry a dura rim,
+which is exactly what the prompt asks a submission not to do, and the STAPLE consensus they
+produce passes comfortably. It does mean this gate, alone among the gates here, is not satisfied
+by every tool that built the reference — worth knowing before reading a failure on it.
 
 ## Caveats
 
-- **HD-BET's 18 cm³ is mostly an inferior brainstem/cord nub, not dura.** The cap tolerates it. A
-  stricter reading of "no dura" would tighten the cap, at the risk of failing an otherwise good mask.
+- **HD-BET's 7.3–17.7 cm³ is mostly an inferior
+  brainstem/cord nub, not dura.** The cap tolerates it. A stricter reading of "no dura" would tighten
+  the cap, at the risk of failing an otherwise good mask.
 - **The envelope leans on the shipped segmentations.** It is a curated dura-out reference, not a
   hand-drawn gold standard; a fully manual dura label would be more rigorous.
