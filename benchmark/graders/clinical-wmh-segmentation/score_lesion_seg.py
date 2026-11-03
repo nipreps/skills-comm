@@ -139,6 +139,18 @@ def score(pred_path, pack_dir):
                          "Fetch it with benchmark/harness/fetch_reference.py.")
     rimg = nib.as_closest_canonical(nib.load(str(ref_p)))
     ref = np.asanyarray(rimg.dataobj) > BIN_TOL
+    # The rubric must belong to the reference it is grading. Selecting the wrong
+    # subject's rubric would otherwise be invisible: a perfect answer still reaches
+    # Dice 1.0, and only the thresholds -- the envelope this subject's own raters set --
+    # would be wrong. Each subject's scan has its own affine, so that is the check.
+    want_aff = (rubric.get("grid") or {}).get("raw_affine")
+    if want_aff is not None:
+        have_aff = nib.load(str(ref_p)).affine
+        if not np.allclose(np.asarray(want_aff, float), have_aff, atol=1e-3):
+            raise SystemExit(
+                "ERROR: this rubric does not describe this reference -- its grid affine "
+                "does not match lesion_mask.nii.gz. The rubric and the reference are for "
+                "different subjects.")
     zooms = np.asarray(rimg.header.get_zooms()[:3], float)
     vox_cm3 = float(np.prod(zooms) / 1000.0)
 

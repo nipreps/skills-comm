@@ -250,10 +250,19 @@
       "pred_flag": "--pred",
       "detail_kind": "binary",
       "optional_inputs": {},
-      "ref_dir": "clinical_gt/clinical-wmh-segmentation",
+      "ref_dir": "clinical_gt/clinical-wmh-segmentation/{subject}",
       "reference_files": [
         "lesion_mask.nii.gz"
-      ]
+      ],
+      "per_subject": true,
+      "subjects": [
+        "Amsterdam_GE3T_100",
+        "Amsterdam_GE3T_114",
+        "Singapore_52",
+        "Utrecht_33",
+        "Utrecht_39"
+      ],
+      "reference_revision": "77136f95221c"
     },
     "functional-bold-to-mni": {
       "pack_dir": "graders/functional-bold-to-mni",

@@ -95,11 +95,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # one row per scorer shape, and per reference shape: a task with a single
-          # reference and one graded per subject are different code paths through both
-          # fetch_reference and grade_wrapper, and only the first was ever exercised.
+          # One row per scorer shape. Every graded task is now per subject, so the
+          # single-reference path through fetch_reference is no longer covered here:
+          # the two tasks that still use it are registrations, whose reference is a
+          # template, and this selftest works by copying the graded reference as a
+          # perfect submission -- which is not a perfect answer to a registration.
+          # Restoring that coverage needs a selftest those tasks can satisfy.
           - task: clinical-wmh-segmentation
-            graded_ref: lesion_mask.nii.gz          # binary scorer, single reference
+            graded_ref: lesion_mask.nii.gz          # expert reference, graded per subject
+            subject: Utrecht_39
           - task: structural-tissue-segmentation-7t
             graded_ref: consensus_seg.nii.gz        # multiclass scorer, graded per subject
             subject: sub-025
