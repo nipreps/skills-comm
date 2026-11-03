@@ -29,6 +29,7 @@ Usage: smoke_test.py [--task TASK]...
 import argparse
 import importlib.util
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -37,10 +38,15 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-REPO = Path("/home/jovyan/Git_repositories/skills-comm/benchmark")
-STAGE = Path("/home/jovyan/benchmark_v0.4/hf_stage")
-CAL = Path("/home/jovyan/benchmark_v0.4/hf_calibration")
-BUILD = Path("/home/jovyan/benchmark_v0.4")
+# This file lives in benchmark/harness/, so the benchmark root is two levels up.
+REPO = Path(__file__).resolve().parent.parent
+# The build tree holds the staged references, the gated calibration and each task's
+# working directory. It is not part of the repository: pass --build, or set
+# SKILLS_COMM_BUILD. Probes whose inputs are absent are reported as absent, not failed,
+# so the test still runs usefully without it.
+BUILD = Path(os.environ.get("SKILLS_COMM_BUILD", "")).expanduser() if os.environ.get(
+    "SKILLS_COMM_BUILD") else None
+STAGE = CAL = None
 MAN = json.load(open(REPO / "harness/run_manifest.json"))["tasks"]
 
 # which reference file a submission is compared against, per scorer family
@@ -206,7 +212,18 @@ def run_registration(task, spec, rows):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--task", action="append")
+    ap.add_argument("--build", help="the build tree holding hf_stage/, hf_calibration/ "
+                                    "and each task's working directory; defaults to "
+                                    "$SKILLS_COMM_BUILD")
     a = ap.parse_args()
+    global BUILD, STAGE, CAL
+    if a.build:
+        BUILD = Path(a.build).expanduser()
+    if BUILD is None:
+        print("No build tree given (--build or $SKILLS_COMM_BUILD). Only probes that "
+              "read from each pack's own reference/ will run.", file=sys.stderr)
+        BUILD = Path("/nonexistent")
+    STAGE, CAL = BUILD / "hf_stage", BUILD / "hf_calibration"
     rows = []
     for task in sorted(a.task or MAN):
         spec = MAN[task]

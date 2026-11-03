@@ -22,10 +22,13 @@ Usage: split_rubrics.py [--write]
 """
 import argparse
 import json
+import os
 from pathlib import Path
 
-G = Path("/home/jovyan/Git_repositories/skills-comm/benchmark/graders")
-STAGE = Path("/home/jovyan/benchmark_v0.4/hf_calibration")
+# This file lives in benchmark/harness/, so the graders sit beside it.
+G = Path(__file__).resolve().parent.parent / "graders"
+# Where the gated half is written for upload; not part of the repository.
+STAGE = Path(os.environ.get("SKILLS_COMM_BUILD", ".")).expanduser() / "hf_calibration"
 MOVE = ["reference_tools", "panel", "tau_mm", "envelope", "focal_max_cm3", "consensus",
         "reference_notes", "focal_basis", "dura_basis"]
 
