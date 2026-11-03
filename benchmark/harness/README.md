@@ -62,6 +62,14 @@ rankable number:
    asks for full marks on every metric. It is a separate test, not a score threshold — so a submission
    can be `within_reference_variability` without scoring 100, and `score` is **not** monotonic with the tier.
 
+   For a consensus-calibrated pack the tier starts at **60**, not near 100. A metric mapped onto the
+   leave-one-tool-out envelope reaches `slack / (1 + slack)` at the worst held-out tool, which is
+   exactly 0.60 at the slack used here, so a submission sitting at the weak edge of the envelope on
+   every metric scores 60 and still qualifies. A low score carrying this tier therefore means
+   "inside the reference's own spread, at its weak edge" — not a contradiction. Agent submissions
+   rarely land there, because sitting at the weak edge on *all* metrics at once is uncommon; a
+   reference tool on a widely-spread panel can.
+
 `valid` and `score` are independent: a submission can be valid but score low (e.g. a mask that
 passes every gate but overlaps the reference poorly). Only `invalid` forces the score to 0.
 
