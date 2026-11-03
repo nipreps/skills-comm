@@ -13,12 +13,18 @@ boundary slip on tiny lesions tanks it) and **lesion-wise detection matters**.
 *Full size: [`wmh_grading.png`](wmh_grading.png). Every number in it comes from this pack's
 `rubrics/<subject>.json` and the grader run on the rater masks.*
 
-## Why inter-rater calibration (the upgrade over the stroke task)
+## The reference
 
-The stroke lesion task used *fixed literature* thresholds (one expert tracing, no rater spread). The
-WMH Challenge ships **three raters** on this subject (primary O1/O2, plus O3 and O4), so the pass/fail
-envelope is **measured, not assumed**: O3 and O4 are scored against the primary, and their metrics set
-"full marks" (as good as another expert) and the pass line. See [`PROVENANCE.md`](PROVENANCE.md).
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/clinical-wmh-segmentation/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
 
 ## Scorer (ships in this pack)
 
@@ -45,18 +51,22 @@ is graded against its own rubric in `rubrics/<subject>.json`; there is no shared
 and the grader refuses to run if the selected rubric does not describe the fetched
 reference.
 
-| subject | WMH | foci | grid | Dice full | Dice pass |
-|---|---|---|---|---|---|
-| `Amsterdam_GE3T_100` | 6.27 cm3 | 115 foci; scanner Amsterdam GE3T; thresholds from this subject's own O3/O4 agreement | 132x256x83 | 0.783 | 0.574 |
-| `Amsterdam_GE3T_114` | 16.87 cm3 | 99 foci; scanner Amsterdam GE3T; thresholds from this subject's own O3/O4 agreement | 132x256x83 | 0.838 | 0.626 |
-| `Singapore_52` | 4.94 cm3 | 66 foci; scanner Singapore; thresholds from this subject's own O3/O4 agreement | 232x256x48 | 0.761 | 0.519 |
-| `Utrecht_33` | 3.95 cm3 | 79 foci; scanner Utrecht; thresholds from this subject's own O3/O4 agreement | 240x240x48 | 0.755 | 0.544 |
-| `Utrecht_39` | 45.74 cm3 | 127 foci; scanner Utrecht; thresholds from this subject's own O3/O4 agreement | 240x240x48 | 0.904 | 0.702 |
+| subject | scanner | grid |
+|---|---|---|
+| `Amsterdam_GE3T_100` | Amsterdam GE3T | 132x256x83 |
+| `Amsterdam_GE3T_114` | Amsterdam GE3T | 132x256x83 |
+| `Singapore_52` | Singapore | 232x256x48 |
+| `Utrecht_33` | Utrecht | 240x240x48 |
+| `Utrecht_39` | Utrecht | 240x240x48 |
+
+Lesion load, focus counts and each subject's thresholds are in the gated
+`calibration/clinical-wmh-segmentation/PROVENANCE.md`; the thresholds themselves ship with
+the per-subject calibration the grader merges at scoring time.
 
 Thresholds differ per subject because they are measured per subject: the challenge ships
 two additional raters, and full marks is their mean agreement with the primary reference.
-Full marks therefore ranges from 0.755 to 0.904 in Dice across these five — a fixed
-threshold would be wrong for most of them.
+Full marks therefore spans a wide range in Dice across these five — a fixed threshold
+would be wrong for most of them.
 
 Selection is recorded in `subjects.tsv` in the build directory, including why each of the
 other 55 training subjects was not used. Two constraints applied: rater agreement rises

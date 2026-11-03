@@ -5,22 +5,22 @@ Grades a **brain mask made from a DWI b0** against a consensus of a masking-tool
 
 **What it tests: whether the b0 is prepared before it is masked.** On the raw series every
 intensity-threshold method loses the same anatomy — cerebellum, temporal poles, brainstem — to
-the inferior bias field. Two routes pass: a contrast-agnostic stripper (SynthStrip, HD-BET,
+the inferior bias field. Two routes pass: a contrast-agnostic stripper
 `3dSkullStrip`), or `dwidenoise` + `dwibiascorrect` before `dwi2mask`, which takes that tool from
 `invalid` to `within_reference_variability`.
 
-## Why a consensus, not one tool
+## The reference
 
-Every masking tool draws a different boundary, and on a b0 the disagreement is larger than on a
-T1w. Grading against any single tool would bake in that tool's convention. Instead the pack
-carries a STAPLE consensus of three panel tools split into three zones —
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/diffusion-brain-mask/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
 
-    core (2)        every panel tool includes it   -> must be kept  (scored)
-    margin (1)      the tools legitimately disagree   -> free          (never scored)
-    background (0)  no panel tool includes it      -> must be out   (scored)
-
-— and scores only the two unambiguous zones. Every threshold is calibrated by leave-one-tool-out;
-see `PROVENANCE.md`.
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
 
 ## Scorer (shared with the brain-extraction packs)
 
@@ -36,7 +36,7 @@ The submission is a **binary brain mask on the diffusion grid** (96 × 96 × 60,
 Weighted quality over five metrics, each mapped to [0, 1] by the leave-one-tool-out envelope —
 1.0 at the median panel tool, 0.0 at 1.5× beyond the worst:
 
-- **NSD** within τ = 5.59 mm (0.30) — boundary agreement
+- **NSD** within the task's surface tolerance τ (0.30) — boundary agreement
 - **core recall** (0.25) — brain must not be cut
 - **background false-positive fraction** (0.20) — skull and neck must not be retained
 - **HD95** (0.15) — worst-case boundary excursion
@@ -52,20 +52,13 @@ Verdict: `within_reference_variability` when every metric reaches full marks; el
 
 `binary`, `native_grid`, `nonempty`, `single_component`, `no_internal_holes`,
 `volume_plausible` (1020–2290 cm³), `no_catastrophic_core_loss` (≤ 10 % of core),
-`no_focal_core_loss` (≤ 5.0–12.9 cm³, a solid chunk surviving a max(1.5 mm, one voxel) shave — here one
+`no_focal_core_loss` (a solid chunk surviving a max(1.5 mm, one voxel) shave — here one
 voxel, 2.5 mm; a uniformly tighter boundary is priced by τ, NSD and HD95 instead),
 `no_focal_bg_inclusion` (≤ 40 cm³, measured the same way),
 `stripped_matches_mask`.
 
 **The gates name the failure.** Dice alone would not separate these: `bet -f 0.2` reaches Dice
 0.927 while retaining skull, higher than raw `dwi2mask` at 0.924 which loses the cerebellum.
-
-## Validation
-
-The three reference tools score 92–100, and `dwi2mask` after preprocessing reaches 90.5. Every
-other candidate is `invalid`, including **FSL BET at its default `-f 0.5`**, **AFNI
-`3dAutomask`** and **raw `dwi2mask`**. Perturbing the consensus ranks
-monotonically and both two-voxel failures are caught. Full tables in `PROVENANCE.md`.
 
 ## Layout
 

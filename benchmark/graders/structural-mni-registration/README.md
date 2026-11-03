@@ -3,6 +3,19 @@
 Grades a **T1w-to-MNI152NLin2009cAsym registration** by where the tissue lands, not by how much
 the warped image resembles the template.
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/structural-mni-registration/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## Why label propagation, not image similarity
 
 A registration is a spatial transform, so the question is where anatomy ends up. Correlation
@@ -65,13 +78,6 @@ inside the brain.
 `suspected_label_permutation` is reported, never scored. It fires when some other assignment of
 the same labels would score better — the signature of an agent that re-segmented the image with a
 different convention instead of warping the file it was given.
-
-## Validation
-
-All four nonlinear arms score `within_reference_variability` (61–100). All three affine arms score
-`unacceptable` (0–3.6). An agent that resamples onto the template grid without registering is
-`invalid`. Perturbations rank monotonically and malformed submissions are gated out. Full tables
-in `PROVENANCE.md`.
 
 ## Layout
 

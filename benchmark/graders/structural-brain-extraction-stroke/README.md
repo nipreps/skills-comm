@@ -9,6 +9,19 @@ Same design as the baseline: score a submission against a STAPLE consensus of a 
 into core / margin / background, thresholds calibrated by leave-one-tool-out. See
 [`PROVENANCE.md`](PROVENANCE.md).
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/structural-brain-extraction-stroke/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## Shared scorer
 
 No scorer ships here — grade with the shared scorer, pointing `--pack` at this pack:
@@ -18,25 +31,6 @@ No scorer ships here — grade with the shared scorer, pointing `--pack` at this
 python3 ../structural-brain-extraction/score_brain_mask.py \
     --mask agent_mask.nii.gz --pack . [--stripped agent_brain.nii.gz] [--json result.json]
 ```
-
-## What's hard here — and the lesion gate
-
-The graded T1w has an 82.8 cm³ chronic infarct: a fluid-filled cavity that is **dark and CSF-like on
-T1**. Intensity-based strippers treat it as non-brain and cut it out — **FSL BET retains only 52 % of
-the lesion**, while HD-BET (99.6 %), AFNI (93.7 %) and SynthStrip (100 %) keep it.
-
-Because the dataset ships an expert lesion mask, this pack adds a **`lesion_retained` gate**: the brain
-mask must contain at least `lesion_retained_min` (0.85) of the expert lesion, else `invalid`. This is
-the specific failure the subject exposes, made explicit and lesion-aware (BET also trips the generic
-`no_focal_core_loss` gate, but `lesion_retained` names *why*). The gate activates only because this
-pack ships `reference/lesion_mask.nii.gz`; the shared scorer skips it for every other pack.
-
-## Reference panel
-
-- **Panel = HD-BET + AFNI + SynthStrip** (the lesion-retaining tools; τ ≈ 5.4 mm).
-- **Dropped: FSL BET** — carves out the lesion (52 % retained). Kept as a scored **candidate**; it
-  comes out `invalid` (`lesion_retained` + `no_catastrophic_core_loss` + `no_focal_core_loss`),
-  which validates the grader.
 
 ## Geometry note
 

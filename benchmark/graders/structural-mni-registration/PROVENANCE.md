@@ -4,6 +4,18 @@ Frozen output of a one-time calibration on **ds002790 `sub-0006`**, T1w at 1 mm,
 **MNI152NLin2009cAsym** (TemplateFlow, `res-01`, 193 × 229 × 193 at 1 mm). Not re-derived at
 grade time.
 
+## How the reference was built
+
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/structural-mni-registration/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
+
+That material sits with the reference because it describes the answer: during
+one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
+the panel consensus from it. Access is granted on request.
+
 ## What is graded, and why it is not the warped image
 
 A registration is a spatial transform. The obvious thing to grade — how much the warped T1w
@@ -49,34 +61,6 @@ assignment of the same labels would score better — the signature of an agent t
 the image with a different convention instead of warping the file it was given. That turns a
 confusing near-zero into an actionable one.
 
-## The panel
-
-Seven registrations, all from the raw T1w to the template, each emitting a warped T1w and a
-propagated segmentation:
-
-| tool | kind | WM Dice | GM Dice | in-brain corr | verdict |
-|---|---|---|---|---|---|
-| **ANTs SyN** (`antsRegistrationSyN.sh -t s`) | nonlinear | 0.855 | 0.787 | 0.826 | **reference** |
-| **NiftyReg** (`reg_aladin` + `reg_f3d`) | nonlinear | 0.846 | 0.746 | 0.842 | **reference** |
-| **fMRIPrep** (transform shipped with ds002790) | nonlinear | 0.840 | 0.761 | 0.784 | **reference** |
-| **FSL** (`flirt` + `fnirt`) | nonlinear | 0.791 | 0.706 | 0.736 | **reference** |
-| ANTs affine (`-t a`) | affine | 0.701 | 0.635 | 0.579 | candidate → unacceptable |
-| FSL `flirt` 12 DOF | affine | 0.698 | 0.629 | 0.581 | candidate → unacceptable |
-| NiftyReg `reg_aladin` | affine | 0.695 | 0.624 | 0.571 | candidate → unacceptable |
-
-Three independent nonlinear families (ANTs, FSL, NiftyReg) plus fMRIPrep's shipped transform,
-which is ANTs-based and therefore correlated with the SyN arm — it is included because it is the
-answer a reader would expect to see, not because it adds independence.
-
-**The separation is unambiguous**: every nonlinear arm sits at WM Dice ≥ 0.791, every affine arm
-at ≤ 0.701, and the three affine implementations agree with each other to within 0.006. That
-tight affine cluster is what makes it a trustworthy zero point.
-
-FSL FNIRT is the weakest panel member arm (0.791, quality 61). It is run without a `--config`,
-because the shipped configs are tuned for FSL's own MNI152 (MNI152NLin6Asym) and the reference
-space here is MNI152NLin2009cAsym. Including it widens the accepted envelope and makes the task
-*more* forgiving of an FSL-based answer, which is the right direction for fairness.
-
 ## Metrics and weights
 
 | metric | weight | full marks | zero credit |
@@ -104,36 +88,6 @@ of mass within 5 mm of the template's).
 `warped_finite_in_brain` is deliberately not "no NaN anywhere": NiftyReg and some other
 resamplers write NaN outside the field of view rather than zero, which is a convention, not a
 defect. Non-finite values are zeroed on load and judged only where they matter — inside the brain.
-
-## Validation
-
-### Negative control
-
-An agent that resamples onto the template grid without registering at all scores WM Dice 0.386
-and is rejected by `brain_in_place`. This is the control that matters most, because the template
-grid can be reached by resampling alone.
-
-### Perturbing the best panel registration
-
-| perturbation | verdict | quality |
-|---|---|---|
-| self | within_reference_variability | 100.0 |
-| blur 4 mm (image only) | acceptable | 86.5 |
-| shift 2 mm | marginal | 41.4 |
-| shift 5 mm | **invalid** (`brain_in_place`) | 0 |
-| shift 10 mm | **invalid** (`brain_in_place`) | 0 |
-| empty segmentation | **invalid** | 0 |
-
-Blurring the warped image only moves the correlation term, which is why it stays acceptable — the
-propagated labels are untouched, and the labels are what carry the score.
-
-### Malformed submissions
-
-| submission | result |
-|---|---|
-| labels permuted (re-segmented, wrong convention) | marginal, with `suspected_label_permutation` naming the fix |
-| binary mask instead of a segmentation | **invalid** (`valid_labels`) |
-| segmentation on a different grid | **invalid** (`dseg_on_template_grid`) |
 
 ## Runtime
 

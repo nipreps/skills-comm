@@ -23,6 +23,19 @@ panel of tools**, split into three zones, and scores only the *unambiguous* voxe
 Every threshold (the surface tolerance τ, the per-metric pass/fail envelope, the gate caps) was
 **calibrated from the data** (leave-one-tool-out), never hand-picked. See [`PROVENANCE.md`](PROVENANCE.md).
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/structural-brain-extraction/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## Layout
 
 ```
@@ -90,22 +103,6 @@ A harness fetches the reference (`reference_fetch`) and runs `invoke`. Exit code
 submission passed all validity gates. The submission passes the benchmark when the verdict is
 `acceptable` or `within_reference_variability`.
 
-## Test evidence
-
-Scoring the panel + negative controls against this frozen pack gives:
-
-| submission | verdict | quality | why |
-|---|---|---|---|
-| `anat_hd_bet_bet.nii.gz` (HD-BET) | `within_reference_variability` | 99.96 | NSD 0.991, focal 0.0, clean |
-| `AFNI_mask_bin.nii.gz` (AFNI, corrected) | `within_reference_variability` | 99.78 | native grid, binary |
-| `anat_bet_f07_mask.nii.gz` (BET −f 0.7) | **`invalid`** | 0 | `no_focal_core_loss` — 14.3 cm³ solid frontal cut (27.5 cm³ before erosion) |
-
-```
-$ python3 score_brain_mask.py --mask anat_bet_f07_mask.nii.gz --pack .
-{ "verdict": "invalid", "quality": 0.0, "gate_failures": ["no_focal_core_loss"], ... }
-$ echo $?    # 1
-```
-
 ## Policy knobs
 
 - **Reference panel** (`rubrics/<subject>.json:reference_tools`) — defines the consensus AND every threshold.
@@ -113,7 +110,8 @@ $ echo $?    # 1
 - **`focal_max_cm3`** — calibrated (`SLACK` × worst held-out focal miss, floored), the miss measured
   the same way the scorer measures a submission's: largest component surviving a max(1.5 mm, one voxel) shave.
   5.0 cm³ across this task's subjects. Larger = more lenient on localised cuts.
-- **`native_grid` gate** — here a header-only deoblique (AFNI-style) is recovered onto the native grid
+- **`native_grid` gate** — here a header-only deoblique (the sform/qform rewritten with the
+  voxel data unmoved, as several tools emit) is recovered onto the native grid
   rather than failed; flip to strict if the task should reject any header that doesn't match the input.
 
 ## Verdicts

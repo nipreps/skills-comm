@@ -38,24 +38,24 @@ skips it for every other pack.
 ## The envelope (dura-out reference)
 
 Built from the **union of the four whole-brain tissue segmentations** shipped with CEREBRUM-7T
-(CEREBRUM7T, FreeSurfer v6/v7, nighres) — all dura-out by construction. The union covers the
+shipped with the dataset — all dura-out by construction. The union covers the
 cerebellum + brainstem (which the cerebrum-focused segmentations alone miss); the sulci are then
 **filled** by a 5-voxel (3.1 mm) morphological closing + hole-fill so the boundary is the outer
-**pial** surface. This is deliberate: the envelope penalises *dura*, not *sulcal CSF*. Volume ≈ 1202 cm³.
+**pial** surface. This is deliberate: the envelope penalises *dura*, not *sulcal CSF*.
 
 ## Same output, different verdict
 
-![How the 7T no-dura gate works: four coronal panels of sub-025. The first shades the consensus core, which is scored, and the margin, which never is. The second draws the pial envelope against the consensus reference, which itself sits 21.4 cm3 outside it. The third shows HD-BET at its defaults with 15.9 cm3 beyond the envelope, passing the 50 cm3 cap. The fourth shows SynthStrip at its defaults with 117.7 cm3 beyond the envelope, a thick rim over the vertex and inferior surface, failing the cap.](nodura_dura_gate.png)
+![How the 7T no-dura gate works: four coronal panels of one subject. The first shades the consensus core, which is scored, and the margin, which never is. The second draws the pial envelope against the consensus reference, which itself sits partly outside it. The third shows a dura-aware stripper well inside the cap and passing. The fourth shows a rim-retaining stripper many times over the cap, a thick rim over the vertex and inferior surface, failing.](nodura_dura_gate.png)
 
 
 The point of the task, scored on this subject's tools:
 
 | tool, at its defaults | dura beyond envelope | `-7t` (standard) | `-7t-nodura` (this pack) |
 |---|---|---|---|
-| HD-BET     | 5.2–15.9 cm³ | within_reference_variability | within_reference_variability |
-| SynthStrip | **117.7–194.8 cm³** | marginal | **invalid** (`no_dura_inclusion`) |
+| a dura-aware stripper | well inside the cap | within_reference_variability | within_reference_variability |
+| a rim-retaining stripper | many times the cap | marginal | **invalid** (`no_dura_inclusion`) |
 
-SynthStrip's identical mask is merely mediocre on the standard task and fails outright here — the
+The rim-retaining tool's identical mask is merely mediocre on the standard task and fails outright here — the
 instruction-following signal. The consensus reference itself sits 15.2–33.7 cm³ outside the
 envelope, so the cap has to clear that before it can fail anything.
 

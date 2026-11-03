@@ -3,38 +3,25 @@
 Frozen output of a one-time calibration on **ds000228 `sub-pixar017`** (~3.6 yo, native T1w space).
 Not re-derived at grade time.
 
+## How the reference was built
+
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/structural-brain-extraction-pediatric/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
+
+That material sits with the reference because it describes the answer: during
+one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
+the panel consensus from it. Access is granted on request.
+
 ## Subject selection
 
 ds000228 (Richardson, "Development of the social brain") — children + adults. An earlier pick,
 **sub-pixar009, was rejected**: its T1w has a field-of-view truncation (a planar zero-cut through the right
 side of the brain — not defacing; ~6-8 % of the brain surface sat on the cut). Candidates were screened with
-an FOV-completeness metric (SynthStrip mask, % of brain surface adjacent to zero-data); **sub-pixar017** was
+an FOV-completeness metric (% of brain surface adjacent to zero-data); **sub-pixar017** was
 the cleanest (0.2 %) with full coverage.
-
-## Inputs and panel
-
-Four tools were run on the T1w and were all mutually coherent (pairwise Dice ~0.95-0.96, volumes 1059-1173 cm³):
-
-- **HD-BET** (deep learning)
-- **AFNI** `3dSkullStrip` (mask taken from the skull-stripped brain, solidified onto the native grid)
-- **SynthStrip** (deep learning; the loosest — keeps a thin outer CSF rim, 95 % of its surplus is CSF)
-- **FSL BET** with `-R` (robust centre)
-
-**ANTs was excluded** — the adult OASIS template does not fit a 3.6-yo brain.
-
-## Calibration steps
-
-1. Geometry harmonisation onto the reference grid (AFNI's header-only deoblique is read on the native grid;
-   the grader carries `grid.raw_affine` to detect the same case in a submission).
-2. **STAPLE consensus** of the four tools → binary consensus (`consensus_mask.nii.gz`).
-3. **Zones** from the agreement fraction → `consensus_zones.nii.gz` (0=background, 1=margin, 2=core).
-4. **τ** = 95th percentile of pairwise surface disagreement (≈ 4.5 mm).
-5. **Envelope** by leave-one-tool-out → per-metric median (full marks) / worst (pass line).
-6. **Gate caps:** `focal_max_cm3` (5.0 cm³ here) for localised core loss, LOTO-calibrated with a
-   floor, both sides measured as the largest component surviving a max(1.5 mm, one voxel) shave so
-   a uniformly tighter boundary is not read as a missing structure; and `focal_bg_max_cm3` = 40 cm³,
-   measured the same way
-   (fixed) for localised background inclusion.
 
 ## Scoring scale and weights
 
@@ -52,4 +39,4 @@ The `reference/` NIfTIs are on the Hugging Face Hub (`neurodeskorg/skills-comm-g
 
 ## Caveats
 
-- **Consensus leans on the tighter tools.** SynthStrip's CSF rim lands in the margin, not the core.
+- **Consensus leans on the tighter tools.** The loosest member's CSF rim lands in the margin, not the core.

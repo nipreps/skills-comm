@@ -4,6 +4,19 @@ Grades a **stroke-lesion segmentation** against an **expert manual mask** (Aphas
 OpenNeuro `ds004884`, `sub-M2191`). Step 2 of the stroke pair; step 1 is
 `structural-brain-extraction-stroke` (same subject).
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/clinical-stroke-lesion-segmentation/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## Why an expert mask, not a consensus
 
 The brain-extraction and tissue graders score against a *tool consensus* — valid because
@@ -37,11 +50,6 @@ combines three:
 Verdict: `within_reference_variability` when all three hit full marks; else `acceptable`/`marginal`/
 `unacceptable` by weighted quality; `invalid` on a gate failure (`binary`, `native_grid`, `nonempty`,
 `volume_plausible`).
-
-## Validation
-
-Perturbing the expert mask: self → `within_reference_variability` (q100); dilated 3 vox → `acceptable` (q80,
-Dice 0.74); eroded 4 vox → `unacceptable` (Dice 0.48); empty → `invalid`.
 
 ## Layout
 

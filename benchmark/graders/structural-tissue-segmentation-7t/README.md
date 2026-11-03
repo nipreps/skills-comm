@@ -12,6 +12,19 @@ the panel's tools, split into per-class **unanimous-core** (all tools agree) and
 (partial-volume disagreement) zones. Every threshold is calibrated by leave-one-tool-out. See
 [`PROVENANCE.md`](PROVENANCE.md).
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/structural-tissue-segmentation-7t/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## Ships its own scorer
 
 Parcellation needs a different scorer from the binary brain-extraction one, so this pack carries
@@ -24,17 +37,6 @@ python3 score_tissue_seg.py --seg agent_dseg.nii.gz --pack . [--json result.json
 
 The agent must output an **integer label map** with the fixed legend
 `1=GM 2=basal_ganglia 3=WM 4=ventricles 5=cerebellum 6=brainstem` in native T1w space.
-
-## Reference panel
-
-- **Panel = CEREBRUM7T + FreeSurfer v6 + FreeSurfer v7** — the three whole-brain segmentations
-  shipped with the dataset that share a common label scheme (per-class Dice 0.75–0.92).
-- **Dropped: nighres** — a coherence outlier (its label-3/WM Dice vs the others is 0.09, a different
-  label protocol). It is retained as a scored **candidate** (comes out `invalid` on
-  `no_class_collapse`), which validates the grader.
-
-No tools are run to build the reference — the panel members are the dataset's own pre-computed
-segmentations, fused by majority vote.
 
 ## Scoring
 

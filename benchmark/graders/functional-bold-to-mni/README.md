@@ -3,6 +3,19 @@
 Grades a **BOLD-to-MNI152NLin2009cAsym normalisation** by whether the functional data was taken to
 the template through the subject's own anatomy, or matched to it directly.
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/functional-bold-to-mni/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## What this task discriminates
 
 The BOLD is a distorted 3 mm EPI; the template is a 1 mm T1w. Registering one to the other
@@ -90,16 +103,6 @@ mass within 8 mm of the template's).
 
 `warped_finite_in_brain` rather than "no NaN anywhere": resamplers write NaN outside the field of
 view by convention. Non-finite values are zeroed on load and judged only inside the brain.
-
-## Validation
-
-Three independent panel chains — ANTs, FSL, and fMRIPrep's own output — all score
-`within_reference_variability` (93.7–100). Reversing the transform composition scores `unacceptable` (16.7).
-Registering straight to the template scores `unacceptable` (0.0) by affine and `invalid` by SyN,
-which inflates the brain to 4488 cm³ and fails two gates. A chain that skips only the
-EPI-to-anatomical stage scores `marginal` (54.1): for same-session data that stage is
-near-identity, so skipping it is a real but small error. Full tables in
-`PROVENANCE.md`.
 
 ## Layout
 

@@ -3,6 +3,19 @@
 Grades an **MS white-matter lesion segmentation** against the **expert multi-rater consensus mask**
 of `patient01` of the open_ms_data cross-sectional dataset (Ljubljana MS database, CC-BY).
 
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+That detail is gated because it describes the answer: in one benchmark wave, agent runs
+retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
+is granted on request, and everything needed to audit *how* grading works — the gates,
+weights, verdict thresholds and the scoring scale — stays here.
+
 ## Why an expert mask, not a consensus of tools
 
 The brain-extraction and tissue graders score against a *tool consensus* — valid because
@@ -44,31 +57,6 @@ Verdict: `within_reference_variability` when all three hit full marks; else `acc
 `copy_suspect_dice` additionally reports (never scores) a submission that reproduces the reference
 too exactly: the upstream dataset ships `consensus_gt.nii.gz` in the same folder as the images, so a
 Dice ≥ 0.995 means the reference was copied rather than segmented.
-
-## Validation
-
-Degrading the expert mask ranks monotonically, and the two catastrophic modes are gated out:
-
-| perturbation | verdict | quality | Dice | lesion F1 |
-|---|---|---|---|---|
-| self | within_reference_variability | 100.0 | 1.000 | 1.000 |
-| largest quarter of foci only | acceptable | 82.4 | 0.946 | 0.537 |
-| dilate 1 vox | marginal | 56.2 | 0.615 | 1.000 |
-| dilate 2 vox | marginal | 40.0 | 0.410 | 1.000 |
-| shift 3 mm | unacceptable | 28.3 | 0.276 | 0.407 |
-| erode 1 vox | unacceptable | 6.3 | 0.364 | 0.388 |
-| erode 2 vox | unacceptable | 0.0 | 0.060 | 0.007 |
-| whole brain mask | **invalid** | 0.0 | 0.048 | 0.998 |
-| empty | **invalid** | 0.0 | 0.000 | 0.000 |
-
-Two rows are worth reading closely. *Whole brain mask* shows why lesion-wise F1 can never be a gate
-on its own — one huge component overlaps every reference lesion, so F1 ≈ 1.0 while Dice is 0.05; the
-volume gate is what rejects it. *Largest quarter of foci only* is the grader's known tolerance: a
-submission that traces the big confluent lesions perfectly but misses three-quarters of the lesion
-instances still reaches `acceptable`, held down from `within_reference_variability` by the F1 term alone.
-
-Erosion is harsher than dilation here because most foci are a few voxels across — an intrinsic
-property of multifocal MS at 1 mm, not a scoring artefact.
 
 ## Layout
 

@@ -24,13 +24,13 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 ## What's specific to pediatric
 
-- **Reference panel = HD_BET + AFNI + SynthStrip + FSL BET -R** — all four were coherent on this child brain
-  (pairwise Dice ~0.96, no outlier). **ANTs was excluded**: the adult OASIS template does not fit a 3.6-yo brain.
-- **τ ≈ 4.5 mm**, margin 15%; core 1028 cm³. Clean full-FOV subject (an earlier candidate, sub-pixar009, was
-  rejected for a field-of-view truncation cutting through the brain).
-- SynthStrip is the loosest member (it keeps a thin outer CSF rim — 95% of its surplus is CSF, not dura), so it
-  scores `acceptable` rather than `within_reference_variability`. Kept for consistency with the healthy panel and for
-  algorithmic diversity; the margin absorbs the CSF-rim convention.
+- **The panel is four coherent tools**, with no outlier among them. One registration-based
+  method was excluded because an adult template does not fit a young child's brain. Members and
+  agreement are in the gated provenance.
+- Subjects are screened for field-of-view truncation: an earlier candidate was rejected for a
+  truncation cutting through the brain.
+- The loosest member keeps a thin outer CSF rim, almost all CSF rather than dura, so the margin
+  absorbs that convention instead of the core penalising it.
 - Gates include `no_focal_bg_inclusion` (cap 40 cm³) and `no_focal_core_loss`.
 
 ## Layout

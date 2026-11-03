@@ -3,6 +3,18 @@
 Frozen output of a one-time calibration on **CEREBRUM-7T `ds003642`, `sub-025` `ses-003`** (7T
 MP2RAGE, 0.63 mm isotropic, native T1w space). Not re-derived at grade time.
 
+## How the reference was built
+
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/structural-tissue-segmentation-7t/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
+
+That material sits with the reference because it describes the answer: during
+one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
+the panel consensus from it. Access is granted on request.
+
 ## Why consensus, not a single truth
 
 Every tissue/structure segmenter draws slightly different boundaries, especially at the fuzzy
@@ -10,15 +22,6 @@ partial-volume interfaces (GM↔WM, GM↔CSF). Grading against one tool's output
 tool's idiosyncrasies. Instead the reference is a **majority vote of the panel's segmentations**, split
 into per-class zones — unanimous core (must match) and majority boundary (partial-volume, softly
 scored) — and only the calibrated envelope decides pass/fail.
-
-## Panel (pre-computed, no tools run)
-
-CEREBRUM-7T ships four whole-brain segmentations. Curated by the coherence check:
-
-- **Kept: CEREBRUM7T, FreeSurfer v6, FreeSurfer v7** — share a common 7-label scheme (per-class
-  Dice 0.75–0.92 between them).
-- **Dropped: nighres** — a coherence outlier; its label-3 (WM) Dice vs the others is 0.09, i.e. a
-  different label protocol. Kept as a scored candidate; it comes out `invalid`.
 
 ## Label legend (confirmed by intensity on the UNI)
 
@@ -46,12 +49,6 @@ Per class: Dice, NSD (within τ), core-recall; each mapped through its envelope 
 Overall quality = mean of the six class qualities. Gates → `invalid`: `valid_labels`, `native_grid`,
 `no_class_collapse` (each class recovers ≥ 50 % of its unanimous core).
 
-## Validation
-
-Scored against the frozen pack: CEREBRUM7T `within_reference_variability` (q99.4), FreeSurfer v6 / v7
-`within_reference_variability` (q100), and the dropped **nighres `invalid`** (WM Dice 0.09 →
-`no_class_collapse`) — the outlier is rejected, confirming the grader discriminates.
-
 ## Reference data
 
 `reference/consensus_seg.nii.gz` + `consensus_agreement.nii.gz` are on the Hugging Face Hub
@@ -65,4 +62,4 @@ see `reference/README.md`. Everything else is in `rubric.json`.
   must output this exact legend.
 - **The panel are DL/atlas segmentations, not a manual gold standard** — a curated consensus, not
   ground truth in the strict sense. Two of three are FreeSurfer versions, so the consensus leans
-  FreeSurfer-ward; CEREBRUM7T (7T-specialised) adds independent signal.
+  toward one lineage; the 7T-specialised member adds independent signal.

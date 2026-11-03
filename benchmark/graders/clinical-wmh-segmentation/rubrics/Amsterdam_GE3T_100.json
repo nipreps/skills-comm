@@ -18,32 +18,6 @@
   "item": "wmhseg_wmh2017_sub-100_Amsterdam_GE3T_100",
   "prompt": "Segment the white-matter hyperintensities (WMH) on the FLAIR image of subject Amsterdam/GE3T/100 from the WMH Segmentation Challenge 2017.\n\nDATA \u2014 open, no login (DataverseNL, DOI 10.34894/AECRSD). This dataset is NOT on OpenNeuro; do not use datalad. Download with:\n  mkdir -p wmh_input\n  curl -sSL --retry 3 https://dataverse.nl/api/access/datafile/325669 -o wmh_input/FLAIR.nii.gz\n  curl -sSL --retry 3 https://dataverse.nl/api/access/datafile/325515 -o wmh_input/3DT1.nii.gz\nwmh_input/FLAIR.nii.gz is the segmentation input; wmh_input/3DT1.nii.gz is the co-registered T1 (optional to use).\n\nOUTPUT \u2014 a single binary WMH mask (NIfTI, values {0,1}) in the NATIVE FLAIR space: the same grid and affine as FLAIR.nii.gz (shape 132x256x83). Do not resample to any other space.",
   "reference": "Primary expert WMH mask (observers O1/O2), WMH Challenge 2017, native FLAIR space.",
-  "metric_thresholds": {
-    "dice": {
-      "full": 0.783,
-      "pass": 0.574
-    },
-    "lesion_f1": {
-      "full": 0.835,
-      "pass": 0.544
-    },
-    "abs_volume_err_pct": {
-      "full": 8.6,
-      "pass": 48.6
-    }
-  },
-  "inter_rater": {
-    "o3": {
-      "dice": 0.7744,
-      "lesion_f1": 0.7943,
-      "abs_volume_err_pct": 13.117
-    },
-    "o4": {
-      "dice": 0.7921,
-      "lesion_f1": 0.8756,
-      "abs_volume_err_pct": 4.092
-    }
-  },
   "grid": {
     "shape": [
       132,
@@ -87,5 +61,5 @@
       ]
     ]
   },
-  "notes": "WMH volume 6.27 cm3, 115 foci; scanner Amsterdam GE3T; thresholds from this subject's own O3/O4 agreement"
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
 }

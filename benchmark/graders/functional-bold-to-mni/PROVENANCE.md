@@ -1,5 +1,17 @@
 # Provenance: `functional-bold-to-mni`
 
+## How the reference was built
+
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/functional-bold-to-mni/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
+
+That material sits with the reference because it describes the answer: during
+one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
+the panel consensus from it. Access is granted on request.
+
 ## Item
 
 | | |
@@ -23,23 +35,6 @@ an ANTs-shaped answer and tax every other toolchain with a format conversion, so
 the whole chain itself.
 
 The goal text names the target space and the required outputs, not the route.
-
-## Reference panel
-
-Seven chains, all emitting a BOLD reference and a BOLD brain mask on the 1 mm template grid.
-
-| arm | what it does | role |
-|---|---|---|
-| `ANTs_correct` | `antsRegistrationSyN.sh -t r` (EPI→T1w) then `-t s` (T1w→MNI), composed right-to-left | accepted |
-| `fMRIPrep` | fMRIPrep's own `space-MNI152NLin2009cAsym` boldref and brain mask | accepted |
-| `FSL_chain` | `epi_reg` (BBR) then FLIRT + FNIRT, composed with `applywarp --premat` | accepted |
-| `ANTs_no_epi` | T1w→MNI only, as if the BOLD were already in T1w space | candidate |
-| `ANTs_reversed` | the same two transforms listed the wrong way round | candidate |
-| `Direct_affine` | BOLD→MNI, 12-DOF affine, ignoring the subject's T1w | floor |
-| `Direct_SyN` | BOLD→MNI, nonlinear, ignoring the subject's T1w | candidate |
-
-Three independent panel chains rather than two: with a pair, the envelope median is the mean of
-that pair, and one accepted arm necessarily sits at or below full marks.
 
 ## Scored metrics and how they were chosen
 
@@ -88,51 +83,6 @@ Gradient-based GM/WM contrast was also screened and discarded: 1.05–1.09 acros
 | com offset (mm) | 0.50 | 0.91 | 1.21 | 3.34 |
 
 Weights 0.50 / 0.50. Gate caps: brain volume 1230–3030 cm³, centre of mass within 8 mm.
-
-## Panel scores under the final rubric
-
-| arm | verdict | quality | gate failures |
-|---|---|---|---|
-| `fMRIPrep` | within_reference_variability | 100.00 | — |
-| `FSL_chain` | within_reference_variability | 96.67 | — |
-| `ANTs_correct` | within_reference_variability | 93.71 | — |
-| `ANTs_no_epi` | marginal | 54.05 | — |
-| `ANTs_reversed` | unacceptable | 16.69 | — |
-| `Direct_affine` | unacceptable | 0.00 | — |
-| `Direct_SyN` | invalid | 0.00 | `brain_volume_plausible`, `brain_in_place` |
-
-`ANTs_no_epi` scores `marginal` because the error it introduces is small. The
-EPI-to-anatomical transform for this subject is 0.84° of rotation and 1.62 mm of translation,
-because BOLD and T1w were acquired in the same session at the same isocentre. Skipping a
-near-identity stage is a real error — 3 mm of displacement — but not a wrong answer, and the
-rubric says so.
-
-## Perturbation validation
-
-The best panel chain degraded in known ways (`analysis_07_validate.sh`), to check that the
-grader ranks degradations monotonically and that malformed submissions are gated rather than
-merely scored low.
-
-| perturbation | verdict | quality | gates |
-|---|---|---|---|
-| `self` | within_reference_variability | 93.71 | — |
-| `nan_outside_brain` | within_reference_variability | 93.71 | — |
-| `mask_255` | within_reference_variability | 93.71 | — |
-| `blur_4mm` | acceptable | 87.79 | — |
-| `shift_2mm` | marginal | 54.40 | — |
-| `shift_5mm` | unacceptable | 9.47 | — |
-| `shift_10mm` | invalid | 0.00 | `brain_in_place` |
-| `probability_mask` | invalid | 0.00 | `binary_mask` |
-| `empty_mask` | invalid | 0.00 | `nonempty`, `brain_volume_plausible`, `brain_in_place` |
-
-Quality falls monotonically with translation. NaN outside the template brain mask passes, which is
-the intended tolerance for a resampler convention. A `{0, 255}` mask scores identically to a
-`{0, 1}` one.
-
-`binary_mask` tests the submitted values rather than `np.rint(seg)`. Rounding maps anything in
-`[0, 1]` onto `{0, 1}`, which would let a probability map pass silently while failing a `{0, 255}`
-mask — a form several tools write. A mask is binary when it holds a single non-zero value, whatever
-that value is, and `seg > 0` is what the metrics use downstream.
 
 ## Is the task measuring routing, or BOLD preparation?
 

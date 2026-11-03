@@ -28,9 +28,10 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 On the motion scan the tools **diverge and partly fail**, so the reference panel is curated:
 
-- **Reference panel = HD_BET + AFNI + SynthStrip.** ANTs and FSL BET were dropped — ANTs is a
-  coherence outlier (mean pairwise Dice 0.81 vs 0.90+), and both extended into the neck/spinal
-  cord ("too much left at the bottom"), inflating the margin.
+- **The panel is curated for this scan**: two of the five tools run were dropped, one as a
+  coherence outlier and both for extending into the neck and spinal cord, which inflates the
+  margin. The members, their pairwise agreement and the exclusions are in the gated
+  provenance.
 - **τ ≈ 5.7 mm** (vs 3.7 on the healthy adult) — the motion boundary is genuinely fuzzier, so a
   wider tolerance is data-justified.
 - The gates include **`no_focal_bg_inclusion`** (cap `focal_bg_max_cm3` = 40 cm³, fixed) — it fails
