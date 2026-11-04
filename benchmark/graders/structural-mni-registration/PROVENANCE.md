@@ -1,6 +1,11 @@
 # Provenance — how this grader pack was calibrated
 
-Frozen calibration on **ds002790**, T1w at 1 mm, registered to **MNI152NLin2009cAsym** (TemplateFlow, `res-01`, 193 × 229 × 193 at 1 mm). Not re-derived at grade time.
+One rubric per subject, in `rubrics/<subject>.json`, each the frozen output of a calibration
+on that subject's own panel. Scoring a submission never re-derives them.
+
+**ds002790**, T1w at 1 mm, registered to **MNI152NLin2009cAsym** (TemplateFlow, `res-01`,
+193 × 229 × 193 at 1 mm). The template is the same for every subject, so the reference is
+shared and only the rubric varies.
 
 ## How the reference was built
 
@@ -18,8 +23,8 @@ solving the task.
 A registration is a spatial transform. The obvious thing to grade — how much the warped T1w
 resembles the template — turns out to be nearly useless for separating a good registration from a
 mediocre one: correlation is dominated by gross head position and is largely saturated once *any*
-affine has been applied. On this subject, in-brain correlation is 0.57 for an affine and 0.78–0.84
-for a nonlinear warp, but the tissue that actually moved tells a much sharper story.
+affine has been applied. The tissue that actually moved tells a much sharper story, and the
+figure in [`README.md`](README.md) shows what that looks like.
 
 So the task hands the agent the subject's **tissue segmentation** alongside the T1w and asks for
 it to be carried through the same transform with nearest-neighbour interpolation. The grader then
@@ -38,19 +43,19 @@ each tissue belongs in MNI space independently of any registration software.
 A population prior is not a per-subject truth, so no absolute Dice threshold would be defensible.
 The scale is therefore relative and data-derived:
 
-- **full marks** = the median of four independent nonlinear registrations on this subject;
-- **zero credit** = the median of three affine-only registrations.
+- **full marks** = the median of four independent nonlinear registrations on that subject;
+- **zero credit** = the median of three affine-only registrations on the same subject.
 
 The score reads directly as *"how far between a 12-DOF affine and a typical nonlinear warp is
 this?"* Anchoring the floor on the affine rather than on a slack multiple of the accepted spread
-matters here, because the panel tools agree closely — WM Dice within 0.065 of each other — and
-a slack-based floor would sit inside that spread and make scoring brittle.
+matters here, because the nonlinear panel members agree closely with each other; a slack-based
+floor would sit inside that spread and make scoring brittle.
 
 ## Label convention
 
 The supplied segmentation uses **1 = GM, 2 = WM, 3 = CSF**. This was verified from the data, not
 assumed: mean T1w intensity per label is 156 k / 233 k / 82 k, and WM is the brightest tissue on a
-T1w, which fixes the mapping. `rubric.json` carries it as `tissue_labels` so the scorer never
+T1w, which fixes the mapping. `rubrics/<subject>.json` carries it as `tissue_labels` so the scorer never
 guesses.
 
 The scorer additionally reports (never scores) `suspected_label_permutation` when some other
@@ -60,18 +65,21 @@ confusing near-zero into an actionable one.
 
 ## Metrics and weights
 
-| metric | weight | full marks | zero credit |
-|---|---|---|---|
-| WM Dice | 0.30 | 0.8429 | 0.6977 |
-| GM Dice | 0.25 | 0.7536 | 0.6291 |
-| brain Dice | 0.20 | 0.9772 | 0.9604 |
-| in-brain correlation | 0.15 | 0.8049 | 0.5786 |
-| CSF Dice | 0.10 | 0.3430 | 0.2552 |
+| metric | weight |
+|---|---|
+| WM Dice | 0.30 |
+| GM Dice | 0.25 |
+| brain Dice | 0.20 |
+| in-brain correlation | 0.15 |
+| CSF Dice | 0.10 |
+
+The full-marks and zero-credit anchors behind each metric are per subject and gated with the
+reference.
 
 WM carries the most weight because it is the most sensitive to nonlinear quality. CSF carries the
-least: the template CSF prior at 0.5 is only 94.5 cm³, mostly ventricles, against 267 cm³ of
-subject CSF, so the two definitions differ and Dice is capped low for everyone. It still moves in
-the right direction (0.255 affine → 0.343 nonlinear) and is kept at low weight.
+least: the template CSF prior is mostly ventricles while the subject's CSF includes the sulci, so
+the two definitions differ and Dice is capped low for everyone. It still moves in the right
+direction between an affine and a nonlinear warp, and is kept at low weight.
 
 Image correlation is measured **inside the template brain mask**, so an agent that leaves the
 skull on is not penalised for it.
@@ -79,19 +87,18 @@ skull on is not penalised for it.
 ## Gates
 
 `warped_on_template_grid`, `dseg_on_template_grid`, `warped_finite_in_brain`, `valid_labels`,
-`nonempty`, `brain_volume_plausible` (1270–2420 cm³), `brain_in_place` (propagated brain centre
-of mass within 5 mm of the template's).
+`nonempty`, `brain_volume_plausible`, `brain_in_place` (propagated brain centre of mass close to
+the template's). Both caps are set per subject from that subject's own panel.
 
-`warped_finite_in_brain` is deliberately not "no NaN anywhere": NiftyReg and some other
+`warped_finite_in_brain` is deliberately not "no NaN anywhere": some
 resamplers write NaN outside the field of view rather than zero, which is a convention, not a
 defect. Non-finite values are zeroed on load and judged only where they matter — inside the brain.
 
 ## Runtime
 
-Not a barrier, which was worth checking before building the task: **ANTs SyN at 1 mm took 7
-minutes** on 10 cores. FSL FNIRT was the slowest at 25 minutes, NiftyReg under 2. All fit inside a
-45-minute agent budget, so the skill arm cannot be penalised for choosing a slower-but-better
-tool.
+Not a barrier, which was worth checking before building the task: the slowest package in the build took about 25 minutes per
+subject at 1 mm on 10 cores, and the fastest under 2. All fit inside a 45-minute agent budget, so
+the skill arm cannot be penalised for choosing a slower-but-better tool.
 
 ## Reference data
 

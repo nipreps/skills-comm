@@ -30,7 +30,7 @@
         "sub-0025",
         "sub-0039"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-brain-extraction-pediatric": {
       "pack_dir": "graders/structural-brain-extraction-pediatric",
@@ -53,7 +53,7 @@
         "sub-pixar016",
         "sub-pixar017"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-brain-extraction-motion": {
       "pack_dir": "graders/structural-brain-extraction-motion",
@@ -76,7 +76,7 @@
         "sub-678878",
         "sub-723372"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-brain-extraction-7t": {
       "pack_dir": "graders/structural-brain-extraction-7t",
@@ -97,7 +97,7 @@
         "sub-045",
         "sub-075"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-brain-extraction-7t-nodura": {
       "pack_dir": "graders/structural-brain-extraction-7t-nodura",
@@ -119,7 +119,7 @@
         "sub-045",
         "sub-075"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-brain-extraction-stroke": {
       "pack_dir": "graders/structural-brain-extraction-stroke",
@@ -143,7 +143,7 @@
         "sub-M2262",
         "sub-M2282"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-tissue-segmentation-7t": {
       "pack_dir": "graders/structural-tissue-segmentation-7t",
@@ -162,7 +162,7 @@
         "sub-045",
         "sub-075"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "structural-mni-registration": {
       "pack_dir": "graders/structural-mni-registration",
@@ -188,7 +188,7 @@
         "sub-0061",
         "sub-0129"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "diffusion-brain-mask": {
       "pack_dir": "graders/diffusion-brain-mask",
@@ -211,7 +211,7 @@
         "sub-CON08",
         "sub-CON09"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "clinical-stroke-lesion-segmentation": {
       "pack_dir": "graders/clinical-stroke-lesion-segmentation",
@@ -231,7 +231,7 @@
         "sub-M2262",
         "sub-M2282"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "clinical-ms-lesion-segmentation": {
       "pack_dir": "graders/clinical-ms-lesion-segmentation",
@@ -251,7 +251,7 @@
         "patient12",
         "patient14"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "clinical-wmh-segmentation": {
       "pack_dir": "graders/clinical-wmh-segmentation",
@@ -271,7 +271,7 @@
         "Utrecht_33",
         "Utrecht_39"
       ],
-      "reference_revision": "03dc60c693ee"
+      "reference_revision": "1146fa678ef6"
     },
     "functional-bold-to-mni": {
       "pack_dir": "graders/functional-bold-to-mni",

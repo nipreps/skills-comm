@@ -3,6 +3,12 @@
 Grades a **T1w-to-MNI152NLin2009cAsym registration** by where the tissue lands, not by how much
 the warped image resembles the template.
 
+![What the registration grader measures: the subject's tissue segmentation is carried through the submitted transform and compared with the template's own tissue priors. A nonlinear warp places most white matter where the prior expects it; an affine-only warp leaves much of it outside, which is the gap the score reads.](registration_grading.png)
+
+*Full size: [`registration_grading.png`](registration_grading.png). Axial slice through the
+template, white matter shown; blue is tissue where the prior expects it, red is tissue placed
+outside it.*
+
 ## The reference
 
 Built from several independent sources rather than one, so that the agreement between
@@ -34,17 +40,18 @@ Both submissions must be on the template grid: 193 × 229 × 193 at 1 mm.
 
 ## Scale
 
-Full marks at the median of four independent nonlinear registrations; zero credit at the median of
-three affine-only ones. The score reads as *how far between a 12-DOF affine and a typical
-nonlinear warp this is*.
+Full marks at the median of four independent nonlinear registrations; zero credit at the
+median of three affine-only ones. The score reads as *how far between a 12-DOF affine and a
+typical nonlinear warp this is*. The anchors are per subject and gated with the reference;
+the weights are not:
 
-| metric | weight | full marks | zero credit |
-|---|---|---|---|
-| WM Dice | 0.30 | 0.843 | 0.698 |
-| GM Dice | 0.25 | 0.754 | 0.629 |
-| brain Dice | 0.20 | 0.977 | 0.960 |
-| in-brain correlation | 0.15 | 0.805 | 0.579 |
-| CSF Dice | 0.10 | 0.343 | 0.255 |
+| metric | weight |
+|---|---|
+| WM Dice | 0.30 |
+| GM Dice | 0.25 |
+| brain Dice | 0.20 |
+| in-brain correlation | 0.15 |
+| CSF Dice | 0.10 |
 
 Correlation is measured inside the template brain mask, so leaving the skull on is not penalised.
 CSF is weighted least because the template prior and the subject's CSF differ in definition,
@@ -57,10 +64,10 @@ nonlinear registration; else `acceptable`/`marginal`/`unacceptable` by weighted 
 ## Gates
 
 `warped_on_template_grid`, `dseg_on_template_grid`, `warped_finite_in_brain`, `valid_labels`,
-`nonempty`, `brain_volume_plausible` (1270–2420 cm³), `brain_in_place` (propagated brain centre
-of mass within 5 mm of the template's).
+`nonempty`, `brain_volume_plausible`, `brain_in_place` (propagated brain centre of mass close to
+the template's). Both caps are set per subject in `rubrics/<subject>.json`.
 
-`warped_finite_in_brain` rather than "no NaN anywhere": NiftyReg and other resamplers write NaN
+`warped_finite_in_brain` rather than "no NaN anywhere": some resamplers write NaN
 outside the field of view by convention. Non-finite values are zeroed on load and judged only
 inside the brain.
 
@@ -74,11 +81,12 @@ different convention instead of warping the file it was given.
 
 ```
 structural-mni-registration/
-├── rubric.json               # envelope, weights, gate caps, grid, label convention
+├── rubrics/<subject>.json    # weights, gate caps, label convention; envelope and grid merged from the Hub
 ├── score_registration.py     # the scorer
 ├── reference/                # template + priors — fetched from the Hub
 │   ├── README.md
 │   └── .gitignore
+├── registration_grading.png  # the explainer figure above
 ├── README.md
 └── PROVENANCE.md
 ```
@@ -87,7 +95,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structura
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubric.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
 
 | verdict | meaning |
 |---|---|
