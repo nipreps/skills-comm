@@ -8,15 +8,25 @@ all which tools produced it.
 
 Moves (answer key):
   reference_tools / panel   the exact tools to run to reproduce the consensus
+  floor_arms                the arm the zero point is anchored on, by name
   tau_mm, envelope          derived from the panel's own spread
   focal_max_cm3             derived from the panel's leave-one-out
   consensus                 reference volumes
   reference_notes           lesion volume and foci counts
   focal_basis, dura_basis   prose quoting the numbers above
 
+Two tasks move more, because of what their reference is. The registration tasks are graded
+against the template itself, so `grid` describes the reference rather than the subject's own
+image. The WMH reference is a set of human tracings, so `metric_thresholds`, `inter_rater`
+and `notes` report what those raters achieved.
+
 Stays (policy, literature, or derivable from the image the agent is given):
-  gates, weights, slack, verdict_thresholds, plausible volumes, metric_thresholds and
-  their literature basis, the fixed caps and their basis, grid, labels, item, prompt.
+  gates, weights, slack, verdict_thresholds, plausible volumes, the reasoning behind
+  each threshold, the fixed caps and their basis, labels, item, prompt.
+
+The reasoning for a threshold stays public even where the value does not: a reviewer must
+be able to read how grading works, and check it against the literature, without gated
+access.
 
 Usage: split_rubrics.py [--write]
 """
@@ -29,8 +39,11 @@ from pathlib import Path
 G = Path(__file__).resolve().parent.parent / "graders"
 # Where the gated half is written for upload; not part of the repository.
 STAGE = Path(os.environ.get("SKILLS_COMM_BUILD", ".")).expanduser() / "hf_calibration"
-MOVE = ["reference_tools", "panel", "tau_mm", "envelope", "focal_max_cm3", "consensus",
-        "reference_notes", "focal_basis", "dura_basis"]
+MOVE = ["reference_tools", "panel", "floor_arms", "tau_mm", "envelope", "focal_max_cm3",
+        "consensus", "reference_notes", "focal_basis", "dura_basis"]
+EXTRA = {"structural-mni-registration": ["grid"],
+         "functional-bold-to-mni": ["grid"],
+         "clinical-wmh-segmentation": ["metric_thresholds", "inter_rater", "notes"]}
 
 ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument("--write", action="store_true")
@@ -41,7 +54,7 @@ n = 0
 for rub in sorted(G.glob("*/rubrics/*.json")):
     task, sub = rub.parts[-3], rub.stem
     d = json.loads(rub.read_text())
-    moved = {k: d[k] for k in MOVE if k in d}
+    moved = {k: d[k] for k in MOVE + EXTRA.get(task, []) if k in d}
     kept = {k: v for k, v in d.items() if k not in moved}
     if not moved:
         print(f"{task:40s} {sub:14s} {'-':>6s} {len(kept):5d}  (nothing to move)")

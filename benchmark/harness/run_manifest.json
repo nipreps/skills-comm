@@ -5,7 +5,7 @@
     "submission_output_path": "submissions/{task_id}/output.nii.gz",
     "reference_repo": "neurodeskorg/skills-comm-ground-truth",
     "reference_repo_type": "dataset",
-    "reference_revision": "f0229ea2b089",
+    "reference_revision": "1146fa678ef6",
     "submission_path": "submissions/{task_id}/{subject}/output.nii.gz"
   },
   "tasks": {
@@ -170,7 +170,7 @@
       "pred_flag": "--warped",
       "detail_kind": "registration",
       "required_inputs": {
-        "--dseg": "submissions/{task_id}/dseg.nii.gz"
+        "--dseg": "submissions/{task_id}/{subject}/dseg.nii.gz"
       },
       "ref_dir": "structural_gt/structural-mni-registration",
       "reference_files": [

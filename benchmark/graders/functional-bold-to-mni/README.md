@@ -5,14 +5,15 @@ the template through the subject's own anatomy, or matched to it directly.
 
 ## The reference
 
-Built from several independent sources rather than one, so that the agreement between
-them, and not any single tool's opinion, defines what counts as correct. Which sources,
-how they were combined, the surface tolerance and the calibrated caps are documented in
-`calibration/functional-bold-to-mni/PROVENANCE.md` inside the gated reference dataset
-[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+The template and its brain mask, which say where a brain belongs independently of any
+registration software. What a correct answer looks like is set by a panel of independent
+BOLD-to-MNI chains, whose agreement — not any single tool's opinion — defines the scale.
 
-Gated so that a submission cannot reproduce the reference instead of solving the
-task. Everything governing how a submission is *graded* stays here.
+Which chains, in what configuration, and the calibrated anchors are in
+`calibration/functional-bold-to-mni/PROVENANCE.md` in the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth),
+because naming them would let a submission reproduce the reference instead of solving the
+task. Everything governing how a submission is *graded* is here and in [`rubrics/`](rubrics/).
 
 ## What this task discriminates
 
@@ -34,23 +35,19 @@ together with the centre-of-mass offset, which do.
 ## Preparation and distortion
 
 The agent receives the **unpreprocessed** 4D series, and susceptibility distortion is handled
-unevenly across the panel's band: fMRIPrep applies fieldmap-less (SyN-based) correction, while the
-ANTs and FSL chains apply none. Standard fieldmap correction is not practically available here —
-the dataset's phase-difference fieldmap names this run in `IntendedFor`, but the BOLD sidecar
-carries no `TotalReadoutTime` or `EffectiveEchoSpacing`, so `fugue` cannot be scaled without
-deriving echo spacing from the Philips `WaterFatShift`.
+differently by different members of the panel. Standard fieldmap correction is not practically
+available here — the dataset's phase-difference fieldmap names this run in `IntendedFor`, but the
+BOLD sidecar carries no `TotalReadoutTime` or `EffectiveEchoSpacing`, so `fugue` cannot be scaled
+without deriving echo spacing from the Philips `WaterFatShift`.
 
 That unevenness does not confound the score, because the graded difference is far larger than the
-preparation difference. Holding the route fixed and motion-correcting the reference moves quality
-by 0.80; holding preparation fixed and switching from the anatomy-mediated route to the direct one
-moves it by 72.11 — a factor of about 90. The decisive case is a well-prepared reference taken the
-direct route: it still scores 20.80 and remains `unacceptable`. Preparation does not buy its way
-out of the wrong route.
+preparation difference: holding the route fixed and motion-correcting the reference moves quality
+by less than a point, while holding preparation fixed and switching from the anatomy-mediated
+route to the direct one moves it by about ninety times as much. A well-prepared reference taken
+the direct route is still `unacceptable`. Preparation does not buy its way out of the wrong route.
 
 Residual distortion is common to accepted and candidate chains, so it caps achievable NMI for
-everyone rather than favouring any arm. That three chains treating distortion differently — none,
-fieldmap-less nonlinear, and BBR-affine — still agree to within 0.0042 NMI is what licenses the
-panel band. Full numbers in `PROVENANCE.md`.
+everyone rather than favouring any arm.
 
 ## Scorer (ships in this pack)
 
@@ -62,18 +59,19 @@ python3 score_registration.py --warped agent_boldref_in_mni.nii.gz \
 
 Both submissions must be on the template grid: 193 × 229 × 193 at 1 mm. `--dseg` takes the BOLD
 brain mask here rather than a tissue segmentation; the scorer runs in `cross_modal` mode, set in
-`rubric.json`.
+`rubrics/<subject>.json`.
 
 ## Scale
 
-Full marks at the median of the three chains; zero credit at registering the BOLD straight to
+Full marks at the median of the accepted chains; zero credit at registering the BOLD straight to
 the template with a 12-DOF affine, ignoring the subject's anatomy. The score reads as *how far
-between the direct shortcut and a typical anatomy-mediated normalisation this is*.
+between the direct shortcut and a typical anatomy-mediated normalisation this is*. The anchors
+are per subject and gated with the reference; the weights are not:
 
-| metric | weight | full marks | zero credit |
-|---|---|---|---|
-| in-brain NMI | 0.50 | 0.0560 | 0.0220 |
-| brain centre-of-mass offset | 0.50 | 0.91 mm | 3.34 mm |
+| metric | weight |
+|---|---|
+| in-brain NMI | 0.50 |
+| brain centre-of-mass offset | 0.50 |
 
 Normalised mutual information rather than correlation because BOLD and a T1w template share
 structure but no intensity relationship. It is measured inside the template brain mask, so a
@@ -86,8 +84,8 @@ else `acceptable`/`marginal`/`unacceptable` by weighted quality; `invalid` on a 
 ## Gates
 
 `warped_on_template_grid`, `dseg_on_template_grid`, `warped_finite_in_brain`, `binary_mask`,
-`nonempty`, `brain_volume_plausible` (1230–3030 cm³), `brain_in_place` (propagated brain centre of
-mass within 8 mm of the template's).
+`nonempty`, `brain_volume_plausible`, `brain_in_place` (propagated brain centre of mass close to
+the template's). Both caps are set per subject in `rubrics/<subject>.json`.
 
 `warped_finite_in_brain` rather than "no NaN anywhere": resamplers write NaN outside the field of
 view by convention. Non-finite values are zeroed on load and judged only inside the brain.
@@ -96,7 +94,7 @@ view by convention. Non-finite values are zeroed on load and judged only inside 
 
 ```
 functional-bold-to-mni/
-├── rubric.json               # envelope, weights, gate caps, grid, scoring mode
+├── rubrics/<subject>.json    # weights, gate caps, scoring mode; envelope and grid merged from the Hub
 ├── score_registration.py     # the scorer, shared with structural-mni-registration
 ├── reference/                # template + brain mask — fetched from the Hub
 │   ├── README.md
@@ -109,7 +107,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `fmri_gt/f
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubric.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
 
 | verdict | meaning |
 |---|---|

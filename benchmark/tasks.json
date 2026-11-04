@@ -264,12 +264,12 @@
                 "sub-0039"
               ]
             },
-            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction/{subject}/` under your working directory \u2014 create that folder. Put the binary brain mask at `submissions/structural-brain-extraction/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction/{subject}/`. Only `submissions/structural-brain-extraction/{subject}/output.nii.gz` is scored.",
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction/{subject}/` under your working directory — create that folder. Put the binary brain mask at `submissions/structural-brain-extraction/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction/{subject}/`. Only `submissions/structural-brain-extraction/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "STAPLE consensus of a panel of tools (ANTs, HD-BET, FSL BET, AFNI, SynthStrip), split into core/margin/background zones and calibrated once on this subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz, in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path structural_gt/structural-brain-extraction/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth": "STAPLE consensus of a panel of independent skull-strippers, split into core/margin/background zones and calibrated per subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-brain-extraction/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input image; Brain mask is binary (values 0 and 1 only); Brain mask is anatomically plausible: skull/dura removed, brain retained; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -297,10 +297,10 @@
               "ants",
               "afni"
             ],
-            "tool_note": "Context: healthy. Tool names from the reference tool comparison.md. All tools verified registry",
-            "notes": "[note] Native-space task, no MNI resampling. Grading is consensus-calibrated on this subject (n=1); adding a subject means calibrating a new grader pack.",
+            "tool_note": "Context: healthy adult T1w. Any competent skull-stripper is a reasonable choice. Tool names are non-binding suggestions.",
+            "notes": "[note] Native-space task, no MNI resampling. Grading is consensus-calibrated per subject: one rubric per subject in the grader pack's rubrics/, and adding a subject means calibrating one more.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0004/anat/",
-            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined; e.g. *_bet.nii.gz, *BrainExtractionBrain.nii.gz, or caller-named via -o); A binary brain mask (NIfTI, any filename \u2014 tool-determined; e.g. *_bet_mask.nii.gz, *BrainExtractionMask.nii.gz, *_mask.nii.gz, or caller-named via -m)"
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename — tool-determined; e.g. *_bet.nii.gz, *BrainExtractionBrain.nii.gz, or caller-named via -o); A binary brain mask (NIfTI, any filename — tool-determined; e.g. *_bet_mask.nii.gz, *BrainExtractionMask.nii.gz, *_mask.nii.gz, or caller-named via -m)"
           }
         },
         "structural-brain-extraction-motion": {
@@ -322,12 +322,12 @@
               ],
               "acquisition": "acq-headmotion2"
             },
-            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-motion/{subject}/` under your working directory \u2014 create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-motion/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-motion/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-motion/{subject}/`. Only `submissions/structural-brain-extraction-motion/{subject}/output.nii.gz` is scored.",
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-motion/{subject}/` under your working directory — create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-motion/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-motion/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-motion/{subject}/`. Only `submissions/structural-brain-extraction-motion/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "STAPLE consensus of a panel of tools (ANTs, HD-BET, FSL BET, AFNI, SynthStrip) run on the same high-motion scan, split into core/margin/background zones and calibrated once; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz, in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path structural_gt/structural-brain-extraction-motion/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth": "STAPLE consensus of a panel of independent skull-strippers run on the high-motion scan itself, split into core/margin/background zones and calibrated per subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-brain-extraction-motion/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input; Brain mask is binary (0 and 1 only); Brain retained and skull/dura/neck removed despite the motion artefacts; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -349,10 +349,10 @@
               "fsl",
               "afni"
             ],
-            "tool_note": "Context: healthy adult, HIGH head-motion scan (MR-ART acq-headmotion2, quality score 3/3 = worst tier). Deep-learning tools (HD-BET, SynthStrip) tend to be more motion-robust; intensity/deformable tools may leak into non-brain or cut. Tool names are non-binding suggestions.",
-            "notes": "[note] Second, harder subject on the MOTION axis (companion to structural-brain-extraction, the healthy-adult baseline). acq-standard (clean) is available as a control. Consensus recalibrated on the motion scan (n=1); before freezing, re-run the reference-set coherence check and drop any tool that is a clear outlier on this scan.",
+            "tool_note": "Context: healthy adult, HIGH head-motion scan (MR-ART acq-headmotion2, quality score 3/3 = worst tier). Deep-learning tools tend to be more motion-robust; intensity and deformable tools may leak into non-brain or cut. Tool names are non-binding suggestions.",
+            "notes": "[note] MOTION axis, companion to structural-brain-extraction, the healthy-adult baseline. acq-standard (clean) is available as a control. The consensus is rebuilt on the motion scan rather than carried over from the clean one.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds004173.git && cd ds004173 && datalad get sub-000103/anat/",
-            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined); A binary brain mask (NIfTI, any filename \u2014 tool-determined)."
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename — tool-determined); A binary brain mask (NIfTI, any filename — tool-determined)."
           }
         },
         "structural-brain-extraction-pediatric": {
@@ -373,12 +373,12 @@
                 "sub-pixar017"
               ]
             },
-            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-pediatric/{subject}/` under your working directory \u2014 create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-pediatric/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-pediatric/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-pediatric/{subject}/`. Only `submissions/structural-brain-extraction-pediatric/{subject}/output.nii.gz` is scored.",
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-pediatric/{subject}/` under your working directory — create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-pediatric/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-pediatric/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-pediatric/{subject}/`. Only `submissions/structural-brain-extraction-pediatric/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "STAPLE consensus of a panel of tools (HD-BET, AFNI, SynthStrip, FSL BET -R) run on the child T1w, split into core/margin/background zones and calibrated once; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz, in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path structural_gt/structural-brain-extraction-pediatric/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth": "STAPLE consensus of a panel of independent skull-strippers run on the child T1w, split into core/margin/background zones and calibrated per subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-brain-extraction-pediatric/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input; Brain mask is binary (0 and 1 only); Brain (incl. cerebellum and brainstem) retained and skull/dura/neck removed; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -399,10 +399,10 @@
               "fsl",
               "afni"
             ],
-            "tool_note": "Context: young child (~3.6 yo). Deep-learning tools (SynthStrip, HD-BET) and FSL BET with -R handle the pediatric brain well; ANTs is a poor fit (the adult OASIS template does not match a 3.6-yo brain) and was excluded from the reference panel. Tool names are non-binding suggestions.",
-            "notes": "[note] Third subject, PEDIATRIC axis (companion to the healthy-adult baseline and the motion subject). Full-FOV clean scan (an earlier candidate, sub-pixar009, was rejected for field-of-view truncation cutting through the brain). All four panel tools were coherent (pairwise Dice ~0.96, no outlier); tau ~4.5 mm.",
+            "tool_note": "Context: young child (~3.6 yo). Deep-learning strippers and FSL BET with -R handle the pediatric brain well; ANTs is a poor fit, because the adult OASIS template does not match a 3.6-yo brain. Tool names are non-binding suggestions.",
+            "notes": "[note] PEDIATRIC axis, companion to the healthy-adult baseline and the motion subject. Full-FOV clean scans; a candidate whose field of view cut through the brain was rejected at screening.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds000228.git && cd ds000228 && datalad get sub-pixar017/anat/",
-            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined); A binary brain mask (NIfTI, any filename \u2014 tool-determined)."
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename — tool-determined); A binary brain mask (NIfTI, any filename — tool-determined)."
           }
         },
         "structural-cortical-morphometry": {
@@ -496,22 +496,27 @@
         "structural-mni-registration": {
           "title": "MNI registration (T1w to MNI152NLin2009cAsym)",
           "grading": "automated",
-          "description": "Register the T1w of sub-0006 of OpenNeuro ds002790 to MNI152NLin2009cAsym and carry the supplied tissue segmentation through the same transform, graded by propagated-label overlap against the template's own tissue priors.",
+          "description": "Register the T1w of {subject} of OpenNeuro ds002790 to MNI152NLin2009cAsym and carry the supplied tissue segmentation through the same transform, graded by propagated-label overlap against the template's own tissue priors.",
           "prompt": {
-            "goal": "Register the T1-weighted image of sub-0006 to the MNI152NLin2009cAsym template and resample it into that space. Apply the SAME transform to the supplied tissue segmentation, using nearest-neighbour interpolation so its labels are preserved.\n\nDATA. The subject images come from OpenNeuro ds002790 (tag 2.0.0):\n  mkdir -p input template\n  datalad clone https://github.com/OpenNeuroDatasets/ds002790.git ds002790\n  git -C ds002790 checkout 2.0.0\n  datalad -C ds002790 get sub-0006/anat/sub-0006_T1w.nii.gz \\\n      derivatives/fmriprep/sub-0006/anat/sub-0006_dseg.nii.gz\n  cp -L ds002790/sub-0006/anat/sub-0006_T1w.nii.gz input/T1w.nii.gz\n  cp -L ds002790/derivatives/fmriprep/sub-0006/anat/sub-0006_dseg.nii.gz input/dseg.nii.gz\n\nThe template is MNI152NLin2009cAsym at 1 mm (TemplateFlow), 193x229x193:\n  curl -sSL --retry 3 https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz -o template/T1w.nii.gz\n\ninput/dseg.nii.gz is a tissue segmentation of that same T1w, with labels 1 = grey matter, 2 = white matter, 3 = CSF. Warp it with the transform you compute for the T1w; do not re-segment, and do not relabel it.\n\nBoth outputs must be on the template grid: the same shape and affine as template/T1w.nii.gz. Do not resample to any other space.",
+            "goal": "Register the T1-weighted image of {subject} to the MNI152NLin2009cAsym template and resample it into that space. Apply the SAME transform to the supplied tissue segmentation, using nearest-neighbour interpolation so its labels are preserved.\n\nDATA. The subject images come from OpenNeuro ds002790 (tag 2.0.0):\n  mkdir -p input template\n  datalad clone https://github.com/OpenNeuroDatasets/ds002790.git ds002790\n  git -C ds002790 checkout 2.0.0\n  datalad -C ds002790 get {subject}/anat/{subject}_T1w.nii.gz \\\n      derivatives/fmriprep/{subject}/anat/{subject}_dseg.nii.gz\n  cp -L ds002790/{subject}/anat/{subject}_T1w.nii.gz input/T1w.nii.gz\n  cp -L ds002790/derivatives/fmriprep/{subject}/anat/{subject}_dseg.nii.gz input/dseg.nii.gz\n\nThe template is MNI152NLin2009cAsym at 1 mm (TemplateFlow), 193x229x193:\n  curl -sSL --retry 3 https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz -o template/T1w.nii.gz\n\ninput/dseg.nii.gz is a tissue segmentation of that same T1w, with labels 1 = grey matter, 2 = white matter, 3 = CSF. Warp it with the transform you compute for the T1w; do not re-segment, and do not relabel it.\n\nBoth outputs must be on the template grid: the same shape and affine as template/T1w.nii.gz. Do not resample to any other space.",
             "dataset": {
               "source": "openneuro",
               "id": "ds002790",
               "version_pin": "2.0.0",
               "subjects": [
-                "sub-0006"
+                "sub-0006",
+                "sub-0014",
+                "sub-0041",
+                "sub-0061",
+                "sub-0129"
               ]
             },
-            "required_output": "The T1w resampled into MNI152NLin2009cAsym, and the tissue segmentation carried through the same transform with nearest-neighbour interpolation.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-mni-registration/` under your working directory - create that folder. Put the warped T1w at `submissions/structural-mni-registration/output.nii.gz` and the warped segmentation at `submissions/structural-mni-registration/dseg.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-mni-registration/`. Both files are scored."
+            "required_output": "The T1w resampled into MNI152NLin2009cAsym, and the tissue segmentation carried through the same transform with nearest-neighbour interpolation.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-mni-registration/{subject}/` under your working directory - create that folder. Put the warped T1w at `submissions/structural-mni-registration/{subject}/output.nii.gz` and the warped segmentation at `submissions/structural-mni-registration/{subject}/dseg.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-mni-registration/{subject}/`. Both files are scored.",
+            "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "The template's own tissue priors (TemplateFlow MNI152NLin2009cAsym res-01 label-{GM,WM,CSF}_probseg), which state where each tissue belongs in MNI space independently of any registration software - not another tool's warp. A population prior is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on this subject by four independent independent nonlinear registrations (ANTs SyN, fMRIPrep's shipped transform, FSL FNIRT, NiftyReg f3d). Affine-only registration is the scored failure candidate.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision f0229ea2b089), path structural_gt/structural-mni-registration/ (template_T1w.nii.gz, template_brain_mask.nii.gz, template_probseg_GM.nii.gz, template_probseg_WM.nii.gz, template_probseg_CSF.nii.gz)",
+            "ground_truth": "The template's own tissue priors (TemplateFlow MNI152NLin2009cAsym res-01 label-{GM,WM,CSF}_probseg), which state where each tissue belongs in MNI space independently of any registration software - not another tool's warp. A population prior is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on that subject by several independent nonlinear registrations. Affine-only registration is the scored failure candidate and anchors zero credit.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-mni-registration/ (template_T1w.nii.gz, template_brain_mask.nii.gz, template_probseg_GM.nii.gz, template_probseg_WM.nii.gz, template_probseg_CSF.nii.gz)",
             "metric": "prior-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from propagated-label Dice (WM, GM, CSF), brain overlap and in-brain image correlation (see grader)",
             "pass_criterion": "A warped T1w and a warped tissue segmentation, both on the MNI152NLin2009cAsym grid; segmentation labels preserved (1/2/3, nearest-neighbour); brain lands where MNI expects it; propagated tissue overlap at least as good as the weakest independent nonlinear registration; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -532,9 +537,9 @@
               "niftyreg",
               "elastix"
             ],
-            "tool_note": "Context: healthy adult T1w at 1 mm, whole head, to MNI152NLin2009cAsym. The task turns on using a NONLINEAR registration and then reusing the same transform on the segmentation. ANTs SyN, FSL FLIRT+FNIRT and NiftyReg reg_aladin+reg_f3d all reach the panel's band; a 12-DOF affine alone does not. Tool names are non-binding suggestions.",
-            "notes": "[note] First non-mask output type in the benchmark: the graded object is a spatial transform, observed through the image and segmentation it produces. [note] Runtime is not a barrier - ANTs SyN at 1 mm took about 7 minutes on 10 cores during calibration, well inside a 45-minute agent budget. [caution] The segmentation is an agent INPUT, not a reference; it is supplied so the transform can be measured by label propagation. Its labels are 1 = GM, 2 = WM, 3 = CSF, verified from mean T1w intensity per label rather than assumed.",
-            "dataset_fetch_reference": "datalad clone https://github.com/OpenNeuroDatasets/ds002790.git && git -C ds002790 checkout 2.0.0 && datalad -C ds002790 get sub-0006/anat/sub-0006_T1w.nii.gz derivatives/fmriprep/sub-0006/anat/sub-0006_dseg.nii.gz ; curl -sSL https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz -o template/T1w.nii.gz",
+            "tool_note": "Context: healthy adult T1w at 1 mm, whole head, to MNI152NLin2009cAsym. The task turns on using a NONLINEAR registration and then reusing the same transform on the segmentation; a 12-DOF affine alone is not enough. Every major registration package can do this. Tool names are non-binding suggestions.",
+            "notes": "[note] First non-mask output type in the benchmark: the graded object is a spatial transform, observed through the image and segmentation it produces. [note] Runtime is not a barrier; the slowest package in the calibration build finished well inside a 45-minute agent budget. [caution] The segmentation is an agent INPUT, not a reference; it is supplied so the transform can be measured by label propagation. Its labels are 1 = GM, 2 = WM, 3 = CSF, verified from mean T1w intensity per label rather than assumed.",
+            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get {subject}/anat/",
             "expected_files_detail": "A T1w resampled into MNI152NLin2009cAsym (NIfTI, 193x229x193 at 1 mm) and a tissue segmentation on the same grid with labels {1,2,3} preserved."
           }
         },
@@ -689,7 +694,7 @@
             ],
             "tool_note": "Context: healthy. FAST (fsl), Atropos (ants), or SPM tissue segmentation. FreeSurfer excluded (segments only within full recon)",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get sub-0005/anat/",
-            "expected_files_detail": "A tissue label map (NIfTI, any filename; integer labels for CSF/GM/WM); Per-tissue probability or partial-volume maps (NIfTI, any filename \u2014 tool-dependent; e.g. *_pve_0/1/2.nii.gz from FAST, or probability maps from Atropos)"
+            "expected_files_detail": "A tissue label map (NIfTI, any filename; integer labels for CSF/GM/WM); Per-tissue probability or partial-volume maps (NIfTI, any filename — tool-dependent; e.g. *_pve_0/1/2.nii.gz from FAST, or probability maps from Atropos)"
           }
         },
         "structural-voxel-based-morphometry": {
@@ -740,12 +745,12 @@
                 "sub-075"
               ]
             },
-            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-7t/{subject}/` under your working directory \u2014 create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-7t/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-7t/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-7t/{subject}/`. Only `submissions/structural-brain-extraction-7t/{subject}/output.nii.gz` is scored.",
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-7t/{subject}/` under your working directory — create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-7t/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-7t/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-7t/{subject}/`. Only `submissions/structural-brain-extraction-7t/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "STAPLE consensus of a curated panel (HD-BET, AFNI, SynthStrip) run on the 7T MP2RAGE UNI, split into core/margin/background zones and calibrated once; native T1w space. FSL BET -R was dropped from the panel (catastrophic under-extraction at 7T) and kept as a scored candidate. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path structural_gt/structural-brain-extraction-7t/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth": "STAPLE consensus of a panel curated for 7T, run on the MP2RAGE UNI, split into core/margin/background zones and calibrated per subject; native T1w space. A tool that fails at high field is excluded from the panel and kept as a scored candidate. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-brain-extraction-7t/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input; Brain mask is binary (0 and 1 only); Brain (incl. cerebellum and brainstem) retained and skull/dura/neck removed; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -764,10 +769,10 @@
               "synthstrip",
               "hdbet"
             ],
-            "tool_note": "Context: 7T MP2RAGE. The UNI has a salt-and-pepper background and a high-field contrast/bias that defeat intensity-based extraction \u2014 FSL BET under-extracts catastrophically (~half a brain) whether or not the background is cleaned. Contrast-robust deep-learning tools (SynthStrip, HD-BET) handle the raw UNI; denoising the UNI via the INV2 image also works. Tool names are non-binding suggestions.",
-            "notes": "[note] Fourth subject, FIELD-STRENGTH / SEQUENCE axis (companion to the healthy-adult baseline, the motion subject, and the pediatric subject). Discriminates on tool choice for a high-field sequence: the common `bet` default is the wrong call. tau ~13.4 mm (wide, driven by SynthStrip's thick 7T CSF rim) \u2014 the discriminating power is in the validity gates, not the quality envelope.",
+            "tool_note": "Context: 7T MP2RAGE. The UNI has a salt-and-pepper background and a high-field contrast and bias that defeat intensity-based extraction - FSL BET under-extracts catastrophically, about half a brain, whether or not the background is cleaned. Contrast-robust deep-learning tools handle the raw UNI; denoising the UNI via the INV2 image also works. Tool names are non-binding suggestions.",
+            "notes": "[note] FIELD-STRENGTH / SEQUENCE axis. Discriminates on tool choice for a high-field sequence: the common `bet` default is the wrong call. The surface tolerance is wide at 7T, so most of the discriminating power is in the validity gates rather than the quality envelope.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds003642.git && cd ds003642 && datalad get sub-025/ses-003/anat/",
-            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined); A binary brain mask (NIfTI, any filename \u2014 tool-determined)."
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename — tool-determined); A binary brain mask (NIfTI, any filename — tool-determined)."
           }
         },
         "structural-brain-extraction-7t-nodura": {
@@ -786,18 +791,18 @@
                 "sub-075"
               ]
             },
-            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-7t-nodura/{subject}/` under your working directory \u2014 create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-7t-nodura/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-7t-nodura/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-7t-nodura/{subject}/`. Only `submissions/structural-brain-extraction-7t-nodura/{subject}/output.nii.gz` is scored.",
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-7t-nodura/{subject}/` under your working directory — create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-7t-nodura/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-7t-nodura/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-7t-nodura/{subject}/`. Only `submissions/structural-brain-extraction-7t-nodura/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "Same subject and consensus as structural-brain-extraction-7t, plus a dura-out pial envelope (union of the four CEREBRUM-7T tissue segmentations, sulci-filled). The grader adds a one-sided over-inclusion gate: a mask extending past the envelope into the dura fails. consensus_mask.nii.gz + consensus_zones.nii.gz + dura_envelope.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path structural_gt/structural-brain-extraction-7t-nodura/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, dura_envelope.nii.gz)",
+            "ground_truth": "Same subjects and consensus as structural-brain-extraction-7t, plus a dura-out pial envelope built from the tissue segmentations shipped with the dataset. The grader adds a one-sided over-inclusion gate: a mask extending past the envelope into the dura fails. consensus_mask.nii.gz + consensus_zones.nii.gz + dura_envelope.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-brain-extraction-7t-nodura/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, dura_envelope.nii.gz)",
             "metric": "consensus-calibrated + no_dura_inclusion gate: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry matches the input; Brain mask is binary; Brain (incl. cerebellum and brainstem) retained; the DURA is removed (mask does not extend past the pial envelope, over-inclusion <= 30 cm3); No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass. A dura-retaining mask fails the no_dura_inclusion gate.",
             "grader": {
               "kind": "consensus-calibrated",
-              "description": "Scores the mask against the structural-brain-extraction-7t consensus AND a no_dura_inclusion gate: over-inclusion beyond a dura-out pial envelope > dura_max_cm3 (30) -> invalid. See PROVENANCE.md.",
+              "description": "Scores the mask against the structural-brain-extraction-7t consensus AND a no_dura_inclusion gate: over-inclusion beyond a dura-out pial envelope, past the cap in the rubric, is invalid. See PROVENANCE.md.",
               "pack": "benchmark/graders/structural-brain-extraction-7t-nodura/",
               "scorer": "benchmark/graders/structural-brain-extraction/score_brain_mask.py",
               "reference_fetch": "python benchmark/harness/fetch_reference.py --task structural-brain-extraction-7t-nodura",
@@ -811,10 +816,10 @@
               "hdbet",
               "afni"
             ],
-            "tool_note": "Context: 7T MP2RAGE with an EXPLICIT no-dura requirement. This tests instruction-following: a tissue-tight tool (HD-BET, AFNI) that strips the dura passes; a CSF/dura-inclusive tool (SynthStrip) produces the same mask that passes the standard task but fails here. Tool names are non-binding suggestions.",
-            "notes": "[note] Variant of structural-brain-extraction-7t on the same subject: the prompt adds 'remove the dura'. Making dura a STATED requirement is what makes it fair to fail a dura-retaining mask (otherwise the CSF/dura rim is an unstated convention). Dura is a thin whole-surface shell, not a focal blob, so it needs a dedicated over-inclusion gate against a dura-out envelope, not the existing focal_bg gate.",
+            "tool_note": "Context: 7T MP2RAGE with an EXPLICIT no-dura requirement. This tests instruction-following: a tissue-tight tool that strips the dura passes, while a CSF-inclusive one produces a mask that would pass the standard task and fails here. Check what your tool leaves at the brain surface rather than assuming. Tool names are non-binding suggestions.",
+            "notes": "[note] Variant of structural-brain-extraction-7t on the same subjects: the prompt adds 'remove the dura'. Making dura a STATED requirement is what makes it fair to fail a dura-retaining mask, since otherwise the CSF/dura rim is an unstated convention. Dura is a thin whole-surface shell rather than a focal blob, so it needs a dedicated over-inclusion gate against a dura-out envelope.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds003642.git && cd ds003642 && datalad get sub-025/ses-003/anat/",
-            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined); A binary brain mask (NIfTI, any filename \u2014 tool-determined)."
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename — tool-determined); A binary brain mask (NIfTI, any filename — tool-determined)."
           }
         },
         "structural-tissue-segmentation-7t": {
@@ -822,7 +827,7 @@
           "grading": "automated",
           "description": "Parcellate the 7T MP2RAGE image of {subject} (CEREBRUM-7T, OpenNeuro ds003642) into six brain structures (GM, basal ganglia, WM, ventricles/CSF, cerebellum, brainstem) in native T1w space.",
           "prompt": {
-            "goal": "Parcellate the 7T MP2RAGE image of {subject} into an integer label map of six brain structures in native T1w space: 1=grey matter (cortical grey matter), 2=basal ganglia (deep grey nuclei: caudate, putamen, pallidum), 3=white matter (cerebral white matter), 4=ventricles (ventricular CSF only \u2014 lateral/3rd/4th ventricles, NOT sulcal CSF), 5=cerebellum (entire cerebellum, grey+white), 6=brainstem (midbrain, pons, medulla).",
+            "goal": "Parcellate the 7T MP2RAGE image of {subject} into an integer label map of six brain structures in native T1w space: 1=grey matter (cortical grey matter), 2=basal ganglia (deep grey nuclei: caudate, putamen, pallidum), 3=white matter (cerebral white matter), 4=ventricles (ventricular CSF only — lateral/3rd/4th ventricles, NOT sulcal CSF), 5=cerebellum (entire cerebellum, grey+white), 6=brainstem (midbrain, pons, medulla).",
             "dataset": {
               "source": "openneuro",
               "id": "ds003642",
@@ -833,12 +838,12 @@
                 "sub-075"
               ]
             },
-            "required_output": "An integer label map (NIfTI) with labels 1..6 as specified, in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write the integer label map to `submissions/structural-tissue-segmentation-7t/{subject}/output.nii.gz` under your working directory \u2014 create the `submissions/structural-tissue-segmentation-7t/{subject}/` folder. Use this exact path and filename, and place no other NIfTI inside `submissions/structural-tissue-segmentation-7t/{subject}/`. Only `submissions/structural-tissue-segmentation-7t/{subject}/output.nii.gz` is scored.",
+            "required_output": "An integer label map (NIfTI) with labels 1..6 as specified, in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write the integer label map to `submissions/structural-tissue-segmentation-7t/{subject}/output.nii.gz` under your working directory — create the `submissions/structural-tissue-segmentation-7t/{subject}/` folder. Use this exact path and filename, and place no other NIfTI inside `submissions/structural-tissue-segmentation-7t/{subject}/`. Only `submissions/structural-tissue-segmentation-7t/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "Majority-vote consensus of three whole-brain segmentations shipped with CEREBRUM-7T (CEREBRUM7T, FreeSurfer v6, FreeSurfer v7; nighres dropped as a label-scheme outlier), fused into a 6-class label map with a per-voxel agreement map (unanimous-core / majority-boundary zones), calibrated once by leave-one-tool-out. consensus_seg.nii.gz + consensus_agreement.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 5895f1b71e1d), path structural_gt/structural-tissue-segmentation-7t/{subject}/ (consensus_seg.nii.gz, consensus_agreement.nii.gz)",
+            "ground_truth": "Majority-vote consensus of the whole-brain segmentations shipped with CEREBRUM-7T, fused into a 6-class label map with a per-voxel agreement map (unanimous-core / majority-boundary zones) and calibrated per subject by leave-one-tool-out. consensus_seg.nii.gz + consensus_agreement.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-tissue-segmentation-7t/{subject}/ (consensus_seg.nii.gz, consensus_agreement.nii.gz)",
             "metric": "consensus-calibrated per-class: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (mean of six per-class Dice/NSD/core-recall envelopes)",
             "pass_criterion": "An integer label map with the six specified classes present; Geometry (dimensions, voxel size, affine) matches the input; Each class recovers the majority of its unanimous consensus core (no class collapse/confusion); No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -858,8 +863,8 @@
               "synthseg",
               "cat12"
             ],
-            "tool_note": "Context: 7T MP2RAGE, six-structure parcellation (not classic 3-class GM/WM/CSF). Whole-brain segmenters that produce these structures \u2014 FreeSurfer recon-all (aseg, remapped), SynthSeg, CAT12 \u2014 fit; a plain 3-class tissue tool (FAST/Atropos) does not cover basal ganglia / cerebellum / brainstem as separate labels. The output must use the exact label legend. Tool names are non-binding suggestions.",
-            "notes": "[note] Companion to the 7T brain-extraction tasks on the same subject; the multi-class analogue of the consensus-calibrated brain-extraction grader. Reference is built from the dataset's own shipped segmentations (no tools run). Panel = CEREBRUM7T + FreeSurfer v6/v7; nighres dropped (label-scheme outlier, WM Dice 0.09) and kept as an invalid candidate. Label legend: 1=GM 2=basal ganglia 3=WM 4=ventricles 5=cerebellum 6=brainstem, pinned by intensity.",
+            "tool_note": "Context: 7T MP2RAGE, six-structure parcellation, not classic 3-class GM/WM/CSF. Whole-brain segmenters that produce these structures fit; a plain 3-class tissue tool such as FAST or Atropos does not cover basal ganglia, cerebellum and brainstem as separate labels. The output must use the exact label legend. Tool names are non-binding suggestions.",
+            "notes": "[note] Companion to the 7T brain-extraction tasks on the same subjects; the multi-class analogue of the consensus-calibrated brain-extraction grader. The reference is built from the dataset's own shipped segmentations, so no tool is run to make it. Label legend: 1=GM 2=basal ganglia 3=WM 4=ventricles 5=cerebellum 6=brainstem, pinned by intensity.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds003642.git && cd ds003642 && datalad get sub-025/ses-003/anat/",
             "expected_files_detail": "An integer label map (NIfTI, any filename) with labels 1..6 per the legend."
           }
@@ -882,12 +887,12 @@
                 "sub-M2282"
               ]
             },
-            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-stroke/{subject}/` under your working directory \u2014 create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-stroke/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-stroke/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-stroke/{subject}/`. Only `submissions/structural-brain-extraction-stroke/{subject}/output.nii.gz` is scored.",
+            "required_output": "A skull-stripped brain image (NIfTI) and a binary brain mask (NIfTI) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/structural-brain-extraction-stroke/{subject}/` under your working directory — create that folder. Put the binary brain mask at `submissions/structural-brain-extraction-stroke/{subject}/output.nii.gz` (THIS is the graded file) and the skull-stripped image at `submissions/structural-brain-extraction-stroke/{subject}/stripped.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/structural-brain-extraction-stroke/{subject}/`. Only `submissions/structural-brain-extraction-stroke/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "STAPLE consensus of the lesion-retaining tools (HD-BET, AFNI, SynthStrip) run on the lesioned T1w, split into core/margin/background zones; native T1w space. FSL BET dropped from the panel (retains only 52% of the lesion) and kept as a scored candidate. The expert lesion mask (registered T2w->T1w) is shipped for a lesion_retained gate. consensus_mask + consensus_zones + lesion_mask in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path structural_gt/structural-brain-extraction-stroke/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, lesion_mask.nii.gz)",
+            "ground_truth": "STAPLE consensus of a panel of skull-strippers that retain the lesion, run on the lesioned T1w, split into core/margin/background zones; native T1w space. A tool that removes much of the lesion is excluded from the panel and kept as a scored candidate. The expert lesion mask (registered T2w->T1w) is shipped for a lesion_retained gate. consensus_mask + consensus_zones + lesion_mask in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path structural_gt/structural-brain-extraction-stroke/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, lesion_mask.nii.gz)",
             "metric": "consensus-calibrated + lesion_retained gate: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; geometry matches the input; mask is binary; brain (incl. the stroke lesion) retained and skull/dura removed; the mask contains >= 85% of the expert lesion (lesion_retained); No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass. A mask that carves out the lesion fails the lesion_retained gate.",
@@ -907,8 +912,8 @@
               "synthstrip",
               "afni"
             ],
-            "tool_note": "Context: chronic stroke. The lesion is a fluid-filled cavity, dark/CSF-like on T1 \u2014 intensity BET carves ~half of it out (retains 52%) and fails; HD-BET, SynthStrip and AFNI retain it (94-100%). Tool names are non-binding suggestions.",
-            "notes": "[note] PATHOLOGY axis (companion to the healthy/motion/pediatric/7T brain-extraction subjects). Step 1 of a stroke pair; step 2 is clinical-stroke-lesion-segmentation (same subject). Open data (ARC ds004884). Lesion mask drawn in T2w space -> rigid-registered to T1w for the GT. New lesion_retained gate (min 0.85) added to the shared score_brain_mask.py (backward-compatible).",
+            "tool_note": "Context: chronic stroke. The lesion is a fluid-filled cavity, dark and CSF-like on T1, and an intensity-based stripper carves much of it out. Prefer a tool that keeps it, and check the lesion is still inside your mask. Tool names are non-binding suggestions.",
+            "notes": "[note] PATHOLOGY axis. Step 1 of a stroke pair; step 2 is clinical-stroke-lesion-segmentation on the same subjects. Open data (ARC ds004884). The lesion mask is drawn in T2w space and rigid-registered to T1w for the reference. A lesion_retained gate is part of the shared score_brain_mask.py.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds004884.git && cd ds004884 && datalad get sub-M2191/ses-681/anat/",
             "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename); a binary brain mask (NIfTI, any filename)."
           }
@@ -936,7 +941,7 @@
           },
           "solution": {
             "ground_truth": "GENERATE: run AFNI 3dRSFC (ALFF+fALFF, 0.01-0.08Hz) and 3dReHo (-nneigh 27) once; store THREE maps. Compare by spatial correlation in brain mask; plausibility grey>white.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "ALFF, fALFF, and ReHo computed within the brain mask from the preprocessed BOLD; Three voxel-wise scalar maps produced (NIfTI); geometry matches BOLD; ALFF/ReHo higher in grey matter than white matter/CSF (plausibility); No processing errors; logs captured",
             "output_validation": "Three maps vs reference (spatial correlation) + grey>white.",
@@ -970,14 +975,14 @@
             "required_output": "A BOLD reference image resampled into MNI152NLin2009cAsym, and a binary brain mask for it on the same grid.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/functional-bold-to-mni/` under your working directory - create that folder. Put the BOLD reference at `submissions/functional-bold-to-mni/output.nii.gz` and the brain mask at `submissions/functional-bold-to-mni/mask.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/functional-bold-to-mni/`. Both files are scored."
           },
           "solution": {
-            "ground_truth": "The MNI152NLin2009cAsym template itself and its brain mask, which state where a brain belongs in that space independently of any registration software - not another tool's warp. A template is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on this subject by three independent chains (ANTs, FSL epi_reg+FNIRT, and fMRIPrep's own output). Registering the BOLD straight to the template, ignoring the subject's anatomy, is the scored failure candidate and anchors zero credit.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision f0229ea2b089), path fmri_gt/functional-bold-to-mni/ (template_T1w.nii.gz, template_brain_mask.nii.gz)",
+            "ground_truth": "The MNI152NLin2009cAsym template itself and its brain mask, which state where a brain belongs in that space independently of any registration software - not another tool's warp. A template is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on that subject by several independent BOLD-to-MNI chains routed through the subject's anatomy. Registering the BOLD straight to the template, ignoring that anatomy, is the scored failure candidate and anchors zero credit.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path fmri_gt/functional-bold-to-mni/ (template_T1w.nii.gz, template_brain_mask.nii.gz)",
             "metric": "prior-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from in-brain normalised mutual information and brain centre-of-mass offset (see grader)",
             "pass_criterion": "A BOLD reference and a binary brain mask, both on the MNI152NLin2009cAsym grid; brain lands where MNI expects it; in-brain mutual information and placement at least as good as the weakest chain in the panel; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
             "grader": {
               "kind": "prior-calibrated",
-              "description": "Scores image content inside the brain and where the brain landed. Weighted quality over in-brain normalised mutual information (0.50) and brain centre-of-mass offset (0.50), each mapped by the envelope of three independent chains. Brain-mask Dice and edge correlation were both calibrated and rejected as scored metrics - Dice ranks a chain that skipped the EPI-to-anatomical stage above a panel pipeline, and edge correlation cannot separate FNIRT's smoother warp from a wrong transform chain. Both are still reported as diagnostics. See PROVENANCE.md.",
+              "description": "Scores image content inside the brain and where the brain landed. Weighted quality over in-brain normalised mutual information (0.50) and brain centre-of-mass offset (0.50), each mapped by the envelope of several independent chains. Brain-mask Dice and edge correlation were both calibrated and rejected as scored metrics: Dice ranks a chain that skipped the EPI-to-anatomical stage above a correct one, and edge correlation cannot separate a legitimately smoother warp from a wrong transform chain. Both are still reported as diagnostics. See PROVENANCE.md.",
               "pack": "benchmark/graders/functional-bold-to-mni/",
               "scorer": "benchmark/graders/functional-bold-to-mni/score_registration.py",
               "reference_fetch": "python benchmark/harness/fetch_reference.py --task functional-bold-to-mni",
@@ -992,8 +997,8 @@
               "afni",
               "fmriprep"
             ],
-            "tool_note": "Context: healthy adult resting-state BOLD at 3x3x3.3 mm, whole brain, to MNI152NLin2009cAsym. The task turns on how the BOLD reaches the template. ANTs (rigid EPI-to-anatomical then SyN anatomical-to-template) and FSL (epi_reg then FLIRT+FNIRT) both reach the panel's band; registering the BOLD directly to the template does not. Note that antsApplyTransforms applies its transform list right-to-left. Tool names are non-binding suggestions.",
-            "notes": "[note] Composition ORDER is not what this task discriminates. The EPI-to-anatomical transform for same-session BOLD and T1w is near-identity (0.84 deg, 1.62 mm), so reversing the transform list perturbs the result by less than the metrics resolve - an outline metric puts the reversed chain at brain Dice 0.9111 against the panel's 0.9151. It appears as a candidate arm, where the scored metrics do separate it (16.7), but the graded failure is the routing choice. [note] The goal text names the target space and required outputs, never the route; both the BOLD and the subject's T1w are supplied and choosing what to do with the T1w is the task. [note] The agent receives the unpreprocessed 4D series, and susceptibility distortion is handled unevenly across the panel's band: fMRIPrep applies fieldmap-less (SyN-based) correction, the ANTs and FSL chains none. Standard fieldmap correction is not practically available - the dataset's phase-difference fieldmap names this run in IntendedFor, but the BOLD sidecar carries no TotalReadoutTime or EffectiveEchoSpacing. This does not confound the score: motion-correcting the reference moves quality by 0.80 while switching route moves it by 72.11, and a well-prepared reference taken the direct route still scores 20.80 (unacceptable). Residual distortion caps achievable NMI for every arm rather than favouring one. [caution] A chain that skips only the EPI-to-anatomical stage scores marginal (54.1) rather than unacceptable. That is the honest verdict for a 3 mm displacement, not a tuning failure.",
+            "tool_note": "Context: healthy adult resting-state BOLD at 3x3x3.3 mm, whole brain, to MNI152NLin2009cAsym. The task turns on how the BOLD reaches the template: through the subject's own anatomy, or matched to the template directly. Either major package can do it. Note that antsApplyTransforms applies its transform list right-to-left. Tool names are non-binding suggestions.",
+            "notes": "[note] Composition ORDER is not what this task discriminates. The EPI-to-anatomical transform for same-session BOLD and T1w is close to identity, so reversing the transform list perturbs the result by less than the metrics resolve. It appears as a candidate arm, but the graded failure is the routing choice. [note] The goal text names the target space and required outputs, never the route; both the BOLD and the subject's T1w are supplied and choosing what to do with the T1w is the task. [note] The agent receives the unpreprocessed 4D series, and susceptibility distortion is handled differently across the panel. Standard fieldmap correction is not practically available: the dataset's phase-difference fieldmap names the run in IntendedFor, but the BOLD sidecar carries no TotalReadoutTime or EffectiveEchoSpacing. This does not confound the score - switching route moves quality by about ninety times what preparation does, and a well-prepared reference taken the direct route still fails. [caution] A chain that skips only the EPI-to-anatomical stage lands mid-scale rather than at the bottom. That is the honest verdict for a small displacement, not a tuning failure.",
             "dataset_fetch_reference": "datalad clone https://github.com/OpenNeuroDatasets/ds002790.git && git -C ds002790 checkout 2.0.0 && datalad -C ds002790 get sub-0019/func/sub-0019_task-restingstate_acq-seq_bold.nii.gz sub-0019/anat/sub-0019_T1w.nii.gz ; curl -sSL https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz -o template/T1w.nii.gz",
             "expected_files_detail": "A BOLD reference resampled into MNI152NLin2009cAsym (NIfTI, 193x229x193 at 1 mm) and a binary brain mask on the same grid."
           }
@@ -1046,11 +1051,11 @@
               ],
               "task": "restingstate"
             },
-            "required_output": "A connectivity matrix (CSV)/TSV/NIfTI; n_ROI \u00d7 n_ROI); ROI time series if kept as intermediate"
+            "required_output": "A connectivity matrix (CSV)/TSV/NIfTI; n_ROI × n_ROI); ROI time series if kept as intermediate"
           },
           "solution": {
             "ground_truth": "GENERATE: reference ROI-to-ROI Pearson matrix from reference timeseries. Compare edgewise. Bounded [-1,1], symmetric, diagonal ~1.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "matrix_comparison",
             "pass_criterion": "Derivatives loaded; ROI timeseries extracted with confound cleaning; Pairwise Pearson correlation -> N_ROIs x N_ROIs matrix; Matrix symmetric, diagonal ~1, values in [-1,1]; Saved with ROI labels; No processing errors; logs captured",
             "output_validation": "Connectome vs reference (edgewise correlation) + structure checks.",
@@ -1079,7 +1084,7 @@
               ],
               "task": "restingstate"
             },
-            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG — tool-dependent)",
             "required_tool": "fmriprep"
           },
           "solution": {
@@ -1175,7 +1180,7 @@
           },
           "solution": {
             "ground_truth": "Motion-corrected BOLD + 6 motion parameters (mcflirt .par), sub-CON01 ds001226.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "table_comparison",
             "pass_criterion": "4D BOLD realigned to a reference volume; Motion-corrected BOLD produced; geometry preserved; 6 motion parameters saved (translations + rotations); No processing errors; logs captured",
             "tool_mode": "agnostic",
@@ -1232,12 +1237,12 @@
               "task": "restbold",
               "session": "ses-12367"
             },
-            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG — tool-dependent)",
             "required_tool": "xcpd"
           },
           "solution": {
             "ground_truth": "3 subjects, task-restbold (2 runs), MNI152NLin6Asym. Grade denoised BOLD similarity + connectome structure (156x156).",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "matrix_comparison",
             "pass_criterion": "XCP-D run on the fMRIPrep derivatives; A defined nuisance-regression strategy applied (e.g. 36-parameter, or aCompCor); Temporal bandpass filtering applied; Motion censoring/scrubbing applied at a defined FD threshold; Denoised BOLD (standard space) + QC report (HTML) with motion traces produced; No processing errors; logs captured",
             "output_validation": "Denoised BOLD vs reference (correlation); denoising components present.",
@@ -1261,11 +1266,11 @@
               ],
               "task": "restingstate"
             },
-            "required_output": "ROI time series (CSV/TSV); n_timepoints \u00d7 n_ROIs)"
+            "required_output": "ROI time series (CSV/TSV); n_timepoints × n_ROIs)"
           },
           "solution": {
             "ground_truth": "GENERATE: reference ROI-timeseries (nilearn NiftiLabelsMasker on aparcaseg, confound-cleaned); store [T x N_ROIs]. Compare by per-ROI correlation.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "Derivatives loaded; atlas/parcellation applied; Per-ROI mean timeseries extracted with confound cleaning; 2D array (time x ROI) saved with ROI labels; No processing errors; logs captured",
             "output_validation": "Timeseries [T x N_ROIs], per-ROI correlation vs reference.",
@@ -1294,11 +1299,11 @@
               ],
               "task": "restingstate"
             },
-            "required_output": "A connectivity matrix (CSV)/TSV/NIfTI; n_ROI \u00d7 n_ROI); ROI time series if kept as intermediate"
+            "required_output": "A connectivity matrix (CSV)/TSV/NIfTI; n_ROI × n_ROI); ROI time series if kept as intermediate"
           },
           "solution": {
             "ground_truth": "GENERATE: reference PCC seed-to-voxel map (PCC = aparcaseg DK labels 1026/2026, confound-cleaned). Compare by spatial correlation in brain mask.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "Derivatives loaded; PCC seed defined from the atlas; Confound-cleaned PCC mean timeseries extracted; Voxelwise Pearson correlation map produced (3D NIfTI, BOLD space/affine); Values in [-1,1]; autocorrelation ~1 near seed; No processing errors; logs captured",
             "output_validation": "Seed map vs reference (spatial correlation); values [-1,1].",
@@ -1377,14 +1382,14 @@
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "STAPLE consensus of a curated three-tool panel (FreeSurfer SynthStrip, HD-BET, AFNI 3dSkullStrip) run on the mean b0, split into core/margin/background zones and calibrated once by leave-one-tool-out; the diffusion grid. On the RAW series the intensity-threshold methods lose the same anatomy - cerebellum, temporal poles, brainstem - to the inferior bias field, so MRtrix dwi2mask (127 cm3 of core missing), FSL BET at its default (411) and AFNI 3dAutomask (704) were dropped from the panel and kept as scored candidates; all come out invalid, which validates the grader. dwi2mask after dwidenoise + dwibiascorrect reaches within_reference_variability, so the task is passable with it. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path diffusion_gt/diffusion-brain-mask/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth": "STAPLE consensus of a curated panel of skull-strippers run on the mean b0, split into core/margin/background zones and calibrated per subject by leave-one-tool-out; the diffusion grid. Tools that lose the same anatomy to the inferior bias field on the raw series - cerebellum, temporal poles, brainstem - are excluded from the panel and kept as scored candidates. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path diffusion_gt/diffusion-brain-mask/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A b0 is extracted and a binary brain mask produced; mask geometry (shape, voxel size, affine) matches the diffusion series; mask is binary (0 and 1 only); brain retained including cerebellum and brainstem, skull and neck removed; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
             "grader": {
               "kind": "consensus-calibrated",
-              "description": "Scores a binary mask against the STAPLE consensus in three zones: unanimous core (must be kept), margin (tools legitimately disagree, never scored) and background (must be excluded). Weighted quality over NSD within tau = 5.59 mm, core recall, background false-positive fraction, HD95 and volume error, each mapped by the leave-one-tool-out envelope. The discriminating gate is no_focal_core_loss (5.0-12.9 cm3 per subject, a lost region that survives a one-voxel shave): threshold-based methods drop the cerebellum on the raw b0 and fail it. See PROVENANCE.md.",
+              "description": "Scores a binary mask against the STAPLE consensus in three zones: unanimous core (must be kept), margin (tools legitimately disagree, never scored) and background (must be excluded). Weighted quality over NSD within a calibrated surface tolerance, core recall, background false-positive fraction, HD95 and volume error, each mapped by the leave-one-tool-out envelope. The discriminating gate is no_focal_core_loss, a lost region that survives a shave of 1.5 mm or one voxel, whichever is larger: threshold-based methods drop the cerebellum on the raw b0 and fail it. See PROVENANCE.md.",
               "pack": "benchmark/graders/diffusion-brain-mask/",
               "scorer": "benchmark/graders/diffusion-brain-mask/score_brain_mask.py",
               "reference_fetch": "python benchmark/harness/fetch_reference.py --task diffusion-brain-mask",
@@ -1400,8 +1405,8 @@
               "afni",
               "fsl"
             ],
-            "tool_note": "Context: healthy adult, multi-shell DWI at 2.5 mm, RAW series. Extract a b0 (dwiextract -bzero, fslroi) then mask it. Two routes reach the panel's band: a contrast-agnostic stripper (SynthStrip, HD-BET, AFNI 3dSkullStrip) directly on the raw mean b0, or dwidenoise + dwibiascorrect before MRtrix dwi2mask. Thresholding the raw b0 without preparing it first loses the cerebellum and fails. Tool names are non-binding suggestions.",
-            "notes": "[note] Same scorer and construction as the brain-extraction tasks, on a different modality: the reference is a tool consensus on the mean b0 rather than on a T1w. The trap is not tool identity but whether the b0 is prepared before masking - the inferior receive-coil bias field drops cerebellum, temporal poles and brainstem below threshold. [caution] AFNI 3dSkullStrip returns its output with obliquity stripped from the header, and emits a multi-valued stripped image rather than a binary mask; the grader carries grid.raw_affine (the on-disk affine, not the canonicalised one - this b0 is LAS on disk) and reads that case on the native grid instead of resampling.",
+            "tool_note": "Context: healthy adult, multi-shell DWI at 2.5 mm, RAW series. Extract a b0 (dwiextract -bzero, fslroi) then mask it. Thresholding the raw b0 without preparing it first loses the cerebellum and fails: the inferior receive-coil bias field drops it below threshold. Tool names are non-binding suggestions.",
+            "notes": "[note] Same scorer and construction as the brain-extraction tasks, on a different modality: the reference is a tool consensus on the mean b0 rather than on a T1w. The trap is not tool identity but whether the b0 is prepared before masking - the inferior receive-coil bias field drops cerebellum, temporal poles and brainstem below threshold. [caution] One panel tool returns its output with obliquity stripped from the header and emits a multi-valued stripped image rather than a binary mask; the grader carries grid.raw_affine, the on-disk affine rather than the canonicalised one, and reads that case on the native grid instead of resampling.",
             "dataset_fetch_reference": "datalad clone https://github.com/OpenNeuroDatasets/ds001226.git && git -C ds001226 checkout 5.0.1 && datalad -C ds001226 get sub-CON02/ses-preop/dwi/sub-CON02_ses-preop_acq-AP_dwi.nii.gz sub-CON02/ses-preop/dwi/sub-CON02_ses-preop_acq-AP_dwi.bval sub-CON02/ses-preop/dwi/sub-CON02_ses-preop_acq-AP_dwi.bvec",
             "expected_files_detail": "A binary brain mask (NIfTI, any filename; values {0,1}) on the diffusion grid (96x96x60, 2.5 mm isotropic), and a brain-extracted b0 image."
           }
@@ -1424,7 +1429,7 @@
           },
           "solution": {
             "ground_truth": "MP-PCA denoised DWI. Reference sub-02_den.mif Grade by similarity to reference denoised DWI (not voxel-exact; denoising impl varies). Input = raw DWI.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "DWI denoised with an MP-PCA-based method; Denoised 4D DWI produced; spatial dimensions and volume count preserved; No processing errors; logs captured",
             "tool_mode": "agnostic",
@@ -1456,7 +1461,7 @@
           },
           "solution": {
             "ground_truth": "Distortion + eddy/motion corrected DWI. Reference sub-02_den_preproc.mif (end of dwifslpreproc, before bias correction). Grade by similarity to reference. Input = denoised DWI.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "DWI corrected for eddy-current and motion artefacts; Corrected 4D DWI and rotated bvecs produced; No processing errors; logs captured",
             "tool_mode": "agnostic",
@@ -1488,7 +1493,7 @@
           },
           "solution": {
             "ground_truth": "Four DTI scalar maps (FA/MD/AD/RD). References, generated via dwi2tensor -> tensor2metric on sub-02_den_preproc_unbiased.mif. Grade each map by spatial correlation to reference (masked). Input = preprocessed DWI.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "Diffusion tensor fit on the appropriate (lower) b-shells with bvals/bvecs and a brain mask; FA, MD, AD, RD maps produced as NIfTI; geometry matches the input DWI; FA values within [0,1]; diffusivities non-negative and in plausible range; Numerical safety applied (clip negative eigenvalues; NaN/Inf -> 0; mask out non-brain); No processing errors; logs captured",
             "output_validation": "Content checks: FA in [0,1], MD/AD/RD finite non-negative, plausible white-matter FA ~0.4-0.8 in core WM. Geometry matches input. Any filename",
@@ -1522,7 +1527,7 @@
           },
           "solution": {
             "ground_truth": "CSD fibre-orientation peaks. Reference peaks.mif (sh2peaks on wmfod_norm.mif). Input = provided normalized FODs (wmfod_norm.mif) OR preprocessed DWI. Grade by peak-direction agreement in WM.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "Response function estimated; FODs computed via CSD (uses the high b-shell); Peak directions extracted as a 4D NIfTI (e.g. peaks.nii.gz); Peaks geometry matches the DWI; vectors unit-normalised; Peak directions plausible in canonical tracts (e.g. left-right in corpus callosum, inferior-superior in CST); No processing errors; logs captured",
             "output_validation": "Score by PEAK DIRECTION in known tracts, not raw SH coefficients: in the corpus callosum the primary peak should be ~left-right; in the corticospinal tract ~inferior-superior. Coarse but real. Peaks 4D NIfTI is far more scorable than SH-coefficient FODs",
@@ -1552,12 +1557,12 @@
               ],
               "session": "ses-preop"
             },
-            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG — tool-dependent)",
             "required_tool": "qsiprep"
           },
           "solution": {
             "ground_truth": "QSIPrep preprocessed DWI with SDC applied (verified: pepolar_qc.tsv + topupsummary present). GT files: qsiprep/groundtruth/sub-CON01_desc-preproc_dwi.nii.gz (+.bval/.bvec + desc-brain_mask.nii.gz). Grade by similarity to reference + confirm SDC applied. Not voxel-exact (version differences).",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "table_comparison",
             "pass_criterion": "QSIPrep completed on the BIDS DWI; Denoising + distortion + eddy/motion correction applied; Preprocessed DWI + updated bvals/bvecs produced; QC report generated; No processing errors; logs captured",
             "output_validation": "TWO components: (1) reorganization is BIDS-valid; (2) preprocessed DWI exists with SDC applied (check report), compared to reference Not voxel-exact.",
@@ -1581,12 +1586,12 @@
               ],
               "session": "ses-preop"
             },
-            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG \u2014 tool-dependent)",
+            "required_output": "A derivatives directory with BIDS-derivatives layout (any name); Preprocessed NIfTI(s) and JSON sidecars; QC report or visual summary (HTML or PNG — tool-dependent)",
             "required_tool": "qsirecon"
           },
           "solution": {
             "ground_truth": "QSIRecon structural connectome: sub-CON01_AAL116_connectivity.mat (116x116, AAL116 nodes). Pipeline: MRtrix3 no-ACT, MSMT-CSD + iFOD2 tractography + SIFT2 weighting. Reference under qsirecon/groundtruth/. Node labels in atlas-AAL116_dseg.tsv. WEAKEST-graded: verify matrix is 116x116, symmetric, non-negative, plausible density/sparsity - structure/presence not exact edge weights (tractography is stochastic + SIFT2 weights vary run-to-run).",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "table_comparison",
             "pass_criterion": "QSIRecon reconstruction completed; Whole-brain tractography produced; ROI-to-ROI connectivity matrix produced (N_ROIs x N_ROIs) with a named atlas; Matrix symmetric/undirected; non-negative weights; No processing errors; logs captured",
             "output_validation": "HONEST LIMITATION: the connectome matrix is the LEAST precisely scorable output in the DWI family. Two reasonable pipelines produce different matrices with no ground truth for which is correct. Gradable only at STRUCTURE level: square N_ROIs x N_ROIs, symmetric, non-negative, finite, non-degenerate (not all-zero/constant), atlas labels present. This is structure-plus-presence grading, weaker than the content grading used elsewhere. Kept because connectome generation is a major DWI use case (coverage), but do not over-claim its scoring precision",
@@ -1614,7 +1619,7 @@
           },
           "solution": {
             "ground_truth": "Whole-brain tractography track-density image. Reference tdi.mif (tckgen ACT 1M streamlines -> tckmap). Inputs provided with the task: 5tt_coreg.mif, gmwmSeed_coreg.mif, wmfod_norm.mif. Grade by spatial correlation of TDI to reference (tractography is stochastic; grade density map not individual streamlines).",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "Fibre orientations estimated; whole-brain tractogram generated; Tractogram converted to a track-density image (tckmap -template) as a 3D NIfTI; TDI geometry matches the DWI grid; intensities non-negative; High track density in major white-matter pathways (e.g. corpus callosum, CST), low in CSF/GM; No processing errors; logs captured",
             "output_validation": "Score the TDI scalar map (not the raw tractogram): non-negative, geometry matches DWI, high density in major WM tracts and low in CSF/cortex. A tckmap TDI turns an unscorable tractogram into a gradable voxel-wise map",
@@ -1627,7 +1632,7 @@
             "tool_note": "Context: healthy. MRtrix3 (tckgen after dwi2fod CSD), FSL probtrackx (after bedpostx), or DIPY. Whole-brain tractogram",
             "notes": "[input_note] Provide preprocessed inputs (wmfod_norm.mif, 5tt_coreg.mif, gmwmSeed_coreg.mif) from - the task is tractography+TDI, not full preprocessing. TDI graded by spatial correlation (stochastic streamlines). [subject_note] sub-CON02 (MRtrix reference series). diffusion-preprocessing/diffusion-structural-connectome use CON01 (QSIPrep clean PE).",
             "dataset_fetch_reference": "datalad install ///openneuro/ds001226 && cd ds001226 && datalad get sub-CON02",
-            "expected_files_detail": "Per-tract density or segmentation maps (NIfTI, any filename); Tract streamlines file (any filename/format \u2014 tool-dependent; e.g..tck,.trk)"
+            "expected_files_detail": "Per-tract density or segmentation maps (NIfTI, any filename); Tract streamlines file (any filename/format — tool-dependent; e.g..tck,.trk)"
           }
         }
       }
@@ -1654,7 +1659,7 @@
           },
           "solution": {
             "ground_truth": "QSM susceptibility map (Chimap.nii), QSMxT on ru43c sub-1.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "DICOMs converted to BIDS with part-mag + part-phase T2starw NIfTIs present; QSM reconstructed from phase + magnitude via phase unwrapping, background field removal, and dipole inversion; Susceptibility map produced in NIfTI; geometry consistent with input GRE; Values within plausible susceptibility range (approx. -0.5 to +0.5 ppm in tissue); No processing errors; logs captured",
             "tool_mode": "named",
@@ -1683,7 +1688,7 @@
           },
           "solution": {
             "ground_truth": "SWI image + minimum-intensity projection (swi.nii, mip.nii), ClearSWI on ru43c sub-1.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "spatial_correlation",
             "pass_criterion": "Phase unwrapped; SWI produced by combining magnitude with a phase mask; Minimum-intensity projection (minIP) produced; SWI and minIP geometry consistent with the input GRE; No processing errors; logs captured",
             "tool_mode": "named",
@@ -1715,7 +1720,7 @@
           },
           "solution": {
             "ground_truth": "HD-BET brain mask sub-01_desc-brain_T1w_bet.nii.gz (ds003999 sub-01 ses-pre, clinical T1). Grade by Dice to reference mask. Binary mask (0/1).",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "dice",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input image; Brain mask is binary (values 0 and 1 only); Brain mask is anatomically plausible: skull/dura removed, brain retained; No processing errors; logs captured",
             "tool_mode": "agnostic",
@@ -1726,7 +1731,7 @@
             "tool_note": "Context: clinical. Skill guidance: difficult anatomy / low contrast / high accuracy -> HD-BET or mri_synthstrip. BET known to fail on non-brain pathology near boundary and non-standard intensity profiles",
             "notes": "Preferred: hdbet, synthstrip Known to fail: afni",
             "dataset_fetch_reference": "datalad install ///openneuro/ds003999 && cd ds003999 && datalad get sub-01",
-            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename \u2014 tool-determined; e.g. *_bet.nii.gz, *BrainExtractionBrain.nii.gz, or caller-named via -o); A binary brain mask (NIfTI, any filename \u2014 tool-determined; e.g. *_bet_mask.nii.gz, *BrainExtractionMask.nii.gz, *_mask.nii.gz, or caller-named via -m)"
+            "expected_files_detail": "A skull-stripped brain image (NIfTI, any filename — tool-determined; e.g. *_bet.nii.gz, *BrainExtractionBrain.nii.gz, or caller-named via -o); A binary brain mask (NIfTI, any filename — tool-determined; e.g. *_bet_mask.nii.gz, *BrainExtractionMask.nii.gz, *_mask.nii.gz, or caller-named via -m)"
           }
         },
         "clinical-cortical-parcellation": {
@@ -1747,7 +1752,7 @@
           },
           "solution": {
             "ground_truth": "Cortical parcellation + subcortical seg (aparc.DKTatlas+aseg.mgz) + volume table, recon-all-clinical on ds004332.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "dice",
             "pass_criterion": "recon-all-clinical.sh completed on the clinical/low-resolution scan; Cortical parcellation + subcortical segmentation produced (aparc+aseg); SynthSR-upsampled volume produced; Morphometry stats produced; No FS_LICENSE error (recon-all-clinical does not require it); No processing errors; logs captured",
             "tool_mode": "named",
@@ -1809,14 +1814,14 @@
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "Expert multi-rater consensus lesion mask shipped with the Ljubljana MS database - three expert raters segmented the patient independently and the released mask is their consensus. A genuine gold standard, NOT a tool consensus (automated MS lesion tools span Dice 0.50-0.74 on this cohort). Voxel data as published, on the header of the FLAIR handed to the agent (the published mask's own header misses it by <= 0.4 mm). lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d25aa314cdfd), path clinical_gt/clinical-ms-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
+            "ground_truth": "Expert multi-rater consensus lesion mask shipped with the Ljubljana MS database - three expert raters segmented the patient independently and the released mask is their consensus. A genuine gold standard, NOT a tool consensus. Voxel data as published, on the header of the FLAIR handed to the agent. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path clinical_gt/clinical-ms-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
             "metric": "expert-mask: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from Dice + lesion-wise detection F1 + volume error (thresholds fixed from published results on this same cohort)",
             "pass_criterion": "A binary lesion mask {0,1} on the supplied FLAIR grid; nonempty and volume-plausible (0.5-150 cm3); Dice and lesion-wise overlap with the expert consensus above the fixed lines; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
             "grader": {
               "kind": "expert-mask",
-              "description": "Grades a binary lesion mask against the expert multi-rater consensus: Dice (0.4) + lesion-wise detection F1 over connected components (0.4) + absolute volume error (0.2). Thresholds are fixed from the LST-AI evaluation on this same cohort (full marks = LST-AI 0.74 Dice / 0.70 F1; zero credit at LST-LGA 0.53 / 0.33). Lesions are counted with the same convention as that paper: >= 10 % overlap counts as detected, components < 3 voxels are not counted. See PROVENANCE.md.",
+              "description": "Grades a binary lesion mask against the expert multi-rater consensus: Dice (0.4) + lesion-wise detection F1 over connected components (0.4) + absolute volume error (0.2). Thresholds are fixed from the published evaluation of this same cohort (Wiltgen et al. 2024, NeuroImage: Clinical 42:103611, doi:10.1016/j.nicl.2024.103611): full marks at the best published method (Dice 0.7425 / F1 0.6972), zero credit at the weakest (Dice 0.3727 / F1 0.1545). Lesions are counted with the same convention as that paper: >= 10 % overlap counts as detected, components < 3 voxels are not counted. See PROVENANCE.md.",
               "pack": "benchmark/graders/clinical-ms-lesion-segmentation/",
               "scorer": "benchmark/graders/clinical-ms-lesion-segmentation/score_lesion_seg.py",
               "reference_fetch": "python benchmark/harness/fetch_reference.py --task clinical-ms-lesion-segmentation",
@@ -1830,8 +1835,8 @@
               "samseg",
               "nnunet"
             ],
-            "tool_note": "Context: multiple sclerosis, FLAIR-hyperintense white-matter lesions, multifocal. MS-specific lesion tools (LST-AI, the LST variants), general segmenters with a lesion model (SAMSEG), or a trained network. Tool names are non-binding suggestions.",
-            "notes": "[note] Companion clinical task to clinical-stroke-lesion-segmentation: same scorer, same expert-mask design, different pathology and different threshold basis (published per-dataset benchmarks rather than a manual-tracing inter-rater ceiling). [caution] Upstream, consensus_gt.nii.gz sits in the SAME folder as the images - the prompt therefore fetches the three input files individually rather than cloning the repository, and the grader reports (never scores) a submission with Dice >= 0.995 as a suspected copy of the reference.",
+            "tool_note": "Context: multiple sclerosis, FLAIR-hyperintense white-matter lesions, multifocal. MS-specific lesion tools, general segmenters with a lesion model, or a trained network. Tool names are non-binding suggestions.",
+            "notes": "[note] Companion clinical task to clinical-stroke-lesion-segmentation: same scorer, same expert-mask design, different pathology and a different threshold basis - published per-dataset benchmarks rather than a manual-tracing inter-rater ceiling. [caution] Upstream, the consensus mask sits in the SAME folder as the images, so the prompt fetches the three input files individually rather than cloning the repository, and the grader reports (never scores) a near-exact match as a suspected copy of the reference.",
             "dataset_fetch_reference": "for f in FLAIR T1W brainmask; do curl -sSL --retry 3 https://raw.githubusercontent.com/muschellij2/open_ms_data/65704901f60650824565aa5a4818611aa89716f4/cross_sectional/coregistered_resampled/patient01/$f.nii.gz -o ms_input/$f.nii.gz; done",
             "expected_files_detail": "A binary lesion mask (NIfTI, any filename; values {0,1}) on the supplied FLAIR grid (154x240x240, 1 mm isotropic)."
           }
@@ -1853,7 +1858,7 @@
           },
           "solution": {
             "ground_truth": "FSL FIRST labeled subcortical segmentation: sub-01_first_all_fast_firstseg.nii.gz (ds004332 sub-01 T1w). Grade by per-structure Dice on the standard subcortical set. Per-structure volume table also expected (fslstats -K). Store GT on GitHub nipreps/ (benchmark GT folder).",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "dice",
             "pass_criterion": "Subcortical nuclei segmented from the T1w; Labelled segmentation volume produced; geometry matches input; Per-structure volume table produced with standard subcortical structures; No processing errors; logs captured",
             "tool_mode": "agnostic",
@@ -1887,12 +1892,12 @@
                 "sub-M2282"
               ]
             },
-            "required_output": "A binary lesion mask (NIfTI, {0,1}) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write the binary mask to `submissions/clinical-stroke-lesion-segmentation/{subject}/output.nii.gz` under your working directory \u2014 create the `submissions/clinical-stroke-lesion-segmentation/{subject}/` folder. Use this exact path and filename, and place no other NIfTI inside `submissions/clinical-stroke-lesion-segmentation/{subject}/`. Only `submissions/clinical-stroke-lesion-segmentation/{subject}/output.nii.gz` is scored.",
+            "required_output": "A binary lesion mask (NIfTI, {0,1}) in native T1w space.\n\nOUTPUT LOCATION (exact, mandatory): write the binary mask to `submissions/clinical-stroke-lesion-segmentation/{subject}/output.nii.gz` under your working directory — create the `submissions/clinical-stroke-lesion-segmentation/{subject}/` folder. Use this exact path and filename, and place no other NIfTI inside `submissions/clinical-stroke-lesion-segmentation/{subject}/`. Only `submissions/clinical-stroke-lesion-segmentation/{subject}/output.nii.gz` is scored.",
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "Expert manual lesion tracing shipped with ARC (drawn in T2w space), rigid-registered into native T1w space. A genuine gold standard \u2014 NOT a tool consensus (automated lesion tools disagree too much). lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 9a1a95eb47e7), path clinical_gt/clinical-stroke-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
+            "ground_truth": "Expert manual lesion tracing shipped with ARC (drawn in T2w space), rigid-registered into native T1w space. A genuine gold standard - NOT a tool consensus. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path clinical_gt/clinical-stroke-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
             "metric": "expert-mask: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from Dice + lesion-wise detection F1 + volume error (fixed literature thresholds)",
             "pass_criterion": "A binary lesion mask {0,1} in native T1w space; nonempty and volume-plausible; Dice and lesion-wise overlap with the expert mask above the fixed pass lines; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -1912,8 +1917,8 @@
               "samseg",
               "nnunet"
             ],
-            "tool_note": "Context: chronic stroke lesion on T1. Lesion-segmentation tools (LST/LST-AI, SAMSEG, a trained nnU-Net) or manual delineation. Graded against a single expert tracing with fixed thresholds. Tool names are non-binding suggestions.",
-            "notes": "[note] Step 2 of the stroke pair (step 1 = structural-brain-extraction-stroke, same subject). Departs from the consensus tasks: ground truth is a single EXPERT mask, thresholds FIXED from literature (no LOTO). Scorer = Dice + lesion-wise F1 + volume error. Companion clinical task to clinical-ms-lesion-segmentation.",
+            "tool_note": "Context: chronic stroke lesion on T1. Lesion-segmentation tools or manual delineation. Graded against a single expert tracing with fixed thresholds. Tool names are non-binding suggestions.",
+            "notes": "[note] Step 2 of the stroke pair; step 1 is structural-brain-extraction-stroke on the same subjects. Departs from the consensus tasks: the ground truth is a single EXPERT mask and the thresholds are fixed from literature rather than from a panel. Scorer = Dice + lesion-wise F1 + volume error.",
             "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds004884.git && cd ds004884 && datalad get sub-M2191/ses-681/anat/",
             "expected_files_detail": "A binary lesion mask (NIfTI, any filename; values {0,1}) in native T1w space."
           }
@@ -1940,8 +1945,8 @@
             "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
           },
           "solution": {
-            "ground_truth": "Primary expert WMH mask (observers O1/O2) from the WMH Challenge 2017, native FLAIR space. Pass/fail thresholds are DATA-DERIVED from inter-rater agreement (observers O3, O4 scored vs the primary), not fixed literature values. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision f0229ea2b089), path clinical_gt/clinical-wmh-segmentation/ (lesion_mask.nii.gz)",
+            "ground_truth": "Primary expert WMH mask from the WMH Challenge 2017, native FLAIR space. Pass and full-mark thresholds are data-derived from the agreement between independent observers rather than fixed literature values. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision 1146fa678ef6), path clinical_gt/clinical-wmh-segmentation/ (lesion_mask.nii.gz)",
             "metric": "expert-mask, inter-rater-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from Dice + lesion-wise detection F1 + volume error",
             "pass_criterion": "A binary WMH mask {0,1} in native FLAIR space; nonempty and volume-plausible; Dice / lesion-wise F1 / volume overlap with the expert mask above the inter-rater-derived pass lines; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -1962,8 +1967,8 @@
               "bianca",
               "nnunet"
             ],
-            "tool_note": "Context: dementia / small-vessel disease. WMH are many small FLAIR-hyperintense foci. Tools: LST/LST-AI, SAMSEG, BIANCA (needs training data), or a trained nnU-Net. Graded against a single expert tracing with inter-rater-derived thresholds. Tool names are non-binding.",
-            "notes": "[note] DEMENTIA/WMH axis; companion to clinical-stroke-lesion-segmentation. Multi-focal small lesions -> lesion-wise F1 weighted equally with Dice. UPGRADE over stroke: thresholds are data-derived from 3 raters (inter-rater Dice ~0.77), not fixed literature. Data on DataverseNL (DOI 10.34894/AECRSD, open Dataverse API, no DUA); expert masks grader-side only (gated dataset). WMH mask is native FLAIR space; label 1 = WMH.",
+            "tool_note": "Context: dementia / small-vessel disease. WMH are many small FLAIR-hyperintense foci. Lesion-segmentation tools, or a trained network; BIANCA needs training data. Graded against expert tracings. Tool names are non-binding suggestions.",
+            "notes": "[note] DEMENTIA/WMH axis; companion to clinical-stroke-lesion-segmentation. Multi-focal small lesions, so lesion-wise F1 is weighted equally with Dice. Thresholds are data-derived from the agreement between independent observers rather than fixed from literature. Data on DataverseNL (DOI 10.34894/AECRSD, open Dataverse API, no DUA); the expert masks are grader-side only, in the gated dataset. The mask is in native FLAIR space; label 1 = WMH.",
             "dataset_fetch_reference": "mkdir -p wmh_input && curl -sSL --retry 3 https://dataverse.nl/api/access/datafile/325669 -o wmh_input/FLAIR.nii.gz && curl -sSL --retry 3 https://dataverse.nl/api/access/datafile/325515 -o wmh_input/3DT1.nii.gz",
             "expected_files_detail": "A binary WMH mask (NIfTI, any filename; values {0,1}) in native FLAIR space."
           }
@@ -1986,7 +1991,7 @@
                 "sub-01"
               ]
             },
-            "required_output": "Preprocessed EEG data (any format:.set,.fif,.mat \u2014 tool-dependent); Extracted features or ERP/connectivity estimates",
+            "required_output": "Preprocessed EEG data (any format:.set,.fif,.mat — tool-dependent); Extracted features or ERP/connectivity estimates",
             "required_tool": "mne"
           },
           "solution": {
@@ -2016,7 +2021,7 @@
               "session": "ses-session1",
               "task": "eyesclosed"
             },
-            "required_output": "Preprocessed EEG data (any format:.set,.fif,.mat \u2014 tool-dependent); Extracted features or ERP/connectivity estimates"
+            "required_output": "Preprocessed EEG data (any format:.set,.fif,.mat — tool-dependent); Extracted features or ERP/connectivity estimates"
           },
           "solution": {
             "ground_truth": "No external ground truth; graded on structural validity/plausibility.",
@@ -2049,7 +2054,7 @@
               ],
               "session": "ses-01"
             },
-            "required_output": "Preprocessed MEG data (any format:.fif,.mat \u2014 tool-dependent); Source estimates or connectivity/feature outputs",
+            "required_output": "Preprocessed MEG data (any format:.fif,.mat — tool-dependent); Source estimates or connectivity/feature outputs",
             "required_tool": "fieldtrip"
           },
           "solution": {
@@ -2089,7 +2094,7 @@
           },
           "solution": {
             "ground_truth": "Spinal cord segmentation mask (t1w_seg.nii.gz), SCT sct_deepseg on ds002393.",
-            "ground_truth_location": "not yet migrated \u2014 the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
+            "ground_truth_location": "not yet migrated — the reference was produced for this task but lives in a retired OSF project; it must be rebuilt or re-uploaded to the Hugging Face dataset before this task can be graded",
             "metric": "dice",
             "pass_criterion": "Spinal cord segmentation mask produced; Mask binary and geometry matches input; Segmented structure is a single plausible cord (no gross over-/under-segmentation); Spinal cord segmented on the T2w scan; CSA values reported per vertebral level; No processing errors; logs captured",
             "tool_mode": "named",
