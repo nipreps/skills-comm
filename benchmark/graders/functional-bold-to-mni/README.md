@@ -63,10 +63,10 @@ brain mask here rather than a tissue segmentation; the scorer runs in `cross_mod
 
 ## Scale
 
-Full marks at the median of the accepted chains; zero credit at registering the BOLD straight to
-the template with a 12-DOF affine, ignoring the subject's anatomy. The score reads as *how far
-between the direct shortcut and a typical anatomy-mediated normalisation this is*. The anchors
-are per subject and gated with the reference; the weights are not:
+Full marks at the median of the accepted chains, the pass line at the weakest of them, and zero
+credit a slack multiple below that. At `slack = 1.5` the weakest accepted chain scores exactly
+**60**, so a pass means *no worse than the weakest chain in the reference panel*. The anchors are
+per subject and gated with the reference; the weights and the slack are not:
 
 | metric | weight |
 |---|---|
@@ -77,6 +77,13 @@ Normalised mutual information rather than correlation because BOLD and a T1w tem
 structure but no intensity relationship. It is measured inside the template brain mask, so a
 retained skull cannot dominate it. Centre-of-mass offset is measured on the propagated brain mask
 and catches a chain that is globally displaced while still overlapping.
+
+Registering the BOLD straight to the template does not anchor the scale, although it is the
+mistake the task is about. On a run whose slab covers the whole brain it is a plausible wrong
+answer; on one that misses the inferior brain, which is the common case, a 12-DOF affine inflates
+the slab to fill the template and fails `brain_volume_plausible` outright. Anchoring on that
+compresses everything above it. It stays a scored candidate, where coming out invalid is the
+right answer. [`PROVENANCE.md`](PROVENANCE.md) gives the measurement.
 
 Verdict: `within_reference_variability` when both metrics are at least as good as the weakest chain in the panel;
 else `acceptable`/`marginal`/`unacceptable` by weighted quality; `invalid` on a gate failure.

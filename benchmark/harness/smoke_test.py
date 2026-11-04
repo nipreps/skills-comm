@@ -54,34 +54,54 @@ GRADED = {"score_lesion_seg.py": "lesion_mask.nii.gz",
           "score_brain_mask.py": "consensus_mask.nii.gz",
           "score_tissue_seg.py": "consensus_seg.nii.gz"}
 
-# registration probes: (label, expectation, warped, dseg) relative to the build dir
+# Registration probes. A registration task is not probed with a copy of its reference --
+# the reference is the template, not anything a submission produces -- so the probes are
+# the panel's own arms, and the claim under test is the ordering between them.
+#
+# `flat` maps the arms the original single-subject build wrote outside panel/; every
+# other subject has all of them under subjects/<id>/panel/.
 REG_PROBES = {
-    "structural-mni-registration": [
-        ("ANTs SyN", "nonlinear", "ground_truth_registration/panel/ants/ants_syn_T1w.nii.gz",
-         "ground_truth_registration/panel/ants/ants_syn_dseg.nii.gz"),
-        ("FSL FNIRT", "nonlinear", "ground_truth_registration/panel/fsl/fsl_fnirt_T1w.nii.gz",
-         "ground_truth_registration/panel/fsl/fsl_fnirt_dseg.nii.gz"),
-        ("NiftyReg f3d", "nonlinear", "ground_truth_registration/panel/niftyreg/nr_f3d_T1w.nii.gz",
-         "ground_truth_registration/panel/niftyreg/nr_f3d_dseg.nii.gz"),
-        ("ANTs affine", "affine", "ground_truth_registration/panel/ants/ants_affine_T1w.nii.gz",
-         "ground_truth_registration/panel/ants/ants_affine_dseg.nii.gz"),
-        ("FSL FLIRT", "affine", "ground_truth_registration/panel/fsl/fsl_flirt_T1w.nii.gz",
-         "ground_truth_registration/panel/fsl/fsl_flirt_dseg.nii.gz"),
-        ("NiftyReg aladin", "affine", "ground_truth_registration/panel/niftyreg/nr_aladin_T1w.nii.gz",
-         "ground_truth_registration/panel/niftyreg/nr_aladin_dseg.nii.gz"),
-    ],
-    "functional-bold-to-mni": [
-        ("ANTs, EPI corrected", "good",
-         "ground_truth_bold_mni/panel/ants_correct_boldref.nii.gz",
-         "ground_truth_bold_mni/panel/ants_correct_boldmask.nii.gz"),
-        ("ANTs, no EPI correction", "degraded",
-         "ground_truth_bold_mni/panel/ants_no_epi_boldref.nii.gz",
-         "ground_truth_bold_mni/panel/ants_no_epi_boldmask.nii.gz"),
-        ("ANTs, reversed phase encoding", "wrong",
-         "ground_truth_bold_mni/panel/ants_reversed_boldref.nii.gz",
-         "ground_truth_bold_mni/panel/ants_reversed_boldmask.nii.gz"),
-    ],
+    "structural-mni-registration": {
+        "build": "ground_truth_registration",
+        "control": "sub-0006",
+        "suffix": ("_T1w.nii.gz", "_dseg.nii.gz"),
+        "flat": {},
+        "arms": [("ANTs SyN", "nonlinear", "ants/ants_syn"),
+                 ("FSL FNIRT", "nonlinear", "fsl/fsl_fnirt"),
+                 ("NiftyReg f3d", "nonlinear", "niftyreg/nr_f3d"),
+                 ("ANTs affine", "affine", "ants/ants_affine"),
+                 ("FSL FLIRT", "affine", "fsl/fsl_flirt"),
+                 ("NiftyReg aladin", "affine", "niftyreg/nr_aladin")],
+        "order": ("nonlinear", "affine"),
+    },
+    "functional-bold-to-mni": {
+        "build": "ground_truth_bold_mni",
+        "control": "sub-0019",
+        "suffix": ("_boldref.nii.gz", "_boldmask.nii.gz"),
+        "flat": {"fsl_chain": "fsl_arm/fsl_chain",
+                 "direct_affine": "probe/direct_affine",
+                 "direct_syn": "probe/direct_syn"},
+        "arms": [("ANTs, correct chain", "anatomy-mediated", "ants_correct"),
+                 ("FSL chain", "anatomy-mediated", "fsl_chain"),
+                 ("ANTs, no EPI stage", "candidate", "ants_no_epi"),
+                 ("ANTs, reversed list", "candidate", "ants_reversed"),
+                 ("direct affine", "direct", "direct_affine"),
+                 ("direct SyN", "direct", "direct_syn")],
+        "order": ("anatomy-mediated", "direct"),
+    },
 }
+
+
+def probe_paths(cfg, subject):
+    """(label, kind, warped, dseg) for one subject, relative to the build dir."""
+    b, w_sfx, d_sfx = cfg["build"], *cfg["suffix"]
+    out = []
+    for label, kind, stem in cfg["arms"]:
+        rel = (cfg["flat"].get(stem, f"panel/{stem}")
+               if subject in (None, cfg["control"])
+               else f"subjects/{subject}/panel/{stem}")
+        out.append((label, kind, f"{b}/{rel}{w_sfx}", f"{b}/{rel}{d_sfx}"))
+    return out
 
 _mods = {}
 
@@ -176,50 +196,41 @@ def run_segmentation(task, spec, rows):
 
 
 def run_registration(task, spec, rows):
-    sc = scorer(spec["scorer"])
-    probes = REG_PROBES.get(task, [])
-    if not probes:
+    cfg = REG_PROBES.get(task)
+    if not cfg:
         rows.append((task, "-", "(no probe defined)", "-", "skipped", None))
         return
+    sc = scorer(spec["scorer"])
     # A per-subject registration task shares one template reference and varies only the
     # rubric, so each subject's panel is probed against its own envelope.
     for sub in (spec.get("subjects") or [None]):
-        run_registration_subject(task, spec, sc, probes, sub, rows)
+        run_registration_subject(task, spec, cfg, sc, sub, rows)
 
 
-def run_registration_subject(task, spec, sc, probes, subject, rows):
+def run_registration_subject(task, spec, cfg, sc, subject, rows):
     seen = {}
-    for label, kind, w, d in probes:
-        if subject:
-            # the control keeps the original flat layout; the others are per subject
-            w = w.replace("/panel/", f"/subjects/{subject}/panel/") \
-                if subject != "sub-0006" and "/panel/" in w else w
-            d = d.replace("/panel/", f"/subjects/{subject}/panel/") \
-                if subject != "sub-0006" and "/panel/" in d else d
+    for label, kind, w, d in probe_paths(cfg, subject):
         wp, dp = BUILD / w, BUILD / d
         if not wp.is_file() or not dp.is_file():
-            rows.append((task, subject or "-", label, kind, "mask absent", None))
+            rows.append((task, subject or "-", label, kind, "arm absent", None))
             continue
         t = build_pack(task, spec, subject)
         try:
             v, q, f = verdict_of(sc.score(str(wp), str(dp), str(t)))
         except SystemExit as e:
-            rows.append((task, subject or "-", label, kind, f"refused: {str(e)[:30]}", None))
+            rows.append((task, subject or "-", label, kind,
+                         f"refused: {str(e)[:30]}", None))
             shutil.rmtree(t)
             continue
         shutil.rmtree(t)
         seen.setdefault(kind, []).append(q)
         rows.append((task, subject or "-", label, kind, f"{v} q{q:.1f}", None))
-    # the ordering claim: a nonlinear warp must beat an affine one
-    if "nonlinear" in seen and "affine" in seen:
-        ok = min(seen["nonlinear"]) > max(seen["affine"])
-        rows.append((task, subject or "-", "nonlinear > affine", "ordering",
-                     f"min nonlinear {min(seen['nonlinear']):.1f} vs "
-                     f"max affine {max(seen['affine']):.1f}", ok))
-    if "good" in seen and "wrong" in seen:
-        ok = min(seen["good"]) > max(seen["wrong"])
-        rows.append((task, subject or "-", "corrected > reversed", "ordering",
-                     f"{min(seen['good']):.1f} vs {max(seen['wrong']):.1f}", ok))
+    # the ordering claim this task makes, checked on this subject rather than on average
+    good, bad = cfg["order"]
+    if good in seen and bad in seen:
+        ok = min(seen[good]) > max(seen[bad])
+        rows.append((task, subject or "-", f"{good} > {bad}", "ordering",
+                     f"{min(seen[good]):.1f} vs {max(seen[bad]):.1f}", ok))
 
 
 def main():

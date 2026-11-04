@@ -48,6 +48,17 @@ already produced.
 
 The selection and its rejections are in `pool_bold.json` and `subjects.tsv`.
 
+Motion is not the only thing that varies, and the other axis was found rather than
+screened for. Every run is 36 slices at 3.3 mm, a 119 mm slab that does not cover a whole
+head, and where the slab sits differs between subjects: four of the five miss 14-20 mm of
+inferior brain that the template covers, while the fifth is close to complete. That is a
+property of the acquisition, not of the registration, and it is why the centre-of-mass
+offset is not comparable between subjects in absolute terms -- the panel's own chains sit
+4-8 mm from the template brain centroid on a truncated run and under 1.5 mm on a complete
+one. The scale is relative to each subject's own panel, so this cancels; the
+`brain_in_place` cap, which is derived from that subject's worst accepted chain, is
+correspondingly wider on a truncated run.
+
 ## What is graded, and why not the obvious things
 
 The BOLD is a distorted 3 mm EPI; the template is a 1 mm T1w. Mask overlap and edge
@@ -65,6 +76,26 @@ Centre-of-mass offset catches a chain that is globally displaced while still ove
 
 Weights are 0.50 / 0.50: the two metrics are independent of each other and neither is
 gated elsewhere, so nothing argues for favouring one.
+
+## Where zero credit sits
+
+Full marks at the median accepted chain, the pass line at the weakest, and zero credit at
+`worst + slack x (worst - median)`. Substituting the weakest accepted chain gives
+`slack / (1 + slack)`, independent of the metric and of its values, so at `slack = 1.5` it
+scores exactly 60 and `verdict_thresholds.acceptable = 60` means *no worse than the
+weakest chain in the reference panel*.
+
+The direct-to-template arms are not used as the anchor, although anchoring on the mistake
+a task is about is the better construction where it works. It does not work here. On a
+run whose slab covers the whole brain a direct 12-DOF affine is a plausible wrong answer,
+and on the one subject of that kind it lands mid-scale. On a truncated run the same
+command inflates the slab about 2.5x to fill the template, reaching roughly twice a
+plausible brain volume and failing `brain_volume_plausible`. An anchor that far out
+compresses the scale above it: measured against it, a reversed transform list -- a real
+bug -- reached the pass mark on two of the four subjects. Against the slack anchor it is
+`unacceptable` or `marginal` on all five, and every accepted chain is at or above 60. The
+direct arms stay as scored candidates, where coming out invalid exercises the gates. The
+figures are in the gated file.
 
 ## Gates
 
@@ -103,5 +134,6 @@ rubric stay reproducible.
   It therefore caps achievable NMI for every arm rather than favouring one; that chains
   treating it differently still agree closely is what licenses the band.
 - The centre-of-mass metric is computed on the propagated brain mask, so it inherits
-  whatever brain extraction the agent used on the BOLD reference. The volume-plausibility
-  gate is wide for that reason.
+  whatever brain extraction the agent used on the BOLD reference, and the slab the run
+  covers. Both the volume-plausibility gate and the placement cap are wide for that
+  reason, and both are set per subject.

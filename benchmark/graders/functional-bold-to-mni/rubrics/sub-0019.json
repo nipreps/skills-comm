@@ -1,0 +1,30 @@
+{
+  "reference_space": "MNI152NLin2009cAsym (TemplateFlow, res-01)",
+  "mode": "cross_modal",
+  "weights": {
+    "nmi_in_brain": 0.5,
+    "com_offset_mm": 0.5
+  },
+  "slack": 1.5,
+  "gates": [
+    "binary_mask",
+    "brain_in_place",
+    "brain_volume_plausible",
+    "dseg_on_template_grid",
+    "nonempty",
+    "warped_finite_in_brain",
+    "warped_on_template_grid"
+  ],
+  "verdict_thresholds": {
+    "acceptable": 60,
+    "marginal": 30
+  },
+  "item": "boldmni_ds002790_sub-0019",
+  "prompt": "Bring the resting-state BOLD of sub-0019 (ds002790, OpenNeuro) into MNI152NLin2009cAsym and supply a brain mask for it in the same space.",
+  "plausible_brain_volume_cm3": [
+    1230.0,
+    3030.0
+  ],
+  "max_com_offset_mm": 8.0,
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
+}
