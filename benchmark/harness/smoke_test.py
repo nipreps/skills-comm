@@ -181,31 +181,44 @@ def run_registration(task, spec, rows):
     if not probes:
         rows.append((task, "-", "(no probe defined)", "-", "skipped", None))
         return
+    # A per-subject registration task shares one template reference and varies only the
+    # rubric, so each subject's panel is probed against its own envelope.
+    for sub in (spec.get("subjects") or [None]):
+        run_registration_subject(task, spec, sc, probes, sub, rows)
+
+
+def run_registration_subject(task, spec, sc, probes, subject, rows):
     seen = {}
     for label, kind, w, d in probes:
+        if subject:
+            # the control keeps the original flat layout; the others are per subject
+            w = w.replace("/panel/", f"/subjects/{subject}/panel/") \
+                if subject != "sub-0006" and "/panel/" in w else w
+            d = d.replace("/panel/", f"/subjects/{subject}/panel/") \
+                if subject != "sub-0006" and "/panel/" in d else d
         wp, dp = BUILD / w, BUILD / d
         if not wp.is_file() or not dp.is_file():
-            rows.append((task, "-", label, kind, "mask absent", None))
+            rows.append((task, subject or "-", label, kind, "mask absent", None))
             continue
-        t = build_pack(task, spec, None)
+        t = build_pack(task, spec, subject)
         try:
             v, q, f = verdict_of(sc.score(str(wp), str(dp), str(t)))
         except SystemExit as e:
-            rows.append((task, "-", label, kind, f"refused: {str(e)[:40]}", None))
+            rows.append((task, subject or "-", label, kind, f"refused: {str(e)[:30]}", None))
             shutil.rmtree(t)
             continue
         shutil.rmtree(t)
         seen.setdefault(kind, []).append(q)
-        rows.append((task, "-", label, kind, f"{v} q{q:.1f}", None))
+        rows.append((task, subject or "-", label, kind, f"{v} q{q:.1f}", None))
     # the ordering claim: a nonlinear warp must beat an affine one
     if "nonlinear" in seen and "affine" in seen:
         ok = min(seen["nonlinear"]) > max(seen["affine"])
-        rows.append((task, "-", "nonlinear > affine", "ordering",
+        rows.append((task, subject or "-", "nonlinear > affine", "ordering",
                      f"min nonlinear {min(seen['nonlinear']):.1f} vs "
                      f"max affine {max(seen['affine']):.1f}", ok))
     if "good" in seen and "wrong" in seen:
         ok = min(seen["good"]) > max(seen["wrong"])
-        rows.append((task, "-", "corrected > reversed", "ordering",
+        rows.append((task, subject or "-", "corrected > reversed", "ordering",
                      f"{min(seen['good']):.1f} vs {max(seen['wrong']):.1f}", ok))
 
 
