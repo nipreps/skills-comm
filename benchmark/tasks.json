@@ -269,7 +269,7 @@
           },
           "solution": {
             "ground_truth": "STAPLE consensus of a panel of independent skull-strippers, split into core/margin/background zones and calibrated per subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-brain-extraction/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-brain-extraction/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input image; Brain mask is binary (values 0 and 1 only); Brain mask is anatomically plausible: skull/dura removed, brain retained; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -327,7 +327,7 @@
           },
           "solution": {
             "ground_truth": "STAPLE consensus of a panel of independent skull-strippers run on the high-motion scan itself, split into core/margin/background zones and calibrated per subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-brain-extraction-motion/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-brain-extraction-motion/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input; Brain mask is binary (0 and 1 only); Brain retained and skull/dura/neck removed despite the motion artefacts; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -378,7 +378,7 @@
           },
           "solution": {
             "ground_truth": "STAPLE consensus of a panel of independent skull-strippers run on the child T1w, split into core/margin/background zones and calibrated per subject; native T1w space. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-brain-extraction-pediatric/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-brain-extraction-pediatric/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input; Brain mask is binary (0 and 1 only); Brain (incl. cerebellum and brainstem) retained and skull/dura/neck removed; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -516,7 +516,7 @@
           },
           "solution": {
             "ground_truth": "The template's own tissue priors (TemplateFlow MNI152NLin2009cAsym res-01 label-{GM,WM,CSF}_probseg), which state where each tissue belongs in MNI space independently of any registration software - not another tool's warp. A population prior is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on that subject by several independent nonlinear registrations. Affine-only registration is the scored failure candidate and anchors zero credit.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-mni-registration/ (template_T1w.nii.gz, template_brain_mask.nii.gz, template_probseg_GM.nii.gz, template_probseg_WM.nii.gz, template_probseg_CSF.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-mni-registration/ (template_T1w.nii.gz, template_brain_mask.nii.gz, template_probseg_GM.nii.gz, template_probseg_WM.nii.gz, template_probseg_CSF.nii.gz)",
             "metric": "prior-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from propagated-label Dice (WM, GM, CSF), brain overlap and in-brain image correlation (see grader)",
             "pass_criterion": "A warped T1w and a warped tissue segmentation, both on the MNI152NLin2009cAsym grid; segmentation labels preserved (1/2/3, nearest-neighbour); brain lands where MNI expects it; propagated tissue overlap at least as good as the weakest independent nonlinear registration; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -750,7 +750,7 @@
           },
           "solution": {
             "ground_truth": "STAPLE consensus of a panel curated for 7T, run on the MP2RAGE UNI, split into core/margin/background zones and calibrated per subject; native T1w space. A tool that fails at high field is excluded from the panel and kept as a scored candidate. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-brain-extraction-7t/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-brain-extraction-7t/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry (dimensions, voxel size, affine) matches the input; Brain mask is binary (0 and 1 only); Brain (incl. cerebellum and brainstem) retained and skull/dura/neck removed; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -796,7 +796,7 @@
           },
           "solution": {
             "ground_truth": "Same subjects and consensus as structural-brain-extraction-7t, plus a dura-out pial envelope built from the tissue segmentations shipped with the dataset. The grader adds a one-sided over-inclusion gate: a mask extending past the envelope into the dura fails. consensus_mask.nii.gz + consensus_zones.nii.gz + dura_envelope.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-brain-extraction-7t-nodura/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, dura_envelope.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-brain-extraction-7t-nodura/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, dura_envelope.nii.gz)",
             "metric": "consensus-calibrated + no_dura_inclusion gate: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; Mask geometry matches the input; Brain mask is binary; Brain (incl. cerebellum and brainstem) retained; the DURA is removed (mask does not extend past the pial envelope, over-inclusion <= 30 cm3); No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass. A dura-retaining mask fails the no_dura_inclusion gate.",
@@ -843,7 +843,7 @@
           },
           "solution": {
             "ground_truth": "Majority-vote consensus of the whole-brain segmentations shipped with CEREBRUM-7T, fused into a 6-class label map with a per-voxel agreement map (unanimous-core / majority-boundary zones) and calibrated per subject by leave-one-tool-out. consensus_seg.nii.gz + consensus_agreement.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-tissue-segmentation-7t/{subject}/ (consensus_seg.nii.gz, consensus_agreement.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-tissue-segmentation-7t/{subject}/ (consensus_seg.nii.gz, consensus_agreement.nii.gz)",
             "metric": "consensus-calibrated per-class: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (mean of six per-class Dice/NSD/core-recall envelopes)",
             "pass_criterion": "An integer label map with the six specified classes present; Geometry (dimensions, voxel size, affine) matches the input; Each class recovers the majority of its unanimous consensus core (no class collapse/confusion); No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -892,7 +892,7 @@
           },
           "solution": {
             "ground_truth": "STAPLE consensus of a panel of skull-strippers that retain the lesion, run on the lesioned T1w, split into core/margin/background zones; native T1w space. A tool that removes much of the lesion is excluded from the panel and kept as a scored candidate. The expert lesion mask (registered T2w->T1w) is shipped for a lesion_retained gate. consensus_mask + consensus_zones + lesion_mask in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path structural_gt/structural-brain-extraction-stroke/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, lesion_mask.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path structural_gt/structural-brain-extraction-stroke/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz, lesion_mask.nii.gz)",
             "metric": "consensus-calibrated + lesion_retained gate: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A skull-stripped brain image and a binary brain mask are produced; geometry matches the input; mask is binary; brain (incl. the stroke lesion) retained and skull/dura removed; the mask contains >= 85% of the expert lesion (lesion_retained); No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass. A mask that carves out the lesion fails the lesion_retained gate.",
@@ -981,7 +981,7 @@
           },
           "solution": {
             "ground_truth": "The MNI152NLin2009cAsym template itself and its brain mask, which state where a brain belongs in that space independently of any registration software - not another tool's warp. A template is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on that subject by several independent BOLD-to-MNI chains routed through the subject's anatomy, with zero credit a slack multiple below their weakest. Registering the BOLD straight to the template, ignoring that anatomy, is a scored failure candidate.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path fmri_gt/functional-bold-to-mni/ (template_T1w.nii.gz, template_brain_mask.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path fmri_gt/functional-bold-to-mni/ (template_T1w.nii.gz, template_brain_mask.nii.gz)",
             "metric": "prior-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from in-brain normalised mutual information and brain centre-of-mass offset (see grader)",
             "pass_criterion": "A BOLD reference and a binary brain mask, both on the MNI152NLin2009cAsym grid; brain lands where MNI expects it; in-brain mutual information and placement at least as good as the weakest chain in the panel; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -1388,7 +1388,7 @@
           },
           "solution": {
             "ground_truth": "STAPLE consensus of a curated panel of skull-strippers run on the mean b0, split into core/margin/background zones and calibrated per subject by leave-one-tool-out; the diffusion grid. Tools that lose the same anatomy to the inferior bias field on the raw series - cerebellum, temporal poles, brainstem - are excluded from the panel and kept as scored candidates. consensus_mask.nii.gz + consensus_zones.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth, fetched into the grader pack reference/ at grade time.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path diffusion_gt/diffusion-brain-mask/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path diffusion_gt/diffusion-brain-mask/{subject}/ (consensus_mask.nii.gz, consensus_zones.nii.gz)",
             "metric": "consensus-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 (see grader)",
             "pass_criterion": "A b0 is extracted and a binary brain mask produced; mask geometry (shape, voxel size, affine) matches the diffusion series; mask is binary (0 and 1 only); brain retained including cerebellum and brainstem, skull and neck removed; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -1820,7 +1820,7 @@
           },
           "solution": {
             "ground_truth": "Expert multi-rater consensus lesion mask shipped with the Ljubljana MS database - three expert raters segmented the patient independently and the released mask is their consensus. A genuine gold standard, NOT a tool consensus. Voxel data as published, on the header of the FLAIR handed to the agent. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path clinical_gt/clinical-ms-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path clinical_gt/clinical-ms-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
             "metric": "expert-mask: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from Dice + lesion-wise detection F1 + volume error (thresholds fixed from published results on this same cohort)",
             "pass_criterion": "A binary lesion mask {0,1} on the supplied FLAIR grid; nonempty and volume-plausible (0.5-150 cm3); Dice and lesion-wise overlap with the expert consensus above the fixed lines; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -1902,7 +1902,7 @@
           },
           "solution": {
             "ground_truth": "Expert manual lesion tracing shipped with ARC (drawn in T2w space), rigid-registered into native T1w space. A genuine gold standard - NOT a tool consensus. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path clinical_gt/clinical-stroke-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path clinical_gt/clinical-stroke-lesion-segmentation/{subject}/ (lesion_mask.nii.gz)",
             "metric": "expert-mask: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from Dice + lesion-wise detection F1 + volume error (fixed literature thresholds)",
             "pass_criterion": "A binary lesion mask {0,1} in native T1w space; nonempty and volume-plausible; Dice and lesion-wise overlap with the expert mask above the fixed pass lines; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
@@ -1951,7 +1951,7 @@
           },
           "solution": {
             "ground_truth": "Primary expert WMH mask from the WMH Challenge 2017, native FLAIR space. Pass and full-mark thresholds are data-derived from the agreement between independent observers rather than fixed literature values. lesion_mask.nii.gz in the Hugging Face dataset neurodeskorg/skills-comm-ground-truth.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision d10226241f56), path clinical_gt/clinical-wmh-segmentation/ (lesion_mask.nii.gz)",
+            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path clinical_gt/clinical-wmh-segmentation/ (lesion_mask.nii.gz)",
             "metric": "expert-mask, inter-rater-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from Dice + lesion-wise detection F1 + volume error",
             "pass_criterion": "A binary WMH mask {0,1} in native FLAIR space; nonempty and volume-plausible; Dice / lesion-wise F1 / volume overlap with the expert mask above the inter-rater-derived pass lines; No processing errors; logs captured",
             "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",

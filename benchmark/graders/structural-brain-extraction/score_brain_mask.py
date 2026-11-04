@@ -62,7 +62,7 @@ def same_grid(a, b, tol=1e-3):
 
 def is_header_only_deoblique(raw_img, ref_shape, ref_affine, tol=1e-3):
     """True when a submission shares the reference's sampling lattice but had its
-    obliquity stripped from the header only (AFNI's 3dSkullStrip does this). The
+    obliquity stripped from the header only, which some skull-strippers do. The
     data is still index-aligned to the input, so it must be read on the native
     grid rather than resampled by the (now-wrong) affine."""
     if tuple(raw_img.shape[:3]) != tuple(ref_shape[:3]):

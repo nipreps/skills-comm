@@ -63,7 +63,7 @@ def same_grid(a, b, tol=1e-3):
 def load_on_grid(path, ref_img, label=False):
     """Load a submission on the reference grid.
 
-    Returns (data, notes, nonfinite). NiftyReg and some other resamplers write NaN outside the
+    Returns (data, notes, nonfinite). Some resamplers write NaN outside the
     field of view rather than zero, which is a convention rather than a defect, so non-finite
     values are zeroed here and judged later against the brain mask: NaN in the background is
     fine, NaN inside the brain is not.

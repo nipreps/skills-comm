@@ -1,7 +1,7 @@
 # Grader: `structural-brain-extraction-stroke`
 
 A **consensus-calibrated brain-extraction grader** for a **lesioned (chronic-stroke) brain**
-(Aphasia Recovery Cohort, OpenNeuro `ds004884`, `sub-M2191`). Companion to the other
+(Aphasia Recovery Cohort, OpenNeuro `ds004884`, five subjects). Companion to the other
 `structural-brain-extraction-*` tasks on the **pathology axis**: does the skull-strip keep the
 lesion, or carve it out?
 

@@ -1,7 +1,7 @@
 # Grader: `clinical-ms-lesion-segmentation`
 
 Grades an **MS white-matter lesion segmentation** against the **expert multi-rater consensus mask**
-of `patient01` of the open_ms_data cross-sectional dataset (Ljubljana MS database, CC-BY).
+of five patients of the open_ms_data cross-sectional dataset (Ljubljana MS database, CC-BY).
 
 ## The reference
 

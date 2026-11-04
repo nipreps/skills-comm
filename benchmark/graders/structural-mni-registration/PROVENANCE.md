@@ -36,8 +36,8 @@ The segmentation is an agent **input**, not a reference.
 
 ## The reference is the template, not another tool
 
-Grading against fMRIPrep's MNI output would measure agreement with one implementation of one
-pipeline, not registration quality. The reference is instead the **template's own tissue priors** (`label-{GM,WM,CSF}_probseg`), which state where
+Grading against another pipeline's MNI output would measure agreement with one implementation,
+not registration quality. The reference is instead the **template's own tissue priors** (`label-{GM,WM,CSF}_probseg`), which state where
 each tissue belongs in MNI space independently of any registration software.
 
 A population prior is not a per-subject truth, so no absolute Dice threshold would be defensible.

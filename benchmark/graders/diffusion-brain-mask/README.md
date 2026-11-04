@@ -1,13 +1,13 @@
 # Grader: `diffusion-brain-mask`
 
 Grades a **brain mask made from a DWI b0** against a consensus of a masking-tool panel
-(ds001226 `sub-CON02` `ses-preop`, `acq-AP`, 2.5 mm isotropic).
+(ds001226, five subjects, `ses-preop`, `acq-AP`, 2.5 mm isotropic).
 
 **What it tests: whether the b0 is prepared before it is masked.** On the raw series every
 intensity-threshold method loses the same anatomy — cerebellum, temporal poles, brainstem — to
-the inferior bias field. Two routes pass: a contrast-agnostic stripper
-`3dSkullStrip`), or `dwidenoise` + `dwibiascorrect` before `dwi2mask`, which takes that tool from
-`invalid` to `within_reference_variability`.
+the inferior receive-coil bias field, and a mask missing one of those regions fails a validity
+gate rather than merely scoring low. The task is passable both by preparing the b0 and by
+choosing a method that does not depend on intensity, so it is not a test of tool identity.
 
 ## The reference
 

@@ -1,7 +1,7 @@
 # Grader: `structural-tissue-segmentation-7t`
 
 A **consensus-calibrated grader** for multi-class brain **parcellation** of a 7T MP2RAGE scan
-(CEREBRUM-7T `ds003642`, `sub-025`, 0.63 mm isotropic). It grades a six-structure label map —
+(CEREBRUM-7T `ds003642`, three subjects, 0.63 mm isotropic). It grades a six-structure label map —
 grey matter, basal ganglia, white matter, ventricles/CSF, cerebellum, brainstem — against a
 consensus of the panel's segmentations. Companion to the binary `structural-brain-extraction-7t`
 tasks on the same subject.

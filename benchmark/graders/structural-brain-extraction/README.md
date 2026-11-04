@@ -3,22 +3,9 @@
 A **consensus-calibrated grader** for the `structural-brain-extraction` benchmark task — a
 more discriminating alternative to grading a skull-strip by *Dice against one reference mask*.
 
-![How a brain-extraction submission is graded: five skull-strippers are fused by STAPLE into core, margin and background zones; a submission passes ten validity gates, then earns a 0-100 quality score weighting NSD 30%, core recall 25%, background inclusion 20%, HD95 15% and volume error 10%; an FSL BET run at f=0.7 would score about 71 on metrics alone but fails the focal-core-cut gate.](brain_extraction_grading.png)
+![How a brain-extraction submission is graded: a panel of skull-strippers is fused by STAPLE into core, margin and background zones; a submission passes ten validity gates, then earns a 0-100 quality score weighting NSD 30%, core recall 25%, background inclusion 20%, HD95 15% and volume error 10%; a mask can score well on metrics alone and still fail the focal-core-cut gate.](brain_extraction_grading.png)
 
-*Full size: [`brain_extraction_grading.png`](brain_extraction_grading.png). Every number in it comes
-from this pack's `rubrics/<subject>.json` and the test-evidence runs below.*
-
-The prompt is tool-agnostic (`tool_mode: agnostic`), so the grader must ask *"is this a competent
-brain mask?"*, not *"does it match one specific tool?"*. Every skull-stripper draws a slightly
-different boundary and they disagree in a few predictable places (sagittal sinus, tentorium,
-brainstem cut-off, sulcal CSF). So instead of one mask, the grader carries a **STAPLE consensus of a
-panel of tools**, split into three zones, and scores only the *unambiguous* voxels:
-
-| zone (value) | meaning | scored? |
-|---|---|---|
-| **core** (2) | every panel tool includes it | yes — dropping it = brain cut |
-| **margin** (1) | the tools legitimately disagree | **no** — legitimate freedom |
-| **background** (0) | no panel tool includes it | yes — including it = skull/dura/neck kept |
+*Full size: [`brain_extraction_grading.png`](brain_extraction_grading.png).*
 
 Every threshold (the surface tolerance τ, the per-metric pass/fail envelope, the gate caps) was
 **calibrated from the data** (leave-one-tool-out), never hand-picked. See [`PROVENANCE.md`](PROVENANCE.md).
@@ -36,11 +23,11 @@ here and in [`rubrics/`](rubrics/).
 ```
 structural-brain-extraction/
 ├── rubrics/<subject>.json            # per-subject calibration: τ, envelope, weights, gate caps, grid
+├── brain_extraction_grading.png      # the explainer figure above
 ├── score_brain_mask.py               # the grader — importable score() + CLI
 ├── reference/                        # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md                     #   dataset path + fetch command
 │   └── .gitignore                    #   keeps *.nii.gz out of git
-├── brain_extraction_grading.png     # the explainer figure above
 ├── README.md
 └── PROVENANCE.md
 ```

@@ -4,14 +4,14 @@ Grades **white-matter-hyperintensity (WMH) segmentation** on a FLAIR image again
 with thresholds **data-derived from inter-rater agreement**. Dementia / small-vessel-disease axis;
 companion to `clinical-stroke-lesion-segmentation`.
 
-Subject: **WMH Segmentation Challenge 2017**, Amsterdam/GE3T/100 — a clinical FLAIR with **115 small,
-multi-focal WMH foci** (6.3 cm³). This is the case where **Dice alone is misleading** (a small
-boundary slip on tiny lesions tanks it) and **lesion-wise detection matters**.
+Data: **WMH Segmentation Challenge 2017**, five cases across its three acquisition sites. These
+are clinical FLAIRs carrying many small, multi-focal foci, which is the case where **Dice alone is
+misleading** — a small boundary slip on tiny lesions tanks it — and **lesion-wise detection
+matters**.
 
-![How a WMH submission is graded: three experts trace the same FLAIR and the primary mask becomes the reference; a submission passes four validity gates, then earns a 0-100 quality score weighting Dice 40%, lesion-wise F1 40% and volume error 20%; altered copies of the expert mask show that dilating by 2 voxels finds every lesion yet scores marginal.](wmh_grading.png)
+![How a WMH submission is graded: several experts trace the same FLAIR and the primary mask becomes the reference; a submission passes four validity gates, then earns a 0-100 quality score weighting Dice 40%, lesion-wise F1 40% and volume error 20%; altered copies of the expert mask show that dilating by 2 voxels finds every lesion yet scores marginal.](wmh_grading.png)
 
-*Full size: [`wmh_grading.png`](wmh_grading.png). Every number in it comes from this pack's
-`rubrics/<subject>.json` and the grader run on the rater masks.*
+*Full size: [`wmh_grading.png`](wmh_grading.png).*
 
 ## The reference
 
@@ -82,7 +82,6 @@ clinical-wmh-segmentation/
 ├── reference/           # primary expert WMH mask — fetched from the Hub
 │   ├── README.md
 │   └── .gitignore
-├── wmh_grading.png      # the explainer figure above
 ├── README.md
 └── PROVENANCE.md
 ```

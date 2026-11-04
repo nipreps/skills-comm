@@ -58,38 +58,10 @@ GRADED = {"score_lesion_seg.py": "lesion_mask.nii.gz",
 # the reference is the template, not anything a submission produces -- so the probes are
 # the panel's own arms, and the claim under test is the ordering between them.
 #
-# `flat` maps the arms the original single-subject build wrote outside panel/; every
-# other subject has all of them under subjects/<id>/panel/.
-REG_PROBES = {
-    "structural-mni-registration": {
-        "build": "ground_truth_registration",
-        "control": "sub-0006",
-        "suffix": ("_T1w.nii.gz", "_dseg.nii.gz"),
-        "flat": {},
-        "arms": [("ANTs SyN", "nonlinear", "ants/ants_syn"),
-                 ("FSL FNIRT", "nonlinear", "fsl/fsl_fnirt"),
-                 ("NiftyReg f3d", "nonlinear", "niftyreg/nr_f3d"),
-                 ("ANTs affine", "affine", "ants/ants_affine"),
-                 ("FSL FLIRT", "affine", "fsl/fsl_flirt"),
-                 ("NiftyReg aladin", "affine", "niftyreg/nr_aladin")],
-        "order": ("nonlinear", "affine"),
-    },
-    "functional-bold-to-mni": {
-        "build": "ground_truth_bold_mni",
-        "control": "sub-0019",
-        "suffix": ("_boldref.nii.gz", "_boldmask.nii.gz"),
-        "flat": {"fsl_chain": "fsl_arm/fsl_chain",
-                 "direct_affine": "probe/direct_affine",
-                 "direct_syn": "probe/direct_syn"},
-        "arms": [("ANTs, correct chain", "anatomy-mediated", "ants_correct"),
-                 ("FSL chain", "anatomy-mediated", "fsl_chain"),
-                 ("ANTs, no EPI stage", "candidate", "ants_no_epi"),
-                 ("ANTs, reversed list", "candidate", "ants_reversed"),
-                 ("direct affine", "direct", "direct_affine"),
-                 ("direct SyN", "direct", "direct_syn")],
-        "order": ("anatomy-mediated", "direct"),
-    },
-}
+# The table names those arms, so it lives in the build tree beside the panels it points
+# at rather than in this file. Without it the registration tasks report no probe, which
+# is also what happens without --build.
+REG_PROBES = {}
 
 
 def probe_paths(cfg, subject):
@@ -248,6 +220,9 @@ def main():
               "read from each pack's own reference/ will run.", file=sys.stderr)
         BUILD = Path("/nonexistent")
     STAGE, CAL = BUILD / "hf_stage", BUILD / "hf_calibration"
+    probes = BUILD / "smoke_probes.json"
+    if probes.is_file():
+        REG_PROBES.update(json.loads(probes.read_text()))
     rows = []
     for task in sorted(a.task or MAN):
         spec = MAN[task]

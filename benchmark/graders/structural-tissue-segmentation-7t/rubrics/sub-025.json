@@ -35,7 +35,6 @@
   "item": "tissueseg_ds003642_sub-025",
   "prompt": "Parcellate the 7T MP2RAGE image of sub-025 (ds003642, OpenNeuro) into an integer label map of six brain structures in native T1w space: 1=grey matter (cortical grey matter), 2=basal ganglia (deep grey nuclei: caudate, putamen, pallidum), 3=white matter (cerebral white matter), 4=ventricles (ventricular CSF only \u2014 lateral/3rd/4th ventricles, NOT sulcal CSF), 5=cerebellum (entire cerebellum, grey+white), 6=brainstem (midbrain, pons, medulla).",
   "grid": {
-    "tool": "CEREBRUM7T",
     "shape": [
       256,
       352,
@@ -78,6 +77,5 @@
       ]
     ]
   },
-  "collapse_margin_basis": "Slack below the weakest panel member: the floor for each class is max(0.25, worst leave-one-out core recall - 0.20). Checked against a parcellation outside the panel, since CEREBRUM7T and FreeSurfer v6/v7 define the core between them and clear any floor by construction. SynthSeg (freesurfer/8.1.0, aseg mapped to the six classes) run on the cleaned UNI masked by the brain-extraction task's own consensus mask clears every floor on all three subjects, with minimum headroom +0.2009 (sub-075 ventricles) and a maximum of +0.5316; it exceeds the panel's worst member on all 18 class-subject combinations. The failures the gate names -- a swapped or missing class -- give core recall near zero and are caught with wide margin. An intensity tissue classifier such as FSL FAST cannot serve as a comparator here: it produces three tissues and this task grades six classes including basal ganglia, cerebellum and brainstem.",
   "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
 }

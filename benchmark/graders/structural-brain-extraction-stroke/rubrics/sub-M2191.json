@@ -32,7 +32,6 @@
   "item": "skullstrip_ds004884_sub-M2191",
   "prompt": "Skull-strip the T1-weighted image of sub-M2191 (ds004884, OpenNeuro), producing a brain-extracted image and a binary brain mask in the native T1w space.",
   "grid": {
-    "tool": "HD_BET",
     "shape": [
       192,
       256,
@@ -75,6 +74,5 @@
       ]
     ]
   },
-  "focal_bg_basis": "max(1.5 x worst legitimate non-panel inclusion, 10 cm3 backstop). Measured on every non-panel mask available: well-chosen invocations (HD-BET and SynthStrip at defaults, BET -R, BET default on paediatric) admit 0.00-3.87 cm3, while BET at its defaults on motion-corrupted T1w admits 16.67-113.27 cm3. The cap sits in the empty band between them. It is deliberately looser than the core cap: lost brain is unrecoverable, whereas retained skull is visible and downstream-recoverable, so the gate catches only gross inclusion and bg_fp_frac_of_ref (weight 0.20) prices the gradient. Evidence is thin -- 16 legitimate masks from three tasks, none over-inclusive for 3T, stroke or diffusion.",
   "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
 }

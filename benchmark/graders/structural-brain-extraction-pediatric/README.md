@@ -1,7 +1,7 @@
 # Grader: `structural-brain-extraction-pediatric`
 
-A **consensus-calibrated grader** for the pediatric skull-strip task (ds000228 `sub-pixar017`, ~3.6 yo).
-Third subject on the **age axis**, companion to `structural-brain-extraction` (healthy adult) and
+A **consensus-calibrated grader** for the pediatric skull-strip task (ds000228, five children).
+The **age axis**, companion to `structural-brain-extraction` (healthy adult) and
 `structural-brain-extraction-motion` (motion).
 
 Same design: score a submission against a STAPLE consensus of a tool panel split into core (must keep) /

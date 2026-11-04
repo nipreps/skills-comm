@@ -1,7 +1,7 @@
 # Grader: `structural-brain-extraction-motion`
 
 A **consensus-calibrated grader** for the harder, motion-corrupted skull-strip task
-(MR-ART `ds004173`, `sub-000103`, `acq-headmotion2` — the worst-motion tier). It is the
+(MR-ART `ds004173`, five subjects, `acq-headmotion2` — the worst-motion tier). It is the
 companion to `structural-brain-extraction` (the healthy-adult baseline) on the **motion axis**.
 
 Same design: score a submission against a STAPLE consensus of a tool panel split into

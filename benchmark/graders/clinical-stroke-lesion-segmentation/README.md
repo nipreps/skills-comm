@@ -1,7 +1,7 @@
 # Grader: `clinical-stroke-lesion-segmentation`
 
 Grades a **stroke-lesion segmentation** against an **expert manual mask** (Aphasia Recovery Cohort,
-OpenNeuro `ds004884`, `sub-M2191`). Step 2 of the stroke pair; step 1 is
+OpenNeuro `ds004884`, five subjects). Step 2 of the stroke pair; step 1 is
 `structural-brain-extraction-stroke` (same subject).
 
 ## The reference
