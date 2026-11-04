@@ -1,29 +1,18 @@
 # Provenance — how this grader pack was calibrated
 
-The pack is the **frozen output of a one-time calibration** on the benchmark subject
-(ds002790 `sub-0004`, native T1w space). It is not re-derived when a submission is scored.
-
-
-> This pack calibrates one rubric per subject, in `rubrics/<subject>.json`. `fetch_reference.py --subject` selects the one being graded into `reference/rubric.json`.
+One rubric per subject, in `rubrics/<subject>.json`, each the frozen output of a
+calibration on that subject's own panel. Scoring a submission never re-derives them.
 
 ## How the reference was built
 
-The panel or raters behind this reference, the calibration steps, the surface
-tolerance, the calibrated caps and the reference volumes are documented in
-`calibration/structural-brain-extraction/PROVENANCE.md` inside the gated reference dataset
-[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
-calibration the grader merges at scoring time.
-
-That material sits with the reference because it describes the answer: during
-one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
-the panel consensus from it. Access is granted on request.
-
-## Inputs
-
-A panel of independent skull-strippers, each run on the subject's T1w: a mix of
+A panel of independent skull-strippers, each run on the subject's T1w — a mix of
 registration-based, intensity-based and deep-learning methods, chosen so that they fail
-differently. Which tools, in what configuration, and which of them defines the reference
-grid are in the gated `calibration/structural-brain-extraction/PROVENANCE.md`.
+differently — fused by STAPLE into core, margin and background zones.
+
+Which tools, in what configuration, the surface tolerance and the calibrated caps are in
+`calibration/structural-brain-extraction/PROVENANCE.md` in the gated reference dataset,
+because naming them would let a submission reproduce the reference instead of solving the
+task.
 
 ## The scoring scale, and what passing means
 
@@ -60,41 +49,14 @@ principles set the **ordering**:
 - **Volume error is weighted lowest** because `volume_plausible` already gates it, and a
   high weight would price the same property twice.
 
-Nothing fixes the exact **magnitudes**, so they were tested rather than argued. Quality is
-a linear recombination of the per-metric subscores, so every alternative weighting can be
-evaluated from one scoring pass. On the 425 graded masks of benchmark wave 7 — of which
-78 are gate-failed and 290 are `within_reference_variability`, a per-metric test
-independent of the weighting, leaving **57 that a weighting governs**:
-
-| weighting | acceptable | Δ | verdicts changed |
-|---|---|---|---|
-| shipped .30/.25/.20/.15/.10 | 18 | — | — |
-| core recall first | 18 | 0 | 0 % |
-| volume ignored | 17 | −1 | 4 % |
-| equal weights | 18 | 0 | 16 % |
-| background doubled | 19 | +1 | 18 % |
-| surface only (NSD + HD95) | 9 | −9 | 67 % |
-| overlap only (core + bg) | 47 | +29 | 67 % |
-
-**Results are robust to how the five metrics are balanced, and not to dropping metric
-families.** Any plausible rebalancing moves the pass count by at most ±1 of 425; removing
-the surface or the overlap metrics moves it by 9 to 29 and changes two-thirds of the
-verdicts it can touch. The split is not load-bearing; including all five metrics is.
-
-Quoted against the full 425 rather than the 57, that effect would look seven times
-smaller than it is.
-
-## Reference data
-
-The `reference/` NIfTIs are on the Hugging Face Hub with the other task ground truth:
-
-- Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structural_gt/structural-brain-extraction/<subject>/`
-- `consensus_mask.nii.gz`, `consensus_zones.nii.gz` (native T1w space)
-
-Fetch them before grading — see `reference/README.md` for the fetch command. Everything else
-the grader needs (tau, the envelope, the gate caps) is in `rubric.json`.
+Nothing fixes the exact **magnitudes**. A sensitivity analysis over alternative weightings
+finds the verdicts robust to how the five metrics are balanced and sensitive to dropping a
+metric family: rebalancing moves the pass count by at most one mask in several hundred,
+while removing the surface or overlap metrics changes about two-thirds of the verdicts a
+weighting can touch. Including all five is what matters; the split between them is not.
 
 ## Caveats
 
-- **Consensus of tools is not truth.** If every panel tool keeps a structure (e.g. the superior
-  sagittal sinus), removing it is penalised. One manual expert tracing would settle it.
+A tool consensus is not truth. Where every panel member keeps a structure — the superior
+sagittal sinus, for instance — removing it is penalised, and only a manual expert tracing
+would settle that.

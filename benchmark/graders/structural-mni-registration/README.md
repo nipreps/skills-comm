@@ -11,25 +11,16 @@ how they were combined, the surface tolerance and the calibrated caps are docume
 `calibration/structural-mni-registration/PROVENANCE.md` inside the gated reference dataset
 [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
 
-That detail is gated because it describes the answer: in one benchmark wave, agent runs
-retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
-is granted on request, and everything needed to audit *how* grading works — the gates,
-weights, verdict thresholds and the scoring scale — stays here.
+Gated so that a submission cannot reproduce the reference instead of solving the
+task. Everything governing how a submission is *graded* stays here.
 
-## Why label propagation, not image similarity
+## What is graded
 
-A registration is a spatial transform, so the question is where anatomy ends up. Correlation
-between a warped T1w and the template is dominated by gross head position and is largely
-saturated once *any* affine has been applied — on this subject it is 0.57 for an affine and
-0.78–0.84 for a nonlinear warp, a difference that would not carry a benchmark on its own.
-
-So the task supplies the subject's **tissue segmentation** and asks for it to be carried through
-the same transform with nearest-neighbour interpolation. The grader measures the overlap of that
-propagated tissue with the **template's own tissue priors** — a reference that says where GM, WM
-and CSF belong in MNI space independently of any registration software, rather than agreement
-with one pipeline's warp.
-
-The segmentation is an agent **input**, not a reference.
+Not how much the warped T1w resembles the template — that is saturated once any affine has
+been applied. Instead the subject's **tissue segmentation** is carried through the same
+transform with nearest-neighbour interpolation, and the grader measures where that tissue
+landed against the template's own tissue priors. The segmentation is an agent **input**,
+not a reference. [`PROVENANCE.md`](PROVENANCE.md) gives the measurements behind that choice.
 
 ## Scorer (ships in this pack)
 

@@ -11,10 +11,8 @@ how they were combined, the surface tolerance and the calibrated caps are docume
 `calibration/functional-bold-to-mni/PROVENANCE.md` inside the gated reference dataset
 [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
 
-That detail is gated because it describes the answer: in one benchmark wave, agent runs
-retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
-is granted on request, and everything needed to audit *how* grading works — the gates,
-weights, verdict thresholds and the scoring scale — stays here.
+Gated so that a submission cannot reproduce the reference instead of solving the
+task. Everything governing how a submission is *graded* stays here.
 
 ## What this task discriminates
 
@@ -26,22 +24,12 @@ anatomical-to-template — is the standard route and the one every reference pip
 The goal text does not name the route. Both the BOLD and the subject's T1w are supplied as inputs;
 choosing what to do with the T1w is the task.
 
-## Why not brain-mask overlap or edge correlation
+## What is graded
 
-Two obvious metrics were calibrated and rejected, both because they fail to separate the panel:
-
-**Brain-mask Dice** spans only 0.86–0.94 across every arm, correct and wrong alike, and it ranks a
-chain that skipped the EPI-to-anatomical stage (0.929) *above* an accepted reference pipeline
-(0.915). The outline of a brain-shaped object stays roughly in place even when its interior is
-displaced, so an outline metric cannot see the error this task is about.
-
-**Edge correlation** — agreement of gradient magnitudes inside the brain — ranks the arms in the
-right order but conflates registration *fineness* with registration *correctness*. FNIRT's warp is
-smoother than SyN's, so the FSL chain scores 0.5601 against the reversed-composition
-arm's 0.5576: within_reference_variability. Raising the smoothing kernel closes that gap only by collapsing
-every arm into 0.78–0.81. It is reported as a diagnostic, never scored.
-
-What survives measures image content inside the brain and where the brain physically landed.
+Mask overlap and edge correlation both saturate here, so neither separates a good
+normalisation from a mediocre one. The grader scores mutual information inside the brain
+together with the centre-of-mass offset, which do.
+[`PROVENANCE.md`](PROVENANCE.md) gives the measurements behind that choice.
 
 ## Preparation and distortion
 

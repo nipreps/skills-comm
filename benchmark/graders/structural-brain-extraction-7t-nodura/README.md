@@ -47,7 +47,6 @@ cerebellum + brainstem (which the cerebrum-focused segmentations alone miss); th
 
 ![How the 7T no-dura gate works: four coronal panels of one subject. The first shades the consensus core, which is scored, and the margin, which never is. The second draws the pial envelope against the consensus reference, which itself sits partly outside it. The third shows a dura-aware stripper well inside the cap and passing. The fourth shows a rim-retaining stripper many times over the cap, a thick rim over the vertex and inferior surface, failing.](nodura_dura_gate.png)
 
-
 The point of the task, scored on this subject's tools:
 
 | tool, at its defaults | dura beyond envelope | `-7t` (standard) | `-7t-nodura` (this pack) |

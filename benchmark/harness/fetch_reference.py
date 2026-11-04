@@ -47,11 +47,16 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
     rev = revision or spec.get("reference_revision") or defaults.get("reference_revision")
     ref_dir = spec["ref_dir"]                        # e.g. clinical_gt/clinical-wmh-segmentation
     calib_dir = defaults.get("calibration_dir", "calibration")
-    # A per-subject task keeps one reference directory per subject, so the subject has to
-    # be named. It is checked against the manifest rather than interpolated blindly: a
-    # typo would otherwise come back as a confusing 404 from the Hub.
-    if "{subject}" in ref_dir:
-        allowed = spec.get("subjects") or []
+    # Whether a subject is required is decided by `per_subject`, not by the shape of
+    # ref_dir. Most per-subject tasks keep one reference directory per subject and carry
+    # {subject} in the path, but a registration task does not: its reference is a
+    # template, identical for every subject, and only the calibration differs. Copying a
+    # template per subject would add nothing to the Hub but weight.
+    per_subject = spec.get("per_subject") or "{subject}" in ref_dir
+    allowed = spec.get("subjects") or []
+    if per_subject:
+        # Checked against the manifest rather than interpolated blindly: a typo would
+        # otherwise come back as a confusing 404 from the Hub.
         if subject is None:
             raise SystemExit(
                 f"ERROR: '{task_id}' is graded per subject; pass --subject.\n"
@@ -59,7 +64,8 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
         if allowed and subject not in allowed:
             raise SystemExit(f"ERROR: '{subject}' is not a subject of '{task_id}'.\n"
                              f"Available: {', '.join(allowed)}")
-        ref_dir = ref_dir.replace("{subject}", subject)
+        if "{subject}" in ref_dir:
+            ref_dir = ref_dir.replace("{subject}", subject)
     elif subject:
         raise SystemExit(f"ERROR: '{task_id}' has a single reference; --subject does not "
                          "apply to it")
@@ -73,7 +79,8 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
     # records whose reference is in there, and a different subject forces a re-fetch.
     marker = dest / ".subject"
     held = marker.read_text().strip() if marker.is_file() else None
-    if subject and held != subject:
+    shared_ref = subject is not None and "{subject}" not in spec["ref_dir"]
+    if subject and held != subject and not shared_ref:
         if held is not None:
             print(f"  [switch] reference/ holds {held}; re-fetching for {subject}")
         force = True

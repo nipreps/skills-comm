@@ -1,21 +1,18 @@
 # Reference data
 
-The frozen reference for this grader is on the Hugging Face Hub:
+Fetched here before grading, from the gated dataset
+`neurodeskorg/skills-comm-ground-truth`:
 
-- **Dataset:** `neurodeskorg/skills-comm-ground-truth`
-- **Path:** `structural_gt/structural-tissue-segmentation-7t/<subject>/`
-- **Revision:** `5895f1b71e1d`
-- **Files:**
-  - `consensus_seg.nii.gz` — fused 6-class label map (native T1w grid); 1=GM 2=basal_ganglia 3=WM 4=ventricles 5=cerebellum 6=brainstem
-  - `consensus_agreement.nii.gz` — per-voxel #tools backing the label (3 = unanimous core, 2 = majority)
+    python benchmark/harness/fetch_reference.py --task structural-tissue-segmentation-7t --subject <subject>
 
-Fetch them into this directory before grading:
+- `consensus_seg.nii.gz`
+- `consensus_agreement.nii.gz`
+- `rubric.json` — written by the fetch, combining this pack's policy
+  with the subject's gated calibration
 
-    python benchmark/harness/fetch_reference.py --task structural-tissue-segmentation-7t
+The dataset path and the pinned revision live in
+[`benchmark/harness/run_manifest.json`](../../harness/run_manifest.json), which is what
+the fetch reads; they are deliberately not repeated here.
 
-Access is gated: request it on the dataset page, then set `HF_TOKEN` to a token for the account
-that was granted access. Gating is what keeps the reference out of the plane where the agent works.
-Pinning the revision means a grading run scores against an exact, named reference set.
-
-`rubric.json` here is the subject's rubric, copied from `../rubrics/` by the
-fetch command above; it carries every calibrated number the grader needs.
+Access is granted on request. Set `HF_TOKEN` to a token for the account that holds it.
+Gating is what keeps the reference out of the plane where the agent works.

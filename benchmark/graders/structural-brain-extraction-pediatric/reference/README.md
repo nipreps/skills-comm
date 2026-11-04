@@ -1,29 +1,18 @@
 # Reference data
 
-The frozen reference for this grader is on the Hugging Face Hub:
-
-- **Dataset:** `neurodeskorg/skills-comm-ground-truth`
-- **Path:** `structural_gt/structural-brain-extraction-pediatric/<subject>/`
-- **Revision:** `9a1a95eb47e7`
-- **Files:**
-  - `consensus_mask.nii.gz` — binary STAPLE consensus (native T1w grid)
-  - `consensus_zones.nii.gz` — 0 = background, 1 = margin, 2 = core
-
-The reference is one directory per subject; `fetch_reference.py --subject`
-pulls the one being graded.
-
-Fetch it into this directory before grading:
+Fetched here before grading, from the gated dataset
+`neurodeskorg/skills-comm-ground-truth`:
 
     python benchmark/harness/fetch_reference.py --task structural-brain-extraction-pediatric --subject <subject>
 
-Access is gated: request it on the dataset page, then set `HF_TOKEN` to a token for the account
-that was granted access. Gating is what keeps the reference out of the plane where the agent works.
-Pinning the revision means a grading run scores against an exact, named reference set.
+- `consensus_mask.nii.gz`
+- `consensus_zones.nii.gz`
+- `rubric.json` — written by the fetch, combining this pack's policy
+  with the subject's gated calibration
 
-`rubric.json` here is the subject's rubric, copied from `../rubrics/` by the
-fetch command above; it carries every calibrated number the grader needs.
+The dataset path and the pinned revision live in
+[`benchmark/harness/run_manifest.json`](../../harness/run_manifest.json), which is what
+the fetch reads; they are deliberately not repeated here.
 
-The thresholds are not here. Each subject's rubric is tracked in the repo at
-`../rubrics/<subject>.json`, and the fetch command above copies the one being graded
-to `rubric.json` in this directory. Keeping them in git means the grading criteria can
-be read without access to the gated data, and they version with the scorer.
+Access is granted on request. Set `HF_TOKEN` to a token for the account that holds it.
+Gating is what keeps the reference out of the plane where the agent works.

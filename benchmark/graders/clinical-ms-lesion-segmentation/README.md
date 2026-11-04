@@ -11,10 +11,8 @@ how they were combined, the surface tolerance and the calibrated caps are docume
 `calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference dataset
 [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
 
-That detail is gated because it describes the answer: in one benchmark wave, agent runs
-retrieved these files from GitHub and one rebuilt the panel consensus from them. Access
-is granted on request, and everything needed to audit *how* grading works — the gates,
-weights, verdict thresholds and the scoring scale — stays here.
+Gated so that a submission cannot reproduce the reference instead of solving the
+task. Everything governing how a submission is *graded* stays here.
 
 ## Why an expert mask, not a consensus of tools
 

@@ -8,9 +8,8 @@ tolerance, the calibrated caps and the reference volumes are documented in
 [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
 calibration the grader merges at scoring time.
 
-That material sits with the reference because it describes the answer: during
-one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
-the panel consensus from it. Access is granted on request.
+It is gated so that a submission cannot reproduce the reference instead of
+solving the task.
 
 ## Item
 
@@ -84,44 +83,20 @@ Gradient-based GM/WM contrast was also screened and discarded: 1.05–1.09 acros
 
 Weights 0.50 / 0.50. Gate caps: brain volume 1230–3030 cm³, centre of mass within 8 mm.
 
-## Is the task measuring routing, or BOLD preparation?
+## What the task actually measures
 
-The agent is handed the unpreprocessed 4D series, and the panel's band is asymmetric: fMRIPrep's
-reference is motion- and distortion-corrected while the ANTs and FSL arms average the raw series.
-If the score mostly tracked how well the reference was prepared, the task would not be measuring
-the routing choice it claims to. Held one fixed and varied the other
-(`analysis_08_prep_sensitivity.sh`):
+The agent is handed the unpreprocessed 4D series, and the panel's band is asymmetric: one
+arm's reference is motion- and distortion-corrected while the others average the raw
+series. If the score tracked preparation rather than the routing choice, the task would
+not measure what it claims. Holding one fixed and varying the other
+(`analysis_08_prep_sensitivity.sh`) moves quality by 0.80 for preparation against 72.11
+for routing — a factor of about ninety. A well-prepared reference taken the wrong way
+still fails; preparation does not rescue the wrong route.
 
-| reference preparation | route | NMI | offset (mm) | verdict | quality |
-|---|---|---|---|---|---|
-| raw temporal mean | anatomy-mediated | 0.0580 | 1.21 | within_reference_variability | 93.71 |
-| motion-corrected mean | anatomy-mediated | 0.0570 | 1.25 | acceptable | 92.91 |
-| motion-corrected mean | direct to template | 0.0240 | 2.47 | unacceptable | 20.80 |
-| raw temporal mean | direct to template | 0.0220 | 3.34 | unacceptable | 0.00 |
-
-Preparation moves quality by 0.80; routing moves it by 72.11 — a factor of about 90. The reason
-preparation matters so little is that this subject barely moved: the raw temporal mean and the
-motion-corrected mean correlate at 0.9999, with a mean relative difference of 0.0064.
-
-The decisive row is the third. A well-prepared reference taken the wrong way still scores 20.80 and
-stays `unacceptable`: good preparation does not rescue the wrong route. Better preparation does
-lift the direct arm from 0.00 to 20.80, which is the expected direction and well inside the failing
-band.
-
-## Why composition order is not what this task discriminates
-
-`antsApplyTransforms` applies its transform list right-to-left, and getting that backwards is a
-classic bug — but on this data it is not measurable as displacement, so it cannot anchor a grader.
-
-The reason is the near-identity transform above. Reversing a 1.6 mm rigid transform against a large
-nonlinear warp perturbs the result by less than the metrics resolve: brain-mask Dice puts the
-reversed arm at 0.9111 against the panel's 0.9151, and in the QC panel every arm is the same brain
-in the same place. Same-session BOLD and T1w is the normal case for a BIDS dataset rather than a
-quirk of this subject, so no choice of subject would change that.
-
-The bug is real as *code*. It appears here as the `ANTs_reversed` candidate arm, where the scored
-metrics do separate it (16.7), but the failure the task is built to discriminate is the routing
-choice, not the ordering of a transform list.
+Transform composition order is a different matter. Applying a transform list backwards is
+a classic bug, and it appears here as a scored candidate arm, but on same-session BOLD and
+T1w the reversal perturbs the result by less than the metrics resolve. It is real as code
+and not what this task discriminates.
 
 ## Reproduction
 

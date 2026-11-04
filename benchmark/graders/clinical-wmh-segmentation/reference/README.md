@@ -1,19 +1,17 @@
 # Reference data
 
-The frozen reference for this grader is on the Hugging Face Hub:
+Fetched here before grading, from the gated dataset
+`neurodeskorg/skills-comm-ground-truth`:
 
-- **Dataset:** `neurodeskorg/skills-comm-ground-truth`
-- **Path:** `clinical_gt/clinical-wmh-segmentation/`
-- **Revision:** `f0229ea2b089`
-- **Files:**
-  - `lesion_mask.nii.gz` — primary expert WMH mask (observers O1/O2), native FLAIR space, binary {0,1}
+    python benchmark/harness/fetch_reference.py --task clinical-wmh-segmentation --subject <subject>
 
-Fetch them into this directory before grading:
+- `lesion_mask.nii.gz`
+- `rubric.json` — written by the fetch, combining this pack's policy
+  with the subject's gated calibration
 
-    python benchmark/harness/fetch_reference.py --task clinical-wmh-segmentation
+The dataset path and the pinned revision live in
+[`benchmark/harness/run_manifest.json`](../../harness/run_manifest.json), which is what
+the fetch reads; they are deliberately not repeated here.
 
-Access is gated: request it on the dataset page, then set `HF_TOKEN` to a token for the account
-that was granted access. Gating is what keeps the reference out of the plane where the agent works.
-Pinning the revision means a grading run scores against an exact, named reference set.
-
-`rubric.json` carries every calibrated number the grader needs.
+Access is granted on request. Set `HF_TOKEN` to a token for the account that holds it.
+Gating is what keeps the reference out of the plane where the agent works.

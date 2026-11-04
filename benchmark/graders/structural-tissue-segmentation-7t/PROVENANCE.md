@@ -1,7 +1,6 @@
 # Provenance — how this grader pack was calibrated
 
-Frozen output of a one-time calibration on **CEREBRUM-7T `ds003642`, `sub-025` `ses-003`** (7T
-MP2RAGE, 0.63 mm isotropic, native T1w space). Not re-derived at grade time.
+Frozen per-subject calibrations across 3 subjects of **CEREBRUM-7T `ds003642`** (7T MP2RAGE, 0.63 mm isotropic, native T1w space). Not re-derived at grade time.
 
 ## How the reference was built
 
@@ -11,9 +10,8 @@ tolerance, the calibrated caps and the reference volumes are documented in
 [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
 calibration the grader merges at scoring time.
 
-That material sits with the reference because it describes the answer: during
-one benchmark wave, agent runs retrieved this file from GitHub and one rebuilt
-the panel consensus from it. Access is granted on request.
+It is gated so that a submission cannot reproduce the reference instead of
+solving the task.
 
 ## Why consensus, not a single truth
 
