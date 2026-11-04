@@ -272,29 +272,6 @@
         "Utrecht_39"
       ],
       "reference_revision": "efa3cba4931f"
-    },
-    "functional-bold-to-mni": {
-      "pack_dir": "graders/functional-bold-to-mni",
-      "scorer": "graders/functional-bold-to-mni/score_registration.py",
-      "pred_flag": "--warped",
-      "detail_kind": "registration",
-      "required_inputs": {
-        "--dseg": "submissions/{task_id}/{subject}/mask.nii.gz"
-      },
-      "ref_dir": "fmri_gt/functional-bold-to-mni",
-      "reference_files": [
-        "template_T1w.nii.gz",
-        "template_brain_mask.nii.gz"
-      ],
-      "per_subject": true,
-      "subjects": [
-        "sub-0019",
-        "sub-0109",
-        "sub-0143",
-        "sub-0114",
-        "sub-0223"
-      ],
-      "reference_revision": "efa3cba4931f"
     }
   }
 }

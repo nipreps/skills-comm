@@ -957,57 +957,6 @@
             "expected_files_detail": "One or more quantitative scalar maps (NIfTI, any filename; e.g. FA, MD, CBF, ALFF, ReHo)"
           }
         },
-        "functional-bold-to-mni": {
-          "title": "BOLD-to-MNI normalisation (ds002790)",
-          "grading": "automated",
-          "description": "Bring the resting-state BOLD of {subject} of OpenNeuro ds002790 into MNI152NLin2009cAsym, graded by in-brain mutual information and brain placement against the template. Discriminates chains routed through the subject's anatomy from ones matched to the template directly.",
-          "prompt": {
-            "goal": "Bring the resting-state BOLD run of {subject} into the MNI152NLin2009cAsym template space. Produce a BOLD reference image - a single 3D volume representative of the run - and a binary brain mask for it, both resampled onto the template grid.\n\nDATA. The subject images come from OpenNeuro ds002790 (tag 2.0.0):\n  mkdir -p input template\n  datalad clone https://github.com/OpenNeuroDatasets/ds002790.git ds002790\n  git -C ds002790 checkout 2.0.0\n  datalad -C ds002790 get {subject}/func/{subject}_task-restingstate_acq-seq_bold.nii.gz \\\n      {subject}/anat/{subject}_T1w.nii.gz\n  cp -L ds002790/{subject}/func/{subject}_task-restingstate_acq-seq_bold.nii.gz input/bold.nii.gz\n  cp -L ds002790/{subject}/anat/{subject}_T1w.nii.gz input/T1w.nii.gz\n\nThe template is MNI152NLin2009cAsym at 1 mm (TemplateFlow), 193x229x193:\n  curl -sSL --retry 3 https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz -o template/T1w.nii.gz\n\ninput/bold.nii.gz is the raw 4D run, 80x80x36x240 at 3x3x3.3 mm. input/T1w.nii.gz is the same subject's anatomical scan. No transform is supplied; compute what you need.\n\nBoth outputs must be on the template grid: the same shape and affine as template/T1w.nii.gz. Do not resample to any other space.",
-            "dataset": {
-              "source": "openneuro",
-              "id": "ds002790",
-              "version_pin": "2.0.0",
-              "subjects": [
-                "sub-0019",
-                "sub-0109",
-                "sub-0143",
-                "sub-0114",
-                "sub-0223"
-              ],
-              "task": "restingstate"
-            },
-            "required_output": "A BOLD reference image (a single 3D volume representative of the run) and a binary brain mask for it, both resampled onto the template grid.\n\nOUTPUT LOCATION (exact, mandatory): write your results into `submissions/functional-bold-to-mni/{subject}/` under your working directory - create that folder. Put the BOLD reference at `submissions/functional-bold-to-mni/{subject}/output.nii.gz` and the brain mask at `submissions/functional-bold-to-mni/{subject}/mask.nii.gz`. Use these exact paths and filenames, and place no other NIfTI inside `submissions/functional-bold-to-mni/{subject}/`. Both files are scored.",
-            "subject_note": "This task runs once per subject in `dataset.subjects`. {subject} in the goal and in the output paths is replaced with the subject being run."
-          },
-          "solution": {
-            "ground_truth": "The MNI152NLin2009cAsym template itself and its brain mask, which state where a brain belongs in that space independently of any registration software - not another tool's warp. A template is not a per-subject truth, so the thresholds are relative: the envelope is the spread achieved on that subject by several independent BOLD-to-MNI chains routed through the subject's anatomy, with zero credit a slack multiple below their weakest. Registering the BOLD straight to the template, ignoring that anatomy, is a scored failure candidate.",
-            "ground_truth_location": "Hugging Face neurodeskorg/skills-comm-ground-truth (revision efa3cba4931f), path fmri_gt/functional-bold-to-mni/ (template_T1w.nii.gz, template_brain_mask.nii.gz)",
-            "metric": "prior-calibrated: verdict {within_reference_variability|acceptable|marginal|unacceptable|invalid} + weighted quality 0-100 from in-brain normalised mutual information and brain centre-of-mass offset (see grader)",
-            "pass_criterion": "A BOLD reference and a binary brain mask, both on the MNI152NLin2009cAsym grid; brain lands where MNI expects it; in-brain mutual information and placement at least as good as the weakest chain in the panel; No processing errors; logs captured",
-            "output_validation": "Run the grader (see the grader block); a submission passes when verdict >= acceptable (quality >= 60), which is how the reporting layer scores it. The script's exit code signals validity (no gate failure), not pass.",
-            "grader": {
-              "kind": "prior-calibrated",
-              "description": "Scores image content inside the brain and where the brain landed. Weighted quality over in-brain normalised mutual information (0.50) and brain centre-of-mass offset (0.50), each mapped by the envelope of several independent chains. Brain-mask Dice and edge correlation were both calibrated and rejected as scored metrics: Dice ranks a chain that skipped the EPI-to-anatomical stage above a correct one, and edge correlation cannot separate a legitimately smoother warp from a wrong transform chain. Both are still reported as diagnostics. See PROVENANCE.md.",
-              "pack": "benchmark/graders/functional-bold-to-mni/",
-              "scorer": "benchmark/graders/functional-bold-to-mni/score_registration.py",
-              "reference_fetch": "python benchmark/harness/fetch_reference.py --task functional-bold-to-mni",
-              "invoke": "python3 benchmark/graders/functional-bold-to-mni/score_registration.py --warped <AGENT_BOLDREF_IN_MNI> --dseg <AGENT_BOLDMASK_IN_MNI> --pack benchmark/graders/functional-bold-to-mni/",
-              "pass_criterion": "verdict >= acceptable (quality >= 60); the scorer's exit code signals validity (no gate failure), not pass",
-              "provenance": "benchmark/graders/functional-bold-to-mni/PROVENANCE.md"
-            },
-            "tool_mode": "agnostic",
-            "tool_suggestions": [
-              "ants",
-              "fsl",
-              "afni",
-              "fmriprep"
-            ],
-            "tool_note": "Context: healthy adult resting-state BOLD at 3x3x3.3 mm, whole brain, to MNI152NLin2009cAsym. The task turns on how the BOLD reaches the template: through the subject's own anatomy, or matched to the template directly. Either major package can do it. Note that antsApplyTransforms applies its transform list right-to-left. Tool names are non-binding suggestions.",
-            "notes": "[note] Composition ORDER is not what this task discriminates. The EPI-to-anatomical transform for same-session BOLD and T1w is close to identity, so reversing the transform list perturbs the result by less than the metrics resolve. It appears as a candidate arm, but the graded failure is the routing choice. [note] The goal text names the target space and required outputs, never the route; both the BOLD and the subject's T1w are supplied and choosing what to do with the T1w is the task. [note] The agent receives the unpreprocessed 4D series, and susceptibility distortion is handled differently across the panel. Standard fieldmap correction is not practically available: the dataset's phase-difference fieldmap names the run in IntendedFor, but the BOLD sidecar carries no TotalReadoutTime or EffectiveEchoSpacing. This does not confound the score - switching route moves quality by about ninety times what preparation does, and a well-prepared reference taken the direct route still fails. [caution] A chain that skips only the EPI-to-anatomical stage lands mid-scale rather than at the bottom. That is the honest verdict for a small displacement, not a tuning failure.",
-            "dataset_fetch_reference": "datalad install https://github.com/OpenNeuroDatasets/ds002790.git && cd ds002790 && datalad get {subject}/func/ {subject}/anat/",
-            "expected_files_detail": "A BOLD reference resampled into MNI152NLin2009cAsym (NIfTI, 193x229x193 at 1 mm) and a binary brain mask on the same grid."
-          }
-        },
         "functional-confound-regression": {
           "title": "fMRI confound regression",
           "description": "Confound regression (motion + WM/CSF) on the fMRIPrep BOLD of sub-CON01 (ses-preop) of ds001226",

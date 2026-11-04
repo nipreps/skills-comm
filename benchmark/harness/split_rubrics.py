@@ -46,7 +46,6 @@ MOVE = ["reference_tools", "panel", "floor_arms", "tau_mm", "envelope", "focal_m
         "consensus", "reference_notes", "focal_basis", "dura_basis", "focal_bg_basis",
         "collapse_margin_basis"]
 EXTRA = {"structural-mni-registration": ["grid"],
-         "functional-bold-to-mni": ["grid"],
          "clinical-wmh-segmentation": ["metric_thresholds", "inter_rater", "notes"]}
 
 ap = argparse.ArgumentParser(description=__doc__)
