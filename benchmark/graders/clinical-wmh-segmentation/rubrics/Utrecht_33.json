@@ -61,5 +61,7 @@
       ]
     ]
   },
-  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py",
+  "copy_suspect_dice": 0.995,
+  "copy_suspect_basis": "DIAGNOSTIC THRESHOLD, not a quality bar. Overlap this exact is not reachable by segmenting the image -- the best published method on this reference is far below it, and two human experts tracing the same scan do not agree this closely -- so a submission at or above it is the reference itself rather than an answer to the task. The upstream repository publishes the reference mask alongside the images, so a download is a route an agent can actually take. Failing the `not_reference_copy` gate makes such a run invalid. The WMH Challenge expert masks are on an open Dataverse API."
 }

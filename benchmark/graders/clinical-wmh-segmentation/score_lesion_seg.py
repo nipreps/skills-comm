@@ -18,7 +18,7 @@ prediction must cover to count as detected, and the optional `min_lesion_voxels`
 below that size from both maps before matching — a task whose reference carries many sub-detectable
 specks sets it to the convention its thresholds were taken from. Absent, nothing is dropped.
 
-The optional `copy_suspect_dice` reports (never scores) a submission whose overlap is too perfect to
+`copy_suspect_dice` fails a submission whose overlap is too perfect to
 be a segmentation — for tasks whose dataset ships the reference mask next to the images.
 
 Pack (--pack DIR): rubric.json + reference/lesion_mask.nii.gz (expert mask, native grid).
@@ -172,6 +172,14 @@ def score(pred_path, pack_dir):
     gates["nonempty"] = bool(pred.sum() > 0)
     lo, hi = rubric.get("plausible_vol_cm3", [0.1, 500])
     gates["volume_plausible"] = bool(lo <= m["pred_vol_cm3"] <= hi)
+    # Some datasets publish the reference mask beside the images the task hands out, so a
+    # submission can be a download rather than a segmentation. The threshold sits far above
+    # what segmenting the image can reach -- the best published method on this reference is
+    # nowhere near it -- so overlap this exact is the reference itself, and the submission is
+    # not a valid answer to the task.
+    copy_dice = rubric.get("copy_suspect_dice")
+    if copy_dice is not None:
+        gates["not_reference_copy"] = bool(m["dice"] < copy_dice)
     failures = [k for k, ok in gates.items() if not ok]
 
     weights = rubric["weights"]
@@ -200,10 +208,6 @@ def score(pred_path, pack_dir):
               "load_notes": notes, "subscores": {k: round(v, 3) for k, v in subs.items()},
               "metrics": {k: round(float(v), 4) for k, v in m.items()}}
 
-    # Some datasets ship the reference mask alongside the images the task hands out. A submission
-    # that reproduces it voxel-for-voxel is a copy, not a segmentation. Reported, never scored:
-    # the harness decides what to do with a flagged run.
-    copy_dice = rubric.get("copy_suspect_dice")
     if copy_dice is not None:
         result["suspected_reference_copy"] = bool(m["dice"] >= copy_dice)
 

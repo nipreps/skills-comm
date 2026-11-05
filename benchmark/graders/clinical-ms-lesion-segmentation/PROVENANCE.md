@@ -6,33 +6,52 @@ sclerosis white-matter lesions, native FLAIR space of the supplied images.
 
 ## How the reference was built
 
-The panel or raters behind this reference, the calibration steps, the surface
-tolerance, the calibrated caps and the reference volumes are documented in
-`calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference dataset
-[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
-calibration the grader merges at scoring time.
+It was not built here. Three experts segmented each patient independently and the dataset
+publishes their consensus; that published mask is the reference, unchanged except for the
+header fix below. No tool was run to produce it, and there is no panel.
 
-It is gated so that a submission cannot reproduce the reference instead of
-solving the task.
+What the raters did, and the per-subject figures the grader merges at scoring time, are in
+`calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference
+dataset [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+It is gated because the mask is the answer to the task.
 
-## Geometry harmonisation
+## Why the reference mask is re-headered
 
-Upstream, `consensus_gt.nii.gz` carries a header translated by up to **0.4 mm** from `FLAIR.nii.gz`,
-`T1W.nii.gz` and `brainmask.nii.gz`, which are mutually identical. The offset is sub-voxel and
-constant, the shapes are identical, and the mask overlays the FLAIR hyperintensities exactly in
-index space (see `qc_00_lesion.png`) — a bookkeeping slip in the upstream resampling, not a real
-transform. The pack therefore takes the **voxel data of the published consensus mask on the header
-of the FLAIR the task hands out**, so a submission left in the input's own space passes the
-`native_grid` gate. Without this step every submission would fail that gate.
+A NIfTI file carries both the voxels and a header saying where those voxels sit in space.
+Upstream, the consensus mask and the three images it was drawn on disagree about the
+second part: the mask's header is shifted by up to 0.4 mm relative to `FLAIR.nii.gz`,
+`T1W.nii.gz` and `brainmask.nii.gz`, which all agree with each other.
+
+That shift is not a real difference. It is smaller than one voxel, it is the same
+everywhere, the volumes have identical shapes, and the mask sits exactly on the FLAIR
+hyperintensities when the two are overlaid by voxel index (`qc_00_lesion.png`). It is a
+bookkeeping slip in the upstream resampling.
+
+It matters because the grader requires a submission to be on the grid of the image it was
+given — the `native_grid` gate. An agent segments `FLAIR.nii.gz` and inherits that
+header, so if the reference kept the shifted one, every submission would be compared
+against a mask the grader considers to be on a different grid, and all of them would fail
+the gate.
+
+The pack therefore stores the published mask's voxels on the FLAIR's header. Nothing is
+resampled and no voxel changes value; only the spatial metadata is made consistent with
+the image the task hands out.
 
 ## Reference-leak exposure
 
-The upstream repository stores `consensus_gt.nii.gz` **in the same directory as the images**, in all
-three variants (`raw/`, `coregistered/`, `coregistered_resampled/`). The task prompt therefore
-fetches the three input files individually by URL rather than cloning the repository, and the pack
-sets `copy_suspect_dice = 0.995`: a submission that reproduces the reference too exactly is reported
-as `suspected_reference_copy` in the scorer output. That flag never changes the verdict — the
-harness decides what to do with a flagged run.
+The upstream repository stores `consensus_gt.nii.gz` **in the same directory as the images**, in
+all three variants (`raw/`, `coregistered/`, `coregistered_resampled/`). An agent that clones the
+repository, or finds the file by other means, could submit the reference as its own result.
+
+Two things stand against that. The task prompt fetches the three input files individually by URL
+rather than cloning, so the mask is not pulled in by accident. And the grader refuses a submission
+that reproduces the reference too exactly: `copy_suspect_dice = 0.995` fails the
+`not_reference_copy` gate, making the run **invalid** with quality 0.
+
+The threshold is far above anything segmentation reaches on this reference — the best published
+method sits at Dice 0.74, and the raters themselves do not agree to 0.995 — so it cannot catch an
+honest answer, however good. `suspected_reference_copy` is still reported in the result so the
+reason is visible rather than only the gate name.
 
 ## Reference data
 

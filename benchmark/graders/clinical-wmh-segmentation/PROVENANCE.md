@@ -39,3 +39,24 @@ masks the envelope is built on.
 1. H. J. Kuijf, J. M. Biesbroek, J. de Bresser, et al., "Standardized Assessment of Automatic
    Segmentation of White Matter Hyperintensities and Results of the WMH Segmentation Challenge,"
    *IEEE Trans. Med. Imaging* 38(11):2556–2568, 2019. doi:10.1109/TMI.2019.2905770.
+
+## Reference-leak exposure
+
+The expert masks for these five cases are **publicly downloadable**, from the same
+DataverseNL deposit and the same `api/access/datafile/<id>` endpoint the task prompt
+tells the agent to use for the FLAIR. The deposit holds 170 `wmh.nii.gz` files covering
+both the challenge's training and test halves, and all five graded cases are in the
+training half, so one listing call reaches them. The mask ids even sit in the same range
+as the image ids in the prompt.
+
+Nothing can be done about that upstream, and the task is worth keeping: the data is open
+precisely because the challenge intended it to be used. What the pack does instead is
+refuse the answer. The prompt fetches the two input files by id rather than listing the
+deposit, so the mask is not pulled in by accident, and the grader fails a submission that
+reproduces the reference too exactly: `copy_suspect_dice = 0.995` trips the
+`not_reference_copy` gate and the run is **invalid** with quality 0.
+
+The threshold cannot catch an honest answer. Inter-observer agreement on this reference
+is far below it -- that agreement is what the pass thresholds are derived from -- so no
+submission produced by segmenting the image can reach 0.995.
+

@@ -11,14 +11,17 @@ outside it.*
 
 ## The reference
 
-Built from several independent sources rather than one, so that the agreement between
-them, and not any single tool's opinion, defines what counts as correct. Which sources,
-how they were combined, the surface tolerance and the calibrated caps are documented in
-`calibration/structural-mni-registration/PROVENANCE.md` inside the gated reference dataset
-[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+The template's own tissue priors, which state where each tissue belongs in MNI space
+independently of any registration software. The reference is not another tool's warp, and
+it is the same for every subject.
 
-Gated so that a submission cannot reproduce the reference instead of solving the
-task. Everything governing how a submission is *graded* stays here.
+What varies by subject is the scale: how well a panel of independent nonlinear
+registrations lands that subject's tissue on those priors. Which registrations, and the
+anchors they set, are in `calibration/structural-mni-registration/PROVENANCE.md` inside
+the gated reference dataset [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth),
+because naming them would let a submission reproduce the scale instead of solving the
+task. Everything governing how a submission is *graded* stays here and in
+[`rubrics/`](rubrics/).
 
 ## What is graded
 

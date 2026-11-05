@@ -9,7 +9,14 @@ two approaches, it must actually separate them.
 Probes by task shape:
 
   mask and segmentation tasks
-      perfect       an exact copy of the graded reference -> must score 100, no gate fails
+      perfect       an exact copy of the graded reference. For a task graded against a
+                    tool consensus this must score 100 with no gate failing, which is what
+                    proves the scorer and the reference sit on the same grid. For a task
+                    graded against an expert mask the same probe must be REFUSED: those
+                    references are published beside the images, so a copy is a download
+                    rather than an answer, and the copy gate exists to catch it. Either way
+                    the probe only passes if Dice came out 1.0, so alignment is checked in
+                    both.
       empty         all zeros on the same grid             -> must be invalid
       wrong rubric  another subject's rubric               -> must be refused outright,
                     because a perfect answer scores 100 whichever rubric is applied and a
@@ -78,6 +85,15 @@ def probe_paths(cfg, subject):
 _mods = {}
 
 
+def _copy_gated(task):
+    """True where the reference is an expert mask published beside the images, so an
+    exact copy is a download and the scorer refuses it."""
+    for rub in sorted((REPO / "graders" / task / "rubrics").glob("*.json")):
+        if json.loads(rub.read_text()).get("copy_suspect_dice") is not None:
+            return True
+    return False
+
+
 def scorer(rel):
     if rel not in _mods:
         sp = importlib.util.spec_from_file_location(f"sc{len(_mods)}", REPO / rel)
@@ -137,9 +153,17 @@ def run_segmentation(task, spec, rows):
         # perfect
         t = build_pack(task, spec, sub)
         shutil.copy(src, t / "pred.nii.gz")
-        v, q, f = verdict_of(sc.score(str(t / "pred.nii.gz"), str(t)))
-        rows.append((task, sub or "-", "perfect copy", "pass at 100",
-                     f"{v} q{q:.1f}", not f and abs(q - 100) < 1e-6))
+        r = sc.score(str(t / "pred.nii.gz"), str(t))
+        v, q, f = verdict_of(r)
+        if _copy_gated(task):
+            # only the lesion scorers are copy-gated, and they all report a flat `metrics`
+            aligned = abs(r["metrics"]["dice"] - 1.0) < 1e-6
+            ok = aligned and v == "invalid" and "not_reference_copy" in f
+            rows.append((task, sub or "-", "perfect copy", "refused as copy",
+                         f"{v} q{q:.1f} dice1={aligned}", ok))
+        else:
+            rows.append((task, sub or "-", "perfect copy", "pass at 100",
+                         f"{v} q{q:.1f}", not f and abs(q - 100) < 1e-6))
         shutil.rmtree(t)
         # empty
         t = build_pack(task, spec, sub)

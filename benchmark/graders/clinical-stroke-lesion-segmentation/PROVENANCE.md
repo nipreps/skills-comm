@@ -14,6 +14,17 @@ calibration the grader merges at scoring time.
 It is gated so that a submission cannot reproduce the reference instead of
 solving the task.
 
+## Reference-leak exposure
+
+The ARC lesion tracings are distributed on OpenNeuro with the images, so an agent that
+clones the dataset rather than fetching the named input files has the reference on disk.
+
+The pack refuses the answer rather than relying on the agent not to look:
+`copy_suspect_dice = 0.995` trips the `not_reference_copy` gate and the run is **invalid**
+with quality 0. The threshold sits far above what segmentation reaches on this reference
+-- the manual-tracing inter-rater ceiling the full-marks threshold is taken from is
+0.727 -- so it cannot catch an honest answer.
+
 ## Reference data
 
 `lesion_mask.nii.gz` is on the Hugging Face Hub (`neurodeskorg/skills-comm-ground-truth`,

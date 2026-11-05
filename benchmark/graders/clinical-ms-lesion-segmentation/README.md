@@ -5,14 +5,16 @@ of five patients of the open_ms_data cross-sectional dataset (Ljubljana MS datab
 
 ## The reference
 
-Built from several independent sources rather than one, so that the agreement between
-them, and not any single tool's opinion, defines what counts as correct. Which sources,
-how they were combined, the surface tolerance and the calibrated caps are documented in
-`calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference dataset
-[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+Three expert raters segmented each patient independently, and the dataset ships their
+consensus. That consensus is the reference — it is not a consensus of tools, and no tool
+was run to make it. What the raters produced, how the mask is put on the grid the agent
+is given, and the published results the thresholds are read from are in
+`calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference
+dataset [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
 
-Gated so that a submission cannot reproduce the reference instead of solving the
-task. Everything governing how a submission is *graded* stays here.
+It is gated because the mask is the answer: the grader must be able to see it and a
+submission must not. Everything governing how a submission is *graded* stays here and in
+[`rubrics/`](rubrics/).
 
 ## Why an expert mask, not a consensus of tools
 
@@ -22,9 +24,10 @@ wildly (published Dice on this very cohort spans 0.50–0.74 across methods), so
 would be untrustworthy. Here three expert raters segmented the patient independently and the
 dataset ships their **consensus**, which IS the ground truth.
 
-Because the individual rater masks are not public and one subject gives no leave-one-out envelope,
-the thresholds are **fixed from published results on this same cohort and reference standard** —
-see `PROVENANCE.md`.
+The individual rater masks are not published, only their consensus, so there is no spread
+between raters to calibrate against the way the WMH task does. The thresholds are instead
+**fixed from published results on this same cohort and reference standard** — see
+[`PROVENANCE.md`](PROVENANCE.md).
 
 ## Scorer (ships in this pack)
 
@@ -50,11 +53,14 @@ quality combines three:
 
 Verdict: `within_reference_variability` when all three hit full marks; else `acceptable`/`marginal`/
 `unacceptable` by weighted quality; `invalid` on a gate failure (`binary`, `native_grid`,
-`nonempty`, `volume_plausible` at 0.5–150 cm³).
+`nonempty`, `volume_plausible` at 0.5–150 cm³, `not_reference_copy`).
 
-`copy_suspect_dice` additionally reports (never scores) a submission that reproduces the reference
-too exactly: the upstream dataset ships `consensus_gt.nii.gz` in the same folder as the images, so a
-Dice ≥ 0.995 means the reference was copied rather than segmented.
+`not_reference_copy` is the fifth gate. These references are published alongside the images
+the task hands out, so a submission can be a download rather than a segmentation; a Dice at or
+above 0.995 is refused as a copy and the run is **invalid**. The threshold sits far above what
+segmenting the image reaches — the best published method on this reference, and the agreement
+between two experts tracing the same scan, are both well below it — so it cannot catch an honest
+answer.
 
 ## Layout
 
