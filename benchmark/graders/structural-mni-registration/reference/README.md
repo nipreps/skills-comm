@@ -12,7 +12,7 @@ Fetched here before grading, from the gated dataset
 - `template_probseg_CSF.nii.gz`
 
 The dataset path and the pinned revision live in
-[`benchmark/harness/run_manifest.json`](../../harness/run_manifest.json), which is what
+[`benchmark/harness/run_manifest.json`](../../../harness/run_manifest.json), which is what
 the fetch reads; they are deliberately not repeated here.
 
 The dataset is gated, which is what keeps the reference out of the plane where the agent
