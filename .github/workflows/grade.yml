@@ -152,6 +152,8 @@ jobs:
           PY
 
       - name: Grade both and assert the contract
+        env:
+          TASK: ${{ matrix.task }}
         run: |
           mkdir -p results
           SUBJ="${{ matrix.subject && format('--subject {0}', matrix.subject) || '' }}"
@@ -162,15 +164,38 @@ jobs:
             --submission-dir run_broken --model selftest --condition broken \
             --out results/broken.json || true
           python - <<'PY'
-          import json, sys
-          p = json.load(open("results/perfect.json")); b = json.load(open("results/broken.json"))
-          print("perfect:", p["verdict"], p["score"], "| broken:", b["verdict"], b["score"])
-          ok = (p["verdict"] == "within_reference_variability" and p["valid"]
-                and p["score"] == 100.0
-                and b["verdict"] == "invalid" and not b["valid"])
+          import json, os, sys
+          from pathlib import Path
+
+          task = os.environ["TASK"]
+          p = json.load(open("results/perfect.json"))
+          b = json.load(open("results/broken.json"))
+          print("perfect:", p["verdict"], p["score"], p["gate_failures"],
+                "| broken:", b["verdict"], b["score"], b["gate_failures"])
+
+          # Where the reference is an expert mask its own dataset publishes, a copy of it
+          # is a download rather than an answer and the grader refuses it. The probe is
+          # still worth running there: it is the only check that the reference and the
+          # scorer sit on the same grid, which Dice 1.0 proves, and it exercises the gate.
+          copy_gated = any(
+              json.loads(r.read_text()).get("copy_suspect_dice") is not None
+              for r in Path("benchmark/graders", task, "rubrics").glob("*.json"))
+
+          if copy_gated:
+              ok = (p["verdict"] == "invalid" and not p["valid"]
+                    and "not_reference_copy" in p["gate_failures"]
+                    and abs(p["tiebreak"] - 1.0) < 1e-6)
+              expected = "a copy of the reference refused, at Dice 1.0"
+          else:
+              ok = (p["verdict"] == "within_reference_variability" and p["valid"]
+                    and p["score"] == 100.0)
+              expected = "a copy of the reference scored 100 and valid"
+
+          ok = ok and b["verdict"] == "invalid" and not b["valid"]
           if not ok:
-              print("SELFTEST FAILED: grading contract not upheld"); sys.exit(1)
-          print("SELFTEST PASSED")
+              print(f"SELFTEST FAILED: expected {expected}, plus an invalid empty mask")
+              sys.exit(1)
+          print(f"SELFTEST PASSED ({expected})")
           PY
 
       - name: Build leaderboard from this run
