@@ -19,9 +19,9 @@ The AP series is 96 × 96 × 60 at 2.5 mm isotropic, 102 volumes, shells b = 0 /
 with 6 b = 0 volumes. The graded space is the **diffusion grid itself**: a submission masks
 whatever b0 it extracts, and every b0 shares that grid, so no resampling is implied.
 
-The panel is run on the **mean of the 6 b0 volumes** (`dwiextract -bzero` then `mrmath mean`).
-Averaging is conventional and gives the reference tools a less noisy image; a submission is *not*
-required to average, because the grid is the same either way.
+A submission may mask any b0 it extracts, averaged or not: every b0 shares the diffusion grid,
+so the comparison is well defined either way and nothing about the reference requires a
+particular choice. What the reference itself was built on is in the gated provenance.
 
 The agent is given the **raw** series. Only `acq-AP` is fetched — the dataset also ships a
 reverse-phase-encode PA series, but this task is masking, not distortion correction.

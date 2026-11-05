@@ -15,11 +15,15 @@ solving the task.
 
 ## Subject selection
 
-ds000228 (Richardson, "Development of the social brain") — children + adults. An earlier pick,
-**sub-pixar009, was rejected**: its T1w has a field-of-view truncation (a planar zero-cut through the right
-side of the brain — not defacing; ~6-8 % of the brain surface sat on the cut). Candidates were screened with
-an FOV-completeness metric (% of brain surface adjacent to zero-data); **sub-pixar017** was
-the cleanest (0.2 %) with full coverage.
+ds000228 (Richardson, "Development of the social brain") — children and adults; the graded
+subjects are children.
+
+Candidates are screened for field-of-view truncation, measured as the percentage of the brain
+surface adjacent to zero-valued data. The screen exists because a candidate was found whose T1w
+carries a planar zero-cut through one side of the brain — not defacing, and not obvious unless
+looked for, with several percent of the brain surface sitting on the cut. A mask of a truncated
+brain is a fair mask of the wrong anatomy, and no panel agreement would reveal that. The graded
+subjects all have full coverage.
 
 ## Scoring scale and weights
 
@@ -37,4 +41,5 @@ The `reference/` NIfTIs are on the Hugging Face Hub (`neurodeskorg/skills-comm-g
 
 ## Caveats
 
-- **Consensus leans on the tighter tools.** The loosest member's CSF rim lands in the margin, not the core.
+- **Consensus leans on the tighter members.** Where one is more inclusive about the outer CSF
+  rim, that rim lands in the margin rather than the core, so it is never scored.

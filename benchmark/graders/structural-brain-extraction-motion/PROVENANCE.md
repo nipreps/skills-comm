@@ -35,8 +35,10 @@ The `reference/` NIfTIs are **not** stored in git — they live on the Hugging F
 
 ## Caveats
 
-- **Curating the panel uses judgement.** ANTs is dropped objectively (coherence); BET is dropped for
-  neck over-inclusion.
+- **Curating the panel uses judgement.** One member is excluded on a measurement — its
+  disagreement with the rest — which is objective. The other is excluded for a failure mode that
+  had to be recognised as one rather than measured, and that step is a judgement. Both are named,
+  with their numbers, in the gated provenance.
 - **Consensus leans on its tightest member.** The core is close to that one tool's mask. A more
   rigorous alternative is a clean-scan-derived truth (extract from `acq-standard`, register onto the
   motion scan), which does not depend on how tools behave under motion.

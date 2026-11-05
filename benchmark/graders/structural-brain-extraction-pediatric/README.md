@@ -24,13 +24,13 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 ## What's specific to pediatric
 
-- **The panel is four coherent tools**, with no outlier among them. One registration-based
-  method was excluded because an adult template does not fit a young child's brain. Members and
-  agreement are in the gated provenance.
+- **The panel members agree closely on these scans**, with no outlier among them. A method that
+  depends on an adult template was excluded, because such a template does not fit a young
+  child's brain. Members and agreement are in the gated provenance.
 - Subjects are screened for field-of-view truncation: an earlier candidate was rejected for a
   truncation cutting through the brain.
-- The loosest member keeps a thin outer CSF rim, almost all CSF rather than dura, so the margin
-  absorbs that convention instead of the core penalising it.
+- Where the panel disagrees it is mostly about a thin outer CSF rim rather than dura, so the
+  margin absorbs that convention instead of the core penalising it.
 - Gates include `no_focal_bg_inclusion` (cap 40 cm³) and `no_focal_core_loss`.
 
 ## Layout

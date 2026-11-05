@@ -18,38 +18,32 @@ calibration the grader merges at scoring time.
 It is gated so that a submission cannot reproduce the reference instead of
 solving the task.
 
-## What is graded, and why it is not the warped image
+## What is graded, and against what
 
-A registration is a spatial transform. The obvious thing to grade — how much the warped T1w
-resembles the template — turns out to be nearly useless for separating a good registration from a
-mediocre one: correlation is dominated by gross head position and is largely saturated once *any*
-affine has been applied. The tissue that actually moved tells a much sharper story, and the
-figure in [`README.md`](README.md) shows what that looks like.
+A registration is a spatial transform, and the obvious thing to grade — how much the warped T1w
+resembles the template — barely separates a good one from a mediocre one. Correlation is
+dominated by gross head position and is largely saturated once *any* affine has been applied.
 
 So the task hands the agent the subject's **tissue segmentation** alongside the T1w and asks for
-it to be carried through the same transform with nearest-neighbour interpolation. The grader then
-measures **where the tissue landed**. This is label propagation, the standard way registration is
-evaluated, and it is tool-agnostic: every registration package can apply its own transform to a
-second image.
+it to be carried through the same transform with nearest-neighbour interpolation; the grader
+measures where that tissue landed. This is label propagation, the standard way registration is
+evaluated, and it is tool-agnostic, since every package can apply its own transform to a second
+image. The figure in [`README.md`](README.md) shows the difference it makes. The segmentation is
+an agent **input**, not a reference.
 
-The segmentation is an agent **input**, not a reference.
+What it is measured against is the **template's own tissue priors**
+(`label-{GM,WM,CSF}_probseg`), which state where each tissue belongs in MNI space independently
+of any registration software. Grading against another pipeline's output would measure agreement
+with one implementation instead.
 
-## The reference is the template, not another tool
-
-Grading against another pipeline's MNI output would measure agreement with one implementation,
-not registration quality. The reference is instead the **template's own tissue priors** (`label-{GM,WM,CSF}_probseg`), which state where
-each tissue belongs in MNI space independently of any registration software.
-
-A population prior is not a per-subject truth, so no absolute Dice threshold would be defensible.
-The scale is therefore relative and data-derived:
-
-- **full marks** = the median of four independent nonlinear registrations on that subject;
-- **zero credit** = the median of three affine-only registrations on the same subject.
-
-The score reads directly as *"how far between a 12-DOF affine and a typical nonlinear warp is
-this?"* Anchoring the floor on the affine rather than on a slack multiple of the accepted spread
-matters here, because the nonlinear panel members agree closely with each other; a slack-based
-floor would sit inside that spread and make scoring brittle.
+A population prior is not a per-subject truth, so no absolute Dice threshold would be
+defensible. The scale is relative and data-derived: full marks at the median of several
+independent nonlinear registrations of that subject, zero credit at affine-only registration of
+the same subject. The score reads as *how far between a 12-DOF affine and a typical nonlinear
+warp this is*. Anchoring on the affine rather than on a slack multiple of the accepted spread
+matters because the nonlinear panel members agree closely with each other, and a slack-based
+floor would sit inside that spread and make scoring brittle. The arms, and the anchors they set,
+are in the gated provenance.
 
 ## Label convention
 
@@ -93,12 +87,6 @@ the template's). Both caps are set per subject from that subject's own panel.
 `warped_finite_in_brain` is deliberately not "no NaN anywhere": some
 resamplers write NaN outside the field of view rather than zero, which is a convention, not a
 defect. Non-finite values are zeroed on load and judged only where they matter — inside the brain.
-
-## Runtime
-
-Not a barrier, which was worth checking before building the task: the slowest package in the build took about 25 minutes per
-subject at 1 mm on 10 cores, and the fastest under 2. All fit inside a 45-minute agent budget, so
-the skill arm cannot be penalised for choosing a slower-but-better tool.
 
 ## Reference data
 

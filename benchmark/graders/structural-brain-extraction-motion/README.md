@@ -28,15 +28,14 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 On the motion scan the tools **diverge and partly fail**, so the reference panel is curated:
 
-- **The panel is curated for this scan**: two of the five tools run were dropped, one as a
-  coherence outlier and both for extending into the neck and spinal cord, which inflates the
-  margin. The members, their pairwise agreement and the exclusions are in the gated
-  provenance.
-- **τ ≈ 5.7 mm** (vs 3.7 on the healthy adult) — the motion boundary is genuinely fuzzier, so a
-  wider tolerance is data-justified.
-- The gates include **`no_focal_bg_inclusion`** (cap `focal_bg_max_cm3` = 40 cm³, fixed) — it fails
-  a mask that retains a large contiguous chunk of non-brain (e.g. neck), the mirror of the
-  focal-loss gate. This is what makes an over-inclusive BET-style output fail here.
+- **The panel is curated for this scan.** Not every method that is sound on a clean T1w stays
+  sound here, and one that is not would widen the margin rather than inform it. Who was kept,
+  their pairwise agreement and why the rest were set aside are in the gated provenance.
+- **The surface tolerance is wider than on a clean scan**, because the boundary genuinely is
+  fuzzier under motion. It is calibrated from the panel's own spread, not chosen.
+- The gates include **`no_focal_bg_inclusion`**, the mirror of the focal-loss gate: it fails a
+  mask that retains a large contiguous chunk of non-brain, the neck and spinal cord being the
+  usual case on a scan with this field of view.
 
 ## Layout
 

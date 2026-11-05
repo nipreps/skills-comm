@@ -33,8 +33,13 @@ with quality 0. The threshold sits far above what segmentation reaches on this r
 
 ## Caveats
 
-- **One large single lesion.** The lesion-wise F1 machinery applies to multi-focal cases, but the
-  thresholds were not tuned on one.
+- **Every graded subject carries a single large lesion.** That is what this cohort is, so
+  lesion-wise F1 cannot do here what it does on multi-focal disease: with one lesion found and
+  `k` spurious components it can only take the values `2/(2+k)`, and it is really a
+  false-positive count rather than a detection score. It is kept because a submission that
+  scatters debris should be penalised for it, and `threshold_basis` records that the full and
+  pass values follow from that arithmetic rather than from tuning. A cohort with multi-focal
+  lesions would exercise the metric properly; this one does not.
 - **Registration error** from the T2w→T1w mapping is possible (small; intra-session, rigid, 1 mm).
 - **Fixed thresholds** are a literature prior [1–3], not this subject's inter-rater spread (ARC ships
   one tracing per subject). A multi-rater subset would let the tolerance be data-derived. The prior is

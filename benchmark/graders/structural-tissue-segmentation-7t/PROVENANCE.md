@@ -21,25 +21,26 @@ tool's idiosyncrasies. Instead the reference is a **majority vote of the panel's
 into per-class zones — unanimous core (must match) and majority boundary (partial-volume, softly
 scored) — and only the calibrated envelope decides pass/fail.
 
-## Label legend (confirmed by intensity on the UNI)
+## Label legend
 
-`1=GM  2=basal ganglia  3=WM  4=ventricles/CSF  5=cerebellum  6=brainstem` (0 = background). The
-integer mapping is not published by CEREBRUM-7T; it was pinned by class volume + median UNI
-intensity (WM brightest 2564, basal ganglia 2187, GM 1407, ventricles darkest 691).
+`1=GM  2=basal ganglia  3=WM  4=ventricles/CSF  5=cerebellum  6=brainstem` (0 = background). This
+is the output contract, so it is stated in the task prompt too.
+
+The integer mapping is not published by CEREBRUM-7T. It was pinned rather than assumed, from each
+class's volume and its median intensity on the UNI, which order the tissues unambiguously at 7T.
+The measurements behind the pinning are in the gated provenance.
 
 ## Consensus and calibration
 
-1. **Fuse** the three tools by per-voxel majority vote (≥ 2/3) over the 7 classes →
-   `consensus_seg.nii.gz`; `consensus_agreement.nii.gz` records the winning vote count (3 = unanimous
-   core, 2 = majority boundary). Three-way ties are 1.4 cm³ total.
-2. **Class volumes (cm³):** GM 485, basal ganglia 42, WM 360, ventricles 10, cerebellum 76,
-   brainstem 14. Unanimous-core fraction ranges 67 % (GM — fuzziest) to 87 % (WM — tightest).
-3. **Per-class τ** = 95th percentile of pairwise surface disagreement among the three tools (mm):
-   GM 1.77, basal ganglia 1.77, WM 1.25, ventricles 1.53, **cerebellum 7.56** (widest — the
-   cerebellar boundary is genuinely fuzzy at this resolution), brainstem 3.12.
-4. **Envelope** by leave-one-tool-out → per-class median (full marks) / worst (pass line). LOTO Dice
-   median/worst: GM 0.785/0.760, basal ganglia 0.881/0.880, WM 0.905/0.901, ventricles 0.816/0.805,
-   cerebellum 0.855/0.741, brainstem 0.858/0.836.
+The segmentations shipped with CEREBRUM-7T are fused by per-voxel majority vote into a six-class
+label map, with a companion map recording how many sources agreed on each voxel: unanimous voxels
+form the core, which is scored, and majority-only voxels form the boundary, which is not. The
+per-class surface tolerance and the pass and full-mark anchors are then taken from the sources'
+own leave-one-out spread, so each class is judged against how well they agree on that class
+rather than against a fixed number.
+
+Which sources, their agreement, the class volumes and every calibrated value are in
+`calibration/structural-tissue-segmentation-7t/PROVENANCE.md` in the gated reference dataset.
 
 ## Scoring
 

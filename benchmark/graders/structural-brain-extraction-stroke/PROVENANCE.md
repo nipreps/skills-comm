@@ -15,10 +15,14 @@ solving the task.
 
 ## Subject and geometry
 
-ARC ships, per subject, a T1w and a T2w plus an **expert manual lesion mask drawn in T2w space**. The
-graded image is the T1w. To keep everything in one native space (option A), the T2w was rigid-registered
-to the T1w (FSL FLIRT, 6 DOF) and the lesion mask carried into T1w space with nearest-neighbour
-interpolation (`lesion_in_T1.nii.gz`, 82.8 cm³).
+ARC ships, per subject, a T1w and a T2w plus an **expert manual lesion mask drawn in T2w space**.
+The graded image is the T1w, so the task lives in one native space: the T2w is rigid-registered to
+the T1w and the lesion mask carried across with nearest-neighbour interpolation, which preserves
+its labels. Nothing is resampled to a template.
+
+This matters because the `lesion_retained` gate asks whether the submitted brain mask still
+contains the lesion, and that question only has an answer if the lesion and the mask are in the
+same space. The per-subject lesion volumes are in the gated provenance.
 
 ## Scoring scale and weights
 
