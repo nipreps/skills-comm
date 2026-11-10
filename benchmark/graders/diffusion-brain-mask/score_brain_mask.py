@@ -4,15 +4,15 @@
 
 This is the GRADER-side scorer, not an agent-facing skill: it decides whether a
 produced brain mask is competent, against a *frozen reference pack* that was
-calibrated once from a panel of accepted tools (see PROVENANCE.md).
+calibrated once from a panel of tools (see PROVENANCE.md).
 
 Why not a single Dice-vs-one-mask check: every skull-stripper draws a slightly
 different boundary, and they disagree in a few predictable places. So the pack
-carries a STAPLE consensus of accepted tools split into three zones —
+carries a STAPLE consensus of a tool panel split into three zones —
 
-    core (2)        every accepted tool includes it  -> must be kept  (scored)
+    core (2)        every panel tool includes it  -> must be kept  (scored)
     margin (1)      the tools legitimately disagree   -> free         (never scored)
-    background (0)  no accepted tool includes it      -> must be out   (scored)
+    background (0)  no panel tool includes it      -> must be out   (scored)
 
 and scores only the two unambiguous zones. Every threshold — the surface
 tolerance tau, the per-metric pass/fail envelope, the gate caps — is read from
@@ -44,6 +44,10 @@ from scipy import ndimage as ndi
 
 BIN_TOL = 1e-6
 STRUCT = ndi.generate_binary_structure(3, 1)
+# How deep a shave a region must survive to count as a solid piece of anatomy rather
+# than a boundary offset, floored at one voxel of the grid in use.
+# See _largest_solid_component_cm3.
+SOLID_SHAVE_MM = 1.5
 # metrics where a smaller value is better (used by the envelope mapping)
 LOWER_BETTER = {"assd_mm", "hd95_mm", "core_miss_cm3", "focal_core_miss_cm3",
                 "focal_bg_incl_cm3", "bg_fp_cm3", "bg_fp_frac_of_ref", "abs_volume_err_pct"}
@@ -58,7 +62,7 @@ def same_grid(a, b, tol=1e-3):
 
 def is_header_only_deoblique(raw_img, ref_shape, ref_affine, tol=1e-3):
     """True when a submission shares the reference's sampling lattice but had its
-    obliquity stripped from the header only (AFNI's 3dSkullStrip does this). The
+    obliquity stripped from the header only, which some skull-strippers do. The
     data is still index-aligned to the input, so it must be read on the native
     grid rather than resampled by the (now-wrong) affine."""
     if tuple(raw_img.shape[:3]) != tuple(ref_shape[:3]):
@@ -116,6 +120,40 @@ def _largest_component_cm3(binary, vox_cm3):
     return float(np.bincount(lab.ravel())[1:].max() * vox_cm3) if n else 0.0
 
 
+def _largest_solid_component_cm3(binary, vox_cm3, zooms):
+    """Largest connected component that survives having SOLID_SHAVE_MM shaved off it.
+
+    Volume alone cannot tell a boundary convention from missing anatomy. A whole mask
+    offset inward by a millimetre and a lobe cut off can be the same number of cm3 in one
+    connected region: on these references a uniform 2 mm trim registers 3 to 232 cm3 of
+    "focal" loss while removing nothing a radiologist would name, and on the inclusion
+    side a 1 mm rim over half the cortical surface registers 59 to 116 cm3.
+
+    Shaving first separates them. A layer survives only if it is thicker than twice the
+    shave, so the shave is a distance rather than a voxel count: the quantity in question
+    is anatomical thickness and the grids here span 0.63 to 2.5 mm. A one-voxel erosion
+    asks for three voxels of thickness, 1.9 mm at 7T, which a two- to three-voxel dura
+    rind clears -- that is how one slipped through and pushed a cap from 8 to 53 cm3. At
+    SOLID_SHAVE_MM a structure has to exceed 3 mm, near cortical thickness, while dura
+    and CSF rinds at 1 to 2 mm do not.
+
+    The floor at one voxel matters on a coarse grid: a 1.5 mm shave removes nothing at
+    all on the 2.5 mm diffusion grid, since no voxel there is within 1.5 mm of the
+    outside, and the measure would quietly fall back to a raw component volume. A grid
+    cannot resolve a layer thinner than its own voxel, so one voxel is the least that
+    can be asked of it.
+
+    Boundary disagreement is not unscored -- tau, NSD and HD95 price it, total core loss
+    feeds core_recall and the catastrophic gate, and total background inclusion feeds
+    bg_fp. These two gates are for the other failure: a piece of anatomy that is simply
+    gone, or a piece of skull that is simply included.
+    """
+    if binary.any():
+        shave = max(SOLID_SHAVE_MM, float(np.max(zooms)))
+        binary = ndi.distance_transform_edt(binary, sampling=zooms) > shave
+    return _largest_component_cm3(binary, vox_cm3)
+
+
 def surface_metrics(cand, ref_binary, zooms, tau_mm):
     sc, sr = _surface(cand), _surface(ref_binary)
     if sc.sum() == 0 or sr.sum() == 0:
@@ -137,17 +175,17 @@ def evaluate(mask, zones, ref_binary, zooms, tau_mm):
     m["dice"] = 2 * (mask & ref_binary).sum() / max(mask.sum() + ref_binary.sum(), 1)
     m["core_recall"] = (mask & core).sum() / max(core.sum(), 1)
     m["core_miss_cm3"] = (core & ~mask).sum() * vox_cm3
-    m["focal_core_miss_cm3"] = _largest_component_cm3(core & ~mask, vox_cm3)
+    m["focal_core_miss_cm3"] = _largest_solid_component_cm3(core & ~mask, vox_cm3, zooms)
     m["bg_fp_cm3"] = (mask & background).sum() * vox_cm3
-    m["focal_bg_incl_cm3"] = _largest_component_cm3(mask & background, vox_cm3)
+    m["focal_bg_incl_cm3"] = _largest_solid_component_cm3(mask & background, vox_cm3, zooms)
     m["bg_fp_frac_of_ref"] = (mask & background).sum() / max(ref_binary.sum(), 1)
     m["margin_inclusion"] = (mask & margin).sum() / max(margin.sum(), 1)
     m.update(surface_metrics(mask, ref_binary, zooms, tau_mm))
     return m
 
 
-def validity_gates(mask, notes, zones, rubric, vox_cm3, stripped_mask=None, dura_envelope=None,
-                   lesion_mask=None):
+def validity_gates(mask, notes, zones, rubric, vox_cm3, zooms, stripped_mask=None,
+                   dura_envelope=None, lesion_mask=None):
     core = zones == 2
     g = {}
     g["binary"] = not any(n.startswith("not_binary") or n == "values_not_0_1" for n in notes)
@@ -160,12 +198,18 @@ def validity_gates(mask, notes, zones, rubric, vox_cm3, stripped_mask=None, dura
     g["single_component"] = bool(n > 0 and sizes.max() / sizes.sum() > 0.98)
     filled = ndi.binary_fill_holes(mask)
     g["no_internal_holes"] = bool((filled.sum() - mask.sum()) / max(mask.sum(), 1) < 0.02)
-    max_core_loss = 1 - rubric.get("consensus", {}).get("max_core_loss", 0.10)  # default 0.90 kept
-    g["no_catastrophic_core_loss"] = bool((mask & core).sum() / max(core.sum(), 1) > 0.90)
-    g["no_focal_core_loss"] = bool(_largest_component_cm3(core & ~mask, vox_cm3)
-                                   <= rubric["focal_max_cm3"])
-    g["no_focal_bg_inclusion"] = bool(_largest_component_cm3(mask & (zones == 0), vox_cm3)
-                                      <= rubric.get("focal_bg_max_cm3", 40.0))
+    # The floor was computed from the rubric and then discarded, the gate testing a
+    # hardcoded 0.90 instead. No rubric sets consensus.max_core_loss today, so nothing was
+    # misgraded, but a task that set it would have been silently overridden.
+    min_core_kept = 1 - rubric.get("consensus", {}).get("max_core_loss", 0.10)
+    g["no_catastrophic_core_loss"] = bool(
+        (mask & core).sum() / max(core.sum(), 1) > min_core_kept)
+    g["no_focal_core_loss"] = bool(
+        _largest_solid_component_cm3(core & ~mask, vox_cm3, zooms)
+        <= rubric["focal_max_cm3"])
+    g["no_focal_bg_inclusion"] = bool(
+        _largest_solid_component_cm3(mask & (zones == 0), vox_cm3, zooms)
+        <= rubric.get("focal_bg_max_cm3", 40.0))
     if stripped_mask is not None:
         g["stripped_matches_mask"] = bool((stripped_mask == mask).mean() > 0.99)
     # Dura gate (activates only for packs that ship a dura envelope, e.g. the 7T "no-dura" task):
@@ -194,10 +238,34 @@ def subscore(value, env, key, slack):
     return float(np.clip((value - fail) / max(good - fail, 1e-9), 0, 1))
 
 
+def subject_rubric(pack):
+    """The rubric to grade against.
+
+    `tau_mm`, `focal_max_cm3`, the consensus volumes and the grid all belong to one
+    subject. A pack that holds a rubrics/ directory is graded per subject, and
+    fetch_reference.py --subject selects that subject's rubric into reference/.
+
+    There is deliberately no fallback for such a pack. Quietly grading one subject
+    against another's calibration is the failure this split exists to prevent, and it
+    would be invisible in the result: the run would simply apply the wrong boundary
+    tolerance and the wrong focal cap. A missing selection is an error.
+    """
+    fetched = pack / "reference" / "rubric.json"
+    if fetched.is_file():
+        return fetched
+    if (pack / "rubrics").is_dir():
+        have = sorted(p.stem for p in (pack / "rubrics").glob("*.json"))
+        raise SystemExit(
+            f"ERROR: {pack.name} is graded per subject and no subject rubric has been "
+            f"selected.\nRun: fetch_reference.py --task {pack.name} --subject <subject>\n"
+            f"Subjects: {', '.join(have)}")
+    return pack / "rubric.json"
+
+
 def score(mask_path, pack_dir, stripped_path=None):
     """Grade one submission. Returns a dict with verdict, quality, metrics, gates."""
     pack = Path(pack_dir)
-    rubric = json.load(open(pack / "rubric.json"))
+    rubric = json.load(open(subject_rubric(pack)))
     ref_dir = pack / "reference"
     missing = [f for f in ("consensus_mask.nii.gz", "consensus_zones.nii.gz")
                if not (ref_dir / f).exists()]
@@ -212,6 +280,34 @@ def score(mask_path, pack_dir, stripped_path=None):
     ref_binary = np.asanyarray(ref_img.dataobj) > BIN_TOL
     zooms = np.asarray(ref_img.header.get_zooms()[:3], float)
     vox_cm3 = float(np.prod(zooms) / 1000.0)
+
+    # The rubric must belong to the reference it is grading, and the test has to be
+    # something that actually separates subjects. Neither grid shape nor consensus volume
+    # does: subjects of one task share a matrix, and the closest pair of core volumes is
+    # 0.08% apart in the stroke task and under 1% in three others, so a volume comparison
+    # loose enough not to false-positive is too loose to catch anything. Measured on the
+    # nine per-subject tasks, every subject's scan affine is unique, so that is the test.
+    want_aff = (rubric.get("grid") or {}).get("raw_affine")
+    if want_aff is not None:
+        have_aff = nib.load(str(pack / "reference" / "consensus_mask.nii.gz")).affine
+        if not np.allclose(np.asarray(want_aff, float), have_aff, atol=1e-3):
+            raise SystemExit(
+                "ERROR: this rubric does not describe this reference -- its grid affine "
+                "does not match consensus_mask.nii.gz. The rubric and the reference are "
+                "for different subjects.")
+
+    # A volume far from what the rubric states means the reference changed under the
+    # rubric even though the subject matches; loose on purpose, so it flags a rebuild
+    # rather than a neighbouring subject.
+    stated_core = (rubric.get("consensus") or {}).get("core_cm3")
+    if stated_core:
+        measured_core = float((zones == 2).sum() * vox_cm3)
+        if abs(measured_core - stated_core) > 0.10 * stated_core:
+            raise SystemExit(
+                f"ERROR: this rubric states a core of {stated_core:.2f} cm3 but the loaded "
+                f"consensus_zones.nii.gz has {measured_core:.2f} cm3 -- more than 10% "
+                "apart. The reference has changed since the rubric was calibrated.")
+
     raw_shape = rubric["grid"].get("raw_shape")
     raw_affine = rubric["grid"].get("raw_affine")
 
@@ -240,7 +336,8 @@ def score(mask_path, pack_dir, stripped_path=None):
                              f"consensus reference grid {ref_img.shape[:3]}.")
         lesion_mask = np.asanyarray(les_img.dataobj) > BIN_TOL
 
-    gates = validity_gates(mask, notes, zones, rubric, vox_cm3, stripped_mask, dura_envelope, lesion_mask)
+    gates = validity_gates(mask, notes, zones, rubric, vox_cm3, zooms, stripped_mask,
+                           dura_envelope, lesion_mask)
     metrics = evaluate(mask, zones, ref_binary, zooms, rubric["tau_mm"])
     if dura_envelope is not None:
         metrics["dura_over_env_cm3"] = float((mask & ~dura_envelope).sum() * vox_cm3)
@@ -258,7 +355,7 @@ def score(mask_path, pack_dir, stripped_path=None):
     if failures:
         verdict, quality = "invalid", 0.0
     elif within:
-        verdict = "indistinguishable"
+        verdict = "within_reference_variability"
     elif quality >= vt["acceptable"]:
         verdict = "acceptable"
     elif quality >= vt["marginal"]:

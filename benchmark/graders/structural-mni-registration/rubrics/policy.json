@@ -1,0 +1,33 @@
+{
+  "reference_space": "MNI152NLin2009cAsym (TemplateFlow, res-01)",
+  "tissue_labels": {
+    "GM": 1,
+    "WM": 2,
+    "CSF": 3
+  },
+  "prior_threshold": 0.5,
+  "weights": {
+    "dice_wm": 0.3,
+    "dice_gm": 0.25,
+    "dice_csf": 0.1,
+    "brain_dice": 0.2,
+    "corr_in_brain": 0.15
+  },
+  "slack": 1.5,
+  "gates": [
+    "brain_in_place",
+    "brain_volume_plausible",
+    "dseg_on_template_grid",
+    "nonempty",
+    "valid_labels",
+    "warped_finite_in_brain",
+    "warped_on_template_grid"
+  ],
+  "verdict_thresholds": {
+    "acceptable": 60,
+    "marginal": 30
+  },
+  "max_com_offset_mm": 5.0,
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py",
+  "_subject": "gated: the subject's own fields (item, prompt, grid, plausible_brain_volume_cm3) are fetched from the reference dataset, rubrics/<task>/<subject>.json, and merged by fetch_reference.py"
+}

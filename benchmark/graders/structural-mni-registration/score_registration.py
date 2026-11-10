@@ -14,7 +14,7 @@ registration package can apply its own transform to a second image.
 The reference is not another tool's warp. It is the **template's own tissue priors**, which state
 where CSF, grey matter and white matter belong in MNI space independently of any registration
 software. A population prior is not a per-subject truth, so the thresholds are not absolute:
-`rubric.json` carries the envelope actually achieved by a panel of accepted nonlinear
+`rubric.json` carries the envelope actually achieved by a panel of independent nonlinear
 registrations on this subject (see PROVENANCE.md), and scoring is relative to that.
 
 Pack layout (--pack DIR):
@@ -63,7 +63,7 @@ def same_grid(a, b, tol=1e-3):
 def load_on_grid(path, ref_img, label=False):
     """Load a submission on the reference grid.
 
-    Returns (data, notes, nonfinite). NiftyReg and some other resamplers write NaN outside the
+    Returns (data, notes, nonfinite). Some resamplers write NaN outside the
     field of view rather than zero, which is a convention rather than a defect, so non-finite
     values are zeroed here and judged later against the brain mask: NaN in the background is
     fine, NaN inside the brain is not.
@@ -199,12 +199,12 @@ def validity_gates(warped, seg, notes_w, notes_s, rubric, m, nonfinite_w, brain,
 
 
 def subscore(value, env, key, slack):
-    """Full marks at the median accepted nonlinear registration, zero credit at `floor`.
+    """Full marks at the median independent nonlinear registration, zero credit at `floor`.
 
     `floor` is the median of the affine-only arms, so the scale reads directly: 0 means the
     submission did no better than a 12-DOF affine, 100 means it matched a typical nonlinear
-    registration. Anchoring on the affine rather than on a slack multiple of the accepted spread
-    matters here because the accepted tools agree very closely (WM Dice within 0.015 of each
+    registration. Anchoring on the affine rather than on a slack multiple of the panel spread
+    matters here because the panel tools agree very closely (WM Dice within 0.015 of each
     other) — a slack-based floor would sit inside that spread and make the score brittle.
     """
     lo_better = key in LOWER_BETTER
@@ -219,9 +219,29 @@ def subscore(value, env, key, slack):
     return float(np.clip((value - zero) / max(full - zero, 1e-9), 0, 1))
 
 
+def subject_rubric(pack):
+    """The rubric to grade against.
+
+    A pack that holds a rubrics/ directory is graded per subject, and
+    fetch_reference.py --subject selects that subject's rubric into reference/. There is
+    deliberately no fallback for such a pack: grading one subject against another's
+    calibration would produce a plausible wrong number rather than an error.
+    """
+    fetched = pack / "reference" / "rubric.json"
+    if fetched.is_file():
+        return fetched
+    if (pack / "rubrics").is_dir():
+        have = sorted(p.stem for p in (pack / "rubrics").glob("*.json"))
+        raise SystemExit(
+            f"ERROR: {pack.name} is graded per subject and no subject rubric has been "
+            f"selected.\nRun: fetch_reference.py --task {pack.name} --subject <subject>\n"
+            f"Subjects: {', '.join(have)}")
+    return pack / "rubric.json"
+
+
 def score(warped_path, dseg_path, pack_dir):
     pack = Path(pack_dir)
-    rubric = json.load(open(pack / "rubric.json"))
+    rubric = json.load(open(subject_rubric(pack)))
     refdir = pack / "reference"
     # cross_modal mode scores mask overlap and NMI, so the tissue priors are not needed
     need = ["template_T1w.nii.gz", "template_brain_mask.nii.gz"]
@@ -261,7 +281,7 @@ def score(warped_path, dseg_path, pack_dir):
     if failures:
         verdict, quality = "invalid", 0.0
     elif within:
-        verdict = "indistinguishable"
+        verdict = "within_reference_variability"
     elif quality >= vt["acceptable"]:
         verdict = "acceptable"
     elif quality >= vt["marginal"]:

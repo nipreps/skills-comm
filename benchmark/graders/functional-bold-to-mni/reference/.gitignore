@@ -1,5 +1,0 @@
-# Reference NIfTIs live in the gated Hugging Face dataset neurodeskorg/skills-comm-ground-truth
-# and are fetched at grade time — never commit them to git. See README.md in this directory for
-# the dataset path and the fetch command.
-*.nii
-*.nii.gz

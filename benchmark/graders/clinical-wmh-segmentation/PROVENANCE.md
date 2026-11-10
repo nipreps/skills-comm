@@ -1,52 +1,27 @@
 # Provenance — how this grader pack was built
 
-Frozen reference for **WMH Segmentation Challenge 2017, Amsterdam/GE3T/100** (clinical FLAIR, native
-FLAIR space). White-matter hyperintensities of presumed vascular origin (dementia / small-vessel axis).
+Frozen references for **five subjects of the WMH Segmentation Challenge 2017** (clinical FLAIR,
+native FLAIR space), spanning the challenge's three scanner sites: Amsterdam GE3T 100 and 114,
+Singapore 52, Utrecht 33 and 39. White-matter hyperintensities of presumed vascular origin
+(dementia / small-vessel axis).
 
-## Ground truth
+## How the reference was built
 
-`lesion_mask.nii.gz` is the **primary expert WMH mask** (observers O1/O2 per the challenge's reference
-standard [1], STRIVE-compliant), binarised to WMH (label 1; the dataset's label 2 "other pathology" is not
-present for this subject). Native FLAIR space, 6.27 cm³, **115 foci**.
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/clinical-wmh-segmentation/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
 
-## Thresholds are data-derived from inter-rater agreement
-
-This section is drawn as panel 1 of
-[`wmh_grading.png`](wmh_grading.png) (linked from the README).
-
-The WMH Challenge [1] ships two additional raters (O3, O4) on the training subjects. Scoring each
-against the primary gives a *measured* envelope rather than a literature guess:
-
-| rater vs primary | Dice | lesion-wise F1 | volume error |
-|---|---|---|---|
-| O3 | 0.774 | 0.794 | 13 % |
-| O4 | 0.792 | 0.876 | 4 % |
-
-Envelope: **full marks = mean rater-vs-primary** (as good as another expert); **zero point = a fixed
-margin**: 0.20 below the weaker rater for Dice, 0.25 below the weaker rater for F1, and 40 points
-above the rater mean for volume error.
-
-| metric | full marks | zero point |
-|---|---|---|
-| Dice | 0.783 | 0.574 |
-| lesion-wise F1 | 0.835 | 0.544 |
-| abs. volume error | 8.6 % | 48.6 % |
-
-Weights: Dice 0.40, lesion-wise F1 0.40, volume error 0.20 — F1 raised to parity with Dice because WMH
-are many small foci where detection, not just boundary overlap, is the point.
-
-## Validation
-
-Against the pack: primary self → `indistinguishable` (q100); **O4 → `indistinguishable`** and **O3 →
-`acceptable` (q90)** — the two real raters land at "as good as another expert"; dilate the mask by 2
-voxels → `marginal` (Dice 0.24, +636 % volume — tiny lesions are unforgiving); erode by 1 →
-`unacceptable`; empty → `invalid`.
+It is gated so that a submission cannot reproduce the reference instead of
+solving the task.
 
 ## Data access (open, agent-runnable)
 
 Images: DataverseNL DOI `10.34894/AECRSD`, open Dataverse access API (`curl .../api/access/datafile/<id>`,
-no auth/DUA). FLAIR file id 325669, T1 id 325515 for this subject. The expert masks (primary id 325503,
-O3 326449, O4 326442) are used to build this pack and are never given to the agent.
+no auth/DUA). Per-subject file ids are listed in `subject_file_ids.json` in the build directory, derived from
+the dataset's own file listing. The expert masks (primary, O3, O4) build this pack and the
+envelope; only the FLAIR is given to the agent.
 
 ## Caveats
 
@@ -64,3 +39,24 @@ masks the envelope is built on.
 1. H. J. Kuijf, J. M. Biesbroek, J. de Bresser, et al., "Standardized Assessment of Automatic
    Segmentation of White Matter Hyperintensities and Results of the WMH Segmentation Challenge,"
    *IEEE Trans. Med. Imaging* 38(11):2556–2568, 2019. doi:10.1109/TMI.2019.2905770.
+
+## Reference-leak exposure
+
+The expert masks for these five cases are **publicly downloadable**, from the same
+DataverseNL deposit and the same `api/access/datafile/<id>` endpoint the task prompt
+tells the agent to use for the FLAIR. The deposit holds 170 `wmh.nii.gz` files covering
+both the challenge's training and test halves, and all five graded cases are in the
+training half, so one listing call reaches them. The mask ids even sit in the same range
+as the image ids in the prompt.
+
+Nothing can be done about that upstream, and the task is worth keeping: the data is open
+precisely because the challenge intended it to be used. What the pack does instead is
+refuse the answer. The prompt fetches the two input files by id rather than listing the
+deposit, so the mask is not pulled in by accident, and the grader fails a submission that
+reproduces the reference too exactly: `copy_suspect_dice = 0.995` trips the
+`not_reference_copy` gate and the run is **invalid** with quality 0.
+
+The threshold cannot catch an honest answer. Inter-observer agreement on this reference
+is far below it -- that agreement is what the pass thresholds are derived from -- so no
+submission produced by segmenting the image can reach 0.995.
+

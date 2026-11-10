@@ -17,3 +17,10 @@ venv/
 
 # Local Claude state
 .claude/settings.local.json
+benchmark/THRESHOLDS.md
+
+# Jupyter writes these beside any notebook opened in the repo
+.ipynb_checkpoints/
+
+# Grader references are fetched at scoring time and never committed
+benchmark/graders/*/reference/*.nii.gz

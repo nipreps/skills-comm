@@ -18,7 +18,7 @@ prediction must cover to count as detected, and the optional `min_lesion_voxels`
 below that size from both maps before matching — a task whose reference carries many sub-detectable
 specks sets it to the convention its thresholds were taken from. Absent, nothing is dropped.
 
-The optional `copy_suspect_dice` reports (never scores) a submission whose overlap is too perfect to
+`copy_suspect_dice` fails a submission whose overlap is too perfect to
 be a segmentation — for tasks whose dataset ships the reference mask next to the images.
 
 Pack (--pack DIR): rubric.json + reference/lesion_mask.nii.gz (expert mask, native grid).
@@ -111,14 +111,46 @@ def subscore(value, full, pass_, lower_better=False):
     return float(np.clip((value - pass_) / max(full - pass_, 1e-9), 0, 1))
 
 
+def subject_rubric(pack):
+    """The rubric to grade against.
+
+    A pack that holds a rubrics/ directory is graded per subject, and
+    fetch_reference.py --subject selects that subject's rubric into reference/. There is
+    deliberately no fallback for such a pack: grading one subject against another's
+    calibration would produce a plausible wrong number rather than an error.
+    """
+    fetched = pack / "reference" / "rubric.json"
+    if fetched.is_file():
+        return fetched
+    if (pack / "rubrics").is_dir():
+        have = sorted(p.stem for p in (pack / "rubrics").glob("*.json"))
+        raise SystemExit(
+            f"ERROR: {pack.name} is graded per subject and no subject rubric has been "
+            f"selected.\nRun: fetch_reference.py --task {pack.name} --subject <subject>\n"
+            f"Subjects: {', '.join(have)}")
+    return pack / "rubric.json"
+
+
 def score(pred_path, pack_dir):
-    pack = Path(pack_dir); rubric = json.load(open(pack / "rubric.json"))
+    pack = Path(pack_dir); rubric = json.load(open(subject_rubric(pack)))
     ref_p = pack / "reference" / "lesion_mask.nii.gz"
     if not ref_p.exists():
         raise SystemExit(f"ERROR: reference/lesion_mask.nii.gz not in {pack/'reference'}. "
                          "Fetch it with benchmark/harness/fetch_reference.py.")
     rimg = nib.as_closest_canonical(nib.load(str(ref_p)))
     ref = np.asanyarray(rimg.dataobj) > BIN_TOL
+    # The rubric must belong to the reference it is grading. Selecting the wrong
+    # subject's rubric would otherwise be invisible: a perfect answer still reaches
+    # Dice 1.0, and only the thresholds -- the envelope this subject's own raters set --
+    # would be wrong. Each subject's scan has its own affine, so that is the check.
+    want_aff = (rubric.get("grid") or {}).get("raw_affine")
+    if want_aff is not None:
+        have_aff = nib.load(str(ref_p)).affine
+        if not np.allclose(np.asarray(want_aff, float), have_aff, atol=1e-3):
+            raise SystemExit(
+                "ERROR: this rubric does not describe this reference -- its grid affine "
+                "does not match lesion_mask.nii.gz. The rubric and the reference are for "
+                "different subjects.")
     zooms = np.asarray(rimg.header.get_zooms()[:3], float)
     vox_cm3 = float(np.prod(zooms) / 1000.0)
 
@@ -140,6 +172,14 @@ def score(pred_path, pack_dir):
     gates["nonempty"] = bool(pred.sum() > 0)
     lo, hi = rubric.get("plausible_vol_cm3", [0.1, 500])
     gates["volume_plausible"] = bool(lo <= m["pred_vol_cm3"] <= hi)
+    # Some datasets publish the reference mask beside the images the task hands out, so a
+    # submission can be a download rather than a segmentation. The threshold sits far above
+    # what segmenting the image can reach -- the best published method on this reference is
+    # nowhere near it -- so overlap this exact is the reference itself, and the submission is
+    # not a valid answer to the task.
+    copy_dice = rubric.get("copy_suspect_dice")
+    if copy_dice is not None:
+        gates["not_reference_copy"] = bool(m["dice"] < copy_dice)
     failures = [k for k, ok in gates.items() if not ok]
 
     weights = rubric["weights"]
@@ -156,7 +196,7 @@ def score(pred_path, pack_dir):
     if failures:
         verdict, quality = "invalid", 0.0
     elif within:
-        verdict = "indistinguishable"
+        verdict = "within_reference_variability"
     elif quality >= vt["acceptable"]:
         verdict = "acceptable"
     elif quality >= vt["marginal"]:
@@ -168,10 +208,6 @@ def score(pred_path, pack_dir):
               "load_notes": notes, "subscores": {k: round(v, 3) for k, v in subs.items()},
               "metrics": {k: round(float(v), 4) for k, v in m.items()}}
 
-    # Some datasets ship the reference mask alongside the images the task hands out. A submission
-    # that reproduces it voxel-for-voxel is a copy, not a segmentation. Reported, never scored:
-    # the harness decides what to do with a flagged run.
-    copy_dice = rubric.get("copy_suspect_dice")
     if copy_dice is not None:
         result["suspected_reference_copy"] = bool(m["dice"] >= copy_dice)
 

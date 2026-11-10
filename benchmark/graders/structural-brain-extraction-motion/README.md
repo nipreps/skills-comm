@@ -1,16 +1,16 @@
 # Grader: `structural-brain-extraction-motion`
 
 A **consensus-calibrated grader** for the harder, motion-corrupted skull-strip task
-(MR-ART `ds004173`, `sub-000103`, `acq-headmotion2` — the worst-motion tier). It is the
+(MR-ART `ds004173`, five subjects, `acq-headmotion2` — the worst-motion tier). It is the
 companion to `structural-brain-extraction` (the healthy-adult baseline) on the **motion axis**.
 
-Same design: score a submission against a STAPLE consensus of accepted tools split into
+Same design: score a submission against a STAPLE consensus of a tool panel split into
 core (must keep) / margin (free, not scored) / background (must exclude), with all thresholds
 calibrated from the tools' own disagreement. See [`PROVENANCE.md`](PROVENANCE.md).
 
 ## Shared scorer (no duplication)
 
-This pack carries **only the calibration** (`rubric.json`) and the reference pointer — it does
+This pack carries **only the policy** (`rubrics/policy.json`) and the reference pointer — it does
 **not** ship its own scorer. Grade with the shared scorer from the sibling pack, pointing `--pack`
 here:
 
@@ -28,26 +28,43 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 On the motion scan the tools **diverge and partly fail**, so the reference panel is curated:
 
-- **Reference panel = HD_BET + AFNI + SynthStrip.** ANTs and FSL BET were dropped — ANTs is a
-  coherence outlier (mean pairwise Dice 0.81 vs 0.90+), and both extended into the neck/spinal
-  cord ("too much left at the bottom"), inflating the margin.
-- **τ ≈ 5.7 mm** (vs 3.7 on the healthy adult) — the motion boundary is genuinely fuzzier, so a
-  wider tolerance is data-justified.
-- The gates include **`no_focal_bg_inclusion`** (cap `focal_bg_max_cm3` = 40 cm³, fixed) — it fails
-  a mask that retains a large contiguous chunk of non-brain (e.g. neck), the mirror of the
-  focal-loss gate. This is what makes an over-inclusive BET-style output fail here.
+- **The panel is curated for this scan.** Not every method that is sound on a clean T1w stays
+  sound here, and one that is not would widen the margin rather than inform it. Who was kept,
+  their pairwise agreement and why the rest were set aside are in the gated provenance.
+- **The surface tolerance is wider than on a clean scan**, because the boundary genuinely is
+  fuzzier under motion. It is calibrated from the panel's own spread, not chosen.
+- The gates include **`no_focal_bg_inclusion`**, the mirror of the focal-loss gate: it fails a
+  mask that retains a large contiguous chunk of non-brain, the neck and spinal cord being the
+  usual case on a scan with this field of view.
 
 ## Layout
 
 ```
 structural-brain-extraction-motion/
-├── rubric.json          # frozen calibration: τ, envelope, weights, gate caps (incl. focal_bg_max_cm3)
-├── reference/           # consensus NIfTIs — fetched from the Hub
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
+├── reference/           # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md        #   dataset path + fetch command
 │   └── .gitignore
 ├── README.md
 └── PROVENANCE.md
 ```
 
-Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structural_gt/structural-brain-extraction-motion/`.
+Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structural_gt/structural-brain-extraction-motion/<subject>/`.
 The pack is frozen once; scoring never re-calibrates.
+
+## Verdicts
+
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
+
+| verdict | meaning |
+|---|---|
+| `within_reference_variability` | inside the panel's own leave-one-tool-out spread — every metric is at least as good as the weakest the reference tools themselves achieve, so the submission cannot be told apart from a panel member |
+| `acceptable` | `quality >= 60` |
+| `marginal` | `quality >= 30` |
+| `unacceptable` | below that |
+| `invalid` | a validity gate failed; `quality` is forced to 0 |
+
+A submission passes when the verdict is `within_reference_variability` or `acceptable`.
+`within_reference_variability` is the top grade, not a hedge: it says the answer sits
+inside the disagreement the reference itself carries, which is as close as this task can
+measure.

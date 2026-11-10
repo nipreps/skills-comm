@@ -1,0 +1,34 @@
+{
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py",
+  "dura_max_cm3": 50.0,
+  "focal_bg_max_cm3": 10.0,
+  "gates": [
+    "binary",
+    "native_grid",
+    "no_catastrophic_core_loss",
+    "no_dura_inclusion",
+    "no_focal_bg_inclusion",
+    "no_focal_core_loss",
+    "single_component",
+    "no_internal_holes",
+    "volume_plausible",
+    "nonempty"
+  ],
+  "plausible_volume_cm3": [
+    900.0,
+    1900.0
+  ],
+  "slack": 1.5,
+  "verdict_thresholds": {
+    "acceptable": 60,
+    "marginal": 30
+  },
+  "weights": {
+    "abs_volume_err_pct": 0.1,
+    "bg_fp_frac_of_ref": 0.2,
+    "core_recall": 0.25,
+    "hd95_mm": 0.15,
+    "nsd": 0.3
+  },
+  "_subject": "gated: the subject's own fields (item, prompt, grid) are fetched from the reference dataset, rubrics/<task>/<subject>.json, and merged by fetch_reference.py"
+}

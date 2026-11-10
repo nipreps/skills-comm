@@ -1,45 +1,45 @@
 # Provenance — how this grader pack was built
 
-Frozen reference for **Aphasia Recovery Cohort (ARC), OpenNeuro `ds004884`, `sub-M2191` `ses-681`**
+Frozen references for **five subjects of the Aphasia Recovery Cohort (ARC), OpenNeuro `ds004884`**
 (chronic left-MCA stroke, native T1w space).
 
-## Ground truth
+## How the reference was built
 
-The reference `lesion_mask.nii.gz` is the dataset's **expert manual lesion tracing** — drawn in T2w
-space by trained raters — rigid-registered (FSL FLIRT, 6 DOF, nearest-neighbour) into the native T1w
-space so both stroke tasks share one space. Volume 82.8 cm³. This is a genuine gold standard, not a
-tool consensus (see the README for why lesion segmentation cannot use a consensus).
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/clinical-stroke-lesion-segmentation/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
 
-## Thresholds are fixed, not calibrated by LOTO
+It is gated so that a submission cannot reproduce the reference instead of
+solving the task.
 
-A single subject gives no leave-one-tool-out envelope, and a tool-consensus would be untrustworthy for
-lesions. So the pass/fail lines are **fixed from the literature** [1–3]:
+## Reference-leak exposure
 
-| metric | full marks | pass line | basis |
-|---|---|---|---|
-| Dice | 0.70 | 0.50 | full = manual-tracing **inter-rater ceiling** on T1w (Dice 0.727 [1]); pass ≈ **automated SOTA** on ATLAS v2.0 (Dice ≈ 0.50–0.58 [3]) |
-| lesion-wise F1 | 1.0 | 0.5 | detect the lesion instance(s) |
-| abs. volume error | 15 % | 50 % | gross size plausibility |
+The ARC lesion tracings are distributed on OpenNeuro with the images, so an agent that
+clones the dataset rather than fetching the named input files has the reference on disk.
 
-Weights: Dice 0.5, lesion-wise F1 0.3, volume error 0.2. A connected component counts as detected when
-a prediction overlaps ≥ 10 % of it.
-
-## Validation
-
-Perturbing the expert mask against the pack: self → `indistinguishable` (q100, Dice 1.0); dilated 3
-vox → `acceptable` (q80, Dice 0.74, volume +72 %); eroded 4 vox → `unacceptable` (Dice 0.48, F1 0.40);
-empty → `invalid` (nonempty gate).
+The pack refuses the answer rather than relying on the agent not to look:
+`copy_suspect_dice = 0.995` trips the `not_reference_copy` gate and the run is **invalid**
+with quality 0. The threshold sits far above what segmentation reaches on this reference
+-- the manual-tracing inter-rater ceiling the full-marks threshold is taken from is
+0.727 -- so it cannot catch an honest answer.
 
 ## Reference data
 
 `lesion_mask.nii.gz` is on the Hugging Face Hub (`neurodeskorg/skills-comm-ground-truth`,
-`clinical_gt/clinical-stroke-lesion-segmentation/`). Fetch before grading; see
+`clinical_gt/clinical-stroke-lesion-segmentation/<subject>/`). Fetch before grading; see
 `reference/README.md`.
 
 ## Caveats
 
-- **One large single lesion.** The lesion-wise F1 machinery applies to multi-focal cases, but the
-  thresholds were not tuned on one.
+- **Every graded subject carries a single large lesion.** That is what this cohort is, so
+  lesion-wise F1 cannot do here what it does on multi-focal disease: with one lesion found and
+  `k` spurious components it can only take the values `2/(2+k)`, and it is really a
+  false-positive count rather than a detection score. It is kept because a submission that
+  scatters debris should be penalised for it, and `threshold_basis` records that the full and
+  pass values follow from that arithmetic rather than from tuning. A cohort with multi-focal
+  lesions would exercise the metric properly; this one does not.
 - **Registration error** from the T2w→T1w mapping is possible (small; intra-session, rigid, 1 mm).
 - **Fixed thresholds** are a literature prior [1–3], not this subject's inter-rater spread (ARC ships
   one tracing per subject). A multi-rater subset would let the tolerance be data-derived. The prior is

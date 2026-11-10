@@ -1,0 +1,37 @@
+{
+  "labels": {
+    "1": "GM",
+    "2": "basal_ganglia",
+    "3": "WM",
+    "4": "ventricles",
+    "5": "cerebellum",
+    "6": "brainstem"
+  },
+  "weights": {
+    "dice": 0.5,
+    "nsd": 0.3,
+    "core_recall": 0.2
+  },
+  "slack": 1.5,
+  "core_recall_floor": 0.5,
+  "gates": [
+    "native_grid",
+    "no_class_collapse",
+    "valid_labels"
+  ],
+  "verdict_thresholds": {
+    "acceptable": 60,
+    "marginal": 30
+  },
+  "label_definitions": {
+    "1": "grey matter \u2014 cortical grey matter",
+    "2": "basal ganglia \u2014 deep grey nuclei (caudate, putamen, pallidum)",
+    "3": "white matter \u2014 cerebral white matter",
+    "4": "ventricles \u2014 ventricular CSF only (lateral/3rd/4th ventricles); NOT sulcal CSF",
+    "5": "cerebellum \u2014 entire cerebellum (grey + white)",
+    "6": "brainstem \u2014 midbrain, pons, medulla"
+  },
+  "collapse_margin": 0.2,
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py",
+  "_subject": "gated: the subject's own fields (item, prompt, grid) are fetched from the reference dataset, rubrics/<task>/<subject>.json, and merged by fetch_reference.py"
+}

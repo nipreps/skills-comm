@@ -3,3 +3,9 @@
 # the dataset path and the fetch command.
 *.nii
 *.nii.gz
+
+# the per-subject rubric fetch_reference.py selects into this directory; the tracked copies are in ../rubrics/
+rubric.json
+
+# which subject fetch_reference.py last placed here
+.subject

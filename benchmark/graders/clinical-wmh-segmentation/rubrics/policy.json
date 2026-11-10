@@ -1,0 +1,23 @@
+{
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py",
+  "copy_suspect_basis": "DIAGNOSTIC THRESHOLD, not a quality bar. Overlap this exact is not reachable by segmenting the image -- the best published method on this reference is far below it, and two human experts tracing the same scan do not agree this closely -- so a submission at or above it is the reference itself rather than an answer to the task. The upstream repository publishes the reference mask alongside the images, so a download is a route an agent can actually take. Failing the `not_reference_copy` gate makes such a run invalid. The WMH Challenge expert masks are on an open Dataverse API.",
+  "copy_suspect_dice": 0.995,
+  "dataset_reference": "Kuijf HJ, Biesbroek JM, de Bresser J, et al. Standardized Assessment of Automatic Segmentation of White Matter Hyperintensities and Results of the WMH Segmentation Challenge. IEEE Trans Med Imaging 38(11):2556-2568, 2019. doi:10.1109/TMI.2019.2905770. NOTE: thresholds are DATA-DERIVED (O3/O4 vs primary), not from this reference; it is dataset/protocol provenance.",
+  "overlap_frac_for_match": 0.1,
+  "plausible_vol_cm3": [
+    0.1,
+    200.0
+  ],
+  "reference": "Primary expert WMH mask (observers O1/O2), WMH Challenge 2017, native FLAIR space.",
+  "threshold_basis": "DATA-DERIVED from inter-rater agreement: observers O3, O4 scored vs the primary (O1/O2) set the envelope. WMH = many small foci, so lesion-wise F1 is weighted equally with Dice.",
+  "verdict_thresholds": {
+    "acceptable": 60,
+    "marginal": 30
+  },
+  "weights": {
+    "abs_volume_err_pct": 0.2,
+    "dice": 0.4,
+    "lesion_f1": 0.4
+  },
+  "_subject": "gated: the subject's own fields (item, prompt, grid) are fetched from the reference dataset, rubrics/<task>/<subject>.json, and merged by fetch_reference.py"
+}

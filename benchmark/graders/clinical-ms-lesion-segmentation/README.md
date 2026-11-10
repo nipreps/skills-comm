@@ -1,7 +1,20 @@
 # Grader: `clinical-ms-lesion-segmentation`
 
 Grades an **MS white-matter lesion segmentation** against the **expert multi-rater consensus mask**
-of `patient01` of the open_ms_data cross-sectional dataset (Ljubljana MS database, CC-BY).
+of five patients of the open_ms_data cross-sectional dataset (Ljubljana MS database, CC-BY).
+
+## The reference
+
+Three expert raters segmented each patient independently, and the dataset ships their
+consensus. That consensus is the reference — it is not a consensus of tools, and no tool
+was run to make it. What the raters produced, how the mask is put on the grid the agent
+is given, and the published results the thresholds are read from are in
+`calibration/clinical-ms-lesion-segmentation/PROVENANCE.md` inside the gated reference
+dataset [`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+It is gated because the mask is the answer: the grader must be able to see it and a
+submission must not. Everything governing how a submission is *graded* stays here and in
+[`rubrics/`](rubrics/).
 
 ## Why an expert mask, not a consensus of tools
 
@@ -11,9 +24,10 @@ wildly (published Dice on this very cohort spans 0.50–0.74 across methods), so
 would be untrustworthy. Here three expert raters segmented the patient independently and the
 dataset ships their **consensus**, which IS the ground truth.
 
-Because the individual rater masks are not public and one subject gives no leave-one-out envelope,
-the thresholds are **fixed from published results on this same cohort and reference standard** —
-see `PROVENANCE.md`.
+The individual rater masks are not published, only their consensus, so there is no spread
+between raters to calibrate against the way the WMH task does. The thresholds are instead
+**fixed from published results on this same cohort and reference standard** — see
+[`PROVENANCE.md`](PROVENANCE.md).
 
 ## Scorer (ships in this pack)
 
@@ -37,50 +51,45 @@ quality combines three:
   Full 0.70, zero credit at 0.33.
 - **absolute volume error %** (0.2) — full ≤ 15 %, zero credit at 50 %.
 
-Verdict: `indistinguishable` when all three hit full marks; else `acceptable`/`marginal`/
+Verdict: `within_reference_variability` when all three hit full marks; else `acceptable`/`marginal`/
 `unacceptable` by weighted quality; `invalid` on a gate failure (`binary`, `native_grid`,
-`nonempty`, `volume_plausible` at 0.5–150 cm³).
+`nonempty`, `volume_plausible` at 0.5–150 cm³, `not_reference_copy`).
 
-`copy_suspect_dice` additionally reports (never scores) a submission that reproduces the reference
-too exactly: the upstream dataset ships `consensus_gt.nii.gz` in the same folder as the images, so a
-Dice ≥ 0.995 means the reference was copied rather than segmented.
-
-## Validation
-
-Degrading the expert mask ranks monotonically, and the two catastrophic modes are gated out:
-
-| perturbation | verdict | quality | Dice | lesion F1 |
-|---|---|---|---|---|
-| self | indistinguishable | 100.0 | 1.000 | 1.000 |
-| largest quarter of foci only | acceptable | 82.4 | 0.946 | 0.537 |
-| dilate 1 vox | marginal | 56.2 | 0.615 | 1.000 |
-| dilate 2 vox | marginal | 40.0 | 0.410 | 1.000 |
-| shift 3 mm | unacceptable | 28.3 | 0.276 | 0.407 |
-| erode 1 vox | unacceptable | 6.3 | 0.364 | 0.388 |
-| erode 2 vox | unacceptable | 0.0 | 0.060 | 0.007 |
-| whole brain mask | **invalid** | 0.0 | 0.048 | 0.998 |
-| empty | **invalid** | 0.0 | 0.000 | 0.000 |
-
-Two rows are worth reading closely. *Whole brain mask* shows why lesion-wise F1 can never be a gate
-on its own — one huge component overlaps every reference lesion, so F1 ≈ 1.0 while Dice is 0.05; the
-volume gate is what rejects it. *Largest quarter of foci only* is the grader's known tolerance: a
-submission that traces the big confluent lesions perfectly but misses three-quarters of the lesion
-instances still reaches `acceptable`, held down from `indistinguishable` by the F1 term alone.
-
-Erosion is harsher than dilation here because most foci are a few voxels across — an intrinsic
-property of multifocal MS at 1 mm, not a scoring artefact.
+`not_reference_copy` is the fifth gate. These references are published alongside the images
+the task hands out, so a submission can be a download rather than a segmentation; a Dice at or
+above 0.995 is refused as a copy and the run is **invalid**. The threshold sits far above what
+segmenting the image reaches — the best published method on this reference, and the agreement
+between two experts tracing the same scan, are both well below it — so it cannot catch an honest
+answer.
 
 ## Layout
 
 ```
 clinical-ms-lesion-segmentation/
-├── rubric.json          # fixed metric thresholds, weights, verdict thresholds, grid
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_lesion_seg.py  # the lesion scorer (shared with the stroke and WMH packs)
-├── reference/           # expert consensus mask — fetched from the Hub
+├── reference/           # expert consensus mask — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md
 │   └── .gitignore
 ├── README.md
 └── PROVENANCE.md
 ```
 
-Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `clinical_gt/clinical-ms-lesion-segmentation/`.
+Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `clinical_gt/clinical-ms-lesion-segmentation/<subject>/`.
+
+## Verdicts
+
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubric.json`.
+
+| verdict | meaning |
+|---|---|
+| `within_reference_variability` | inside the published inter-rater ceiling recorded in `threshold_basis` — the reference is one expert tracing, so there is no panel spread to measure against and the bar comes from the literature |
+| `acceptable` | `quality >= 60` |
+| `marginal` | `quality >= 30` |
+| `unacceptable` | below that |
+| `invalid` | a validity gate failed; `quality` is forced to 0 |
+
+A submission passes when the verdict is `within_reference_variability` or `acceptable`.
+`within_reference_variability` is the top grade, not a hedge: it says the answer sits
+inside the disagreement the reference itself carries, which is as close as this task can
+measure.

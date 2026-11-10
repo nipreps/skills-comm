@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """score_tissue_seg.py — grade a multi-class brain parcellation submission against a frozen
-consensus pack (STAPLE-style majority vote of accepted segmentations, split into per-class
+consensus pack (STAPLE-style majority vote of the panel's segmentations, split into per-class
 unanimous-core / majority-boundary zones). Sibling of the binary score_brain_mask.py.
 
 Reference pack (--pack DIR):
@@ -120,9 +120,43 @@ def subscore(value, env, lower_better=False, slack=1.5):
     return float(np.clip((value - fail) / max(good - fail, 1e-9), 0, 1))
 
 
+def subject_rubric(pack):
+    """The rubric to grade against.
+
+    A pack that holds a rubrics/ directory is graded per subject, and
+    fetch_reference.py --subject selects that subject's rubric into reference/. There is
+    deliberately no fallback for such a pack: grading one subject against another's
+    calibration would produce a plausible wrong number rather than an error.
+    """
+    fetched = pack / "reference" / "rubric.json"
+    if fetched.is_file():
+        return fetched
+    if (pack / "rubrics").is_dir():
+        have = sorted(p.stem for p in (pack / "rubrics").glob("*.json"))
+        raise SystemExit(
+            f"ERROR: {pack.name} is graded per subject and no subject rubric has been "
+            f"selected.\nRun: fetch_reference.py --task {pack.name} --subject <subject>\n"
+            f"Subjects: {', '.join(have)}")
+    return pack / "rubric.json"
+
+
 def score(seg_path, pack_dir):
     pack = Path(pack_dir)
-    rubric = json.load(open(pack / "rubric.json"))
+    rubric = json.load(open(subject_rubric(pack)))
+
+    # The rubric must belong to the reference beside it. Subjects of one task share a
+    # matrix and their class volumes sit within a few percent, so neither identifies a
+    # subject; the scan affine does, and is unique across every subject of every task.
+    want_aff = (rubric.get("grid") or {}).get("raw_affine")
+    if want_aff is not None:
+        ref_p = pack / "reference" / "consensus_seg.nii.gz"
+        if ref_p.is_file():
+            have_aff = nib.load(str(ref_p)).affine
+            if not np.allclose(np.asarray(want_aff, float), have_aff, atol=1e-3):
+                raise SystemExit(
+                    "ERROR: this rubric does not describe this reference -- its grid "
+                    "affine does not match consensus_seg.nii.gz. The rubric and the "
+                    "reference are for different subjects.")
     refd = pack / "reference"
     for f in ("consensus_seg.nii.gz", "consensus_agreement.nii.gz"):
         if not (refd / f).exists():
@@ -154,7 +188,7 @@ def score(seg_path, pack_dir):
     if failures:
         verdict, quality = "invalid", 0.0
     elif within:
-        verdict = "indistinguishable"
+        verdict = "within_reference_variability"
     elif quality >= vt["acceptable"]:
         verdict = "acceptable"
     elif quality >= vt["marginal"]:

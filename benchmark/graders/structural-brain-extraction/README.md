@@ -3,50 +3,38 @@
 A **consensus-calibrated grader** for the `structural-brain-extraction` benchmark task — a
 more discriminating alternative to grading a skull-strip by *Dice against one reference mask*.
 
-![How a brain-extraction submission is graded: five skull-strippers are fused by STAPLE into core, margin and background zones; a submission passes ten validity gates, then earns a 0-100 quality score weighting NSD 30%, core recall 25%, background inclusion 20%, HD95 15% and volume error 10%; an FSL BET run at f=0.7 would score about 71 on metrics alone but fails the focal-core-cut gate.](brain_extraction_grading.png)
+![How a brain-extraction submission is graded: a panel of skull-strippers is fused by STAPLE into core, margin and background zones; a submission passes ten validity gates, then earns a 0-100 quality score weighting NSD 30%, core recall 25%, background inclusion 20%, HD95 15% and volume error 10%; a mask can score well on metrics alone and still fail the focal-core-cut gate.](brain_extraction_grading.png)
 
-*Full size: [`brain_extraction_grading.png`](brain_extraction_grading.png). Every number in it comes
-from this pack's `rubric.json` and the test-evidence runs below.*
-
-The prompt is tool-agnostic (`tool_mode: agnostic`), so the grader must ask *"is this a competent
-brain mask?"*, not *"does it match one specific tool?"*. Every skull-stripper draws a slightly
-different boundary and they disagree in a few predictable places (sagittal sinus, tentorium,
-brainstem cut-off, sulcal CSF). So instead of one mask, the grader carries a **STAPLE consensus of a
-panel of accepted tools**, split into three zones, and scores only the *unambiguous* voxels:
-
-| zone (value) | meaning | scored? |
-|---|---|---|
-| **core** (2) | every accepted tool includes it | yes — dropping it = brain cut |
-| **margin** (1) | the tools legitimately disagree | **no** — legitimate freedom |
-| **background** (0) | no accepted tool includes it | yes — including it = skull/dura/neck kept |
+*Full size: [`brain_extraction_grading.png`](brain_extraction_grading.png).*
 
 Every threshold (the surface tolerance τ, the per-metric pass/fail envelope, the gate caps) was
 **calibrated from the data** (leave-one-tool-out), never hand-picked. See [`PROVENANCE.md`](PROVENANCE.md).
+
+## The reference
+
+Several independent tools, fused so that their agreement — not any one tool's opinion —
+defines what counts as correct. Which tools and how they were combined are gated with the
+reference data, so that a submission cannot reproduce it instead of solving the task; see
+[`PROVENANCE.md`](PROVENANCE.md). Everything governing how a submission is *graded* is
+here and in [`rubrics/`](rubrics/).
 
 ## Layout
 
 ```
 structural-brain-extraction/
-├── rubric.json                       # frozen calibration: τ, envelope, weights, gate caps, grid
+├── rubrics/policy.json            # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
+├── brain_extraction_grading.png      # the explainer figure above
 ├── score_brain_mask.py               # the grader — importable score() + CLI
-├── reference/                        # consensus NIfTIs — fetched from the Hub
+├── reference/                        # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md                     #   dataset path + fetch command
 │   └── .gitignore                    #   keeps *.nii.gz out of git
-├── brain_extraction_grading.png     # the explainer figure above
 ├── README.md
 └── PROVENANCE.md
 ```
 
-The consensus reference (`consensus_mask.nii.gz`, `consensus_zones.nii.gz`) is on the Hugging Face
-Hub — `neurodeskorg/skills-comm-ground-truth`, path `structural_gt/structural-brain-extraction/`.
-Fetch it into `reference/` before grading:
-
-```bash
-python benchmark/harness/fetch_reference.py --task structural-brain-extraction
-```
-
-The pack is **frozen once** per benchmark subject; scoring a submission never re-calibrates — it
-only computes the cheap per-mask metrics against this reference.
+The reference is fetched into `reference/` before grading; see
+[`reference/README.md`](reference/README.md). Each subject's rubric is frozen, so scoring
+never re-calibrates — it only measures the submission against the reference.
 
 ## Run it
 
@@ -55,59 +43,33 @@ python3 score_brain_mask.py --mask agent_mask.nii.gz --pack . \
     [--stripped agent_brain.nii.gz] [--json result.json]
 ```
 
-Output is JSON: `verdict`, `quality` (0–100), `gate_failures`, `load_notes`, per-metric `metrics`
-and `subscores`. Exit code is `0` for a valid submission, `1` if any gate failed — so it drops into
-a harness as a pass/fail check. Depends only on `numpy`, `scipy`, `nibabel`.
+Output is JSON: `verdict`, `quality` (0–100), `gate_failures`, per-metric `metrics` and
+`subscores`. Exit code `0` for a valid submission, `1` if any gate failed, so it drops into
+a harness as a pass/fail check. Depends only on `numpy`, `scipy` and `nibabel`.
 
-Two stages: **gates** (any failure ⇒ `invalid`, score 0, gate named) then a **weighted quality**
-mapped onto the leave-one-tool-out envelope. The five scored metrics and weights: NSD@τ (0.30),
-core recall (0.25), background FP (0.20), HD95 (0.15), volume error (0.10). The gates include the
-discriminating **`no_focal_core_loss`** — it fails a mask that cuts one *contiguous* chunk of core
-beyond the calibrated cap, which a global core-recall would dilute.
+Gates first — any failure is `invalid` with the gate named — then a weighted quality.
+[`PROVENANCE.md`](PROVENANCE.md) explains what each gate catches and why the metrics carry
+the weights they do.
 
-## How it's wired into `benchmark/tasks.json`
+## How it is invoked
 
-The task's grader-only `solution` carries a `grader` block that points here (its `metric`,
-`ground_truth`, and `ground_truth_location` describe this consensus grader — the old single-mask
-Dice fields were replaced):
+The task's entry in [`benchmark/tasks.json`](../../tasks.json) carries a `grader`
+block naming this pack, the fetch command and the pass criterion. A harness reads
+that rather than hard-coding anything here; [`benchmark/harness/README.md`](../../harness/README.md) describes the flow.
 
-```json
-"grader": {
-  "kind": "consensus-calibrated",
-  "pack": "benchmark/graders/structural-brain-extraction/",
-  "reference_fetch": "python benchmark/harness/fetch_reference.py --task structural-brain-extraction",
-  "entry": "score_brain_mask.py",
-  "invoke": "python3 benchmark/graders/structural-brain-extraction/score_brain_mask.py --mask <AGENT_MASK> --pack benchmark/graders/structural-brain-extraction/",
-  "validity_criterion": "verdict != invalid (script exit code 0)",
-  "pass_criterion": "verdict is acceptable or indistinguishable"
-}
-```
+## Verdicts
 
-A harness fetches the reference (`reference_fetch`) and runs `invoke`. Exit code 0 means that the
-submission passed all validity gates. The submission passes the benchmark when the verdict is
-`acceptable` or `indistinguishable`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
-## Test evidence
+| verdict | meaning |
+|---|---|
+| `within_reference_variability` | inside the panel's own leave-one-tool-out spread — every metric is at least as good as the weakest the reference tools themselves achieve, so the submission cannot be told apart from a panel member |
+| `acceptable` | `quality >= 60` |
+| `marginal` | `quality >= 30` |
+| `unacceptable` | below that |
+| `invalid` | a validity gate failed; `quality` is forced to 0 |
 
-Scoring the panel + negative controls against this frozen pack gives:
-
-| submission | verdict | quality | why |
-|---|---|---|---|
-| `anat_hd_bet_bet.nii.gz` (HD-BET) | `indistinguishable` | 99.96 | NSD 0.991, focal 0.0, clean |
-| `AFNI_mask_bin.nii.gz` (AFNI, corrected) | `indistinguishable` | 99.78 | native grid, binary |
-| `anat_bet_f07_mask.nii.gz` (BET −f 0.7) | **`invalid`** | 0 | `no_focal_core_loss` — 27.5 cm³ contiguous frontal cut |
-
-```
-$ python3 score_brain_mask.py --mask anat_bet_f07_mask.nii.gz --pack .
-{ "verdict": "invalid", "quality": 0.0, "gate_failures": ["no_focal_core_loss"], ... }
-$ echo $?    # 1
-```
-
-## Policy knobs
-
-- **Reference panel** (`rubric.json:reference_tools`) — defines the consensus AND every threshold.
-  Adding a tool only *loosens* the benchmark, because the core is an intersection.
-- **`focal_max_cm3`** — calibrated (`SLACK` × worst held-out focal miss, floored). Larger = more lenient
-  on localised cuts.
-- **`native_grid` gate** — here a header-only deoblique (AFNI-style) is recovered onto the native grid
-  rather than failed; flip to strict if the task should reject any header that doesn't match the input.
+A submission passes when the verdict is `within_reference_variability` or `acceptable`.
+`within_reference_variability` is the top grade, not a hedge: it says the answer sits
+inside the disagreement the reference itself carries, which is as close as this task can
+measure.

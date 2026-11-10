@@ -1,44 +1,46 @@
 # Provenance — how this grader pack was calibrated
 
-Frozen output of a one-time calibration on **CEREBRUM-7T `ds003642`, `sub-025` `ses-003`** (7T
-MP2RAGE, 0.63 mm isotropic, native T1w space). Not re-derived at grade time.
+Frozen per-subject calibrations across 3 subjects of **CEREBRUM-7T `ds003642`** (7T MP2RAGE, 0.63 mm isotropic, native T1w space). Not re-derived at grade time.
+
+## How the reference was built
+
+The panel or raters behind this reference, the calibration steps, the surface
+tolerance, the calibrated caps and the reference volumes are documented in
+`calibration/structural-tissue-segmentation-7t/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth), with the per-subject
+calibration the grader merges at scoring time.
+
+It is gated so that a submission cannot reproduce the reference instead of
+solving the task.
 
 ## Why consensus, not a single truth
 
 Every tissue/structure segmenter draws slightly different boundaries, especially at the fuzzy
 partial-volume interfaces (GM↔WM, GM↔CSF). Grading against one tool's output would bake in that
-tool's idiosyncrasies. Instead the reference is a **majority vote of accepted segmentations**, split
+tool's idiosyncrasies. Instead the reference is a **majority vote of the panel's segmentations**, split
 into per-class zones — unanimous core (must match) and majority boundary (partial-volume, softly
 scored) — and only the calibrated envelope decides pass/fail.
 
-## Panel (pre-computed, no tools run)
+## Label legend
 
-CEREBRUM-7T ships four whole-brain segmentations. Curated by the coherence check:
+`1=GM  2=basal ganglia  3=WM  4=ventricles/CSF  5=cerebellum  6=brainstem` (0 = background). This
+is the output contract, so it is stated in the task prompt too.
 
-- **Kept: CEREBRUM7T, FreeSurfer v6, FreeSurfer v7** — share a common 7-label scheme (per-class
-  Dice 0.75–0.92 between them).
-- **Dropped: nighres** — a coherence outlier; its label-3 (WM) Dice vs the others is 0.09, i.e. a
-  different label protocol. Kept as a scored candidate; it comes out `invalid`.
-
-## Label legend (confirmed by intensity on the UNI)
-
-`1=GM  2=basal ganglia  3=WM  4=ventricles/CSF  5=cerebellum  6=brainstem` (0 = background). The
-integer mapping is not published by CEREBRUM-7T; it was pinned by class volume + median UNI
-intensity (WM brightest 2564, basal ganglia 2187, GM 1407, ventricles darkest 691).
+The integer mapping is not published by CEREBRUM-7T. It was pinned rather than assumed, from each
+class's volume and its median intensity on the UNI, which order the tissues unambiguously at 7T.
+The measurements behind the pinning are in the gated provenance.
 
 ## Consensus and calibration
 
-1. **Fuse** the three tools by per-voxel majority vote (≥ 2/3) over the 7 classes →
-   `consensus_seg.nii.gz`; `consensus_agreement.nii.gz` records the winning vote count (3 = unanimous
-   core, 2 = majority boundary). Three-way ties are 1.4 cm³ total.
-2. **Class volumes (cm³):** GM 485, basal ganglia 42, WM 360, ventricles 10, cerebellum 76,
-   brainstem 14. Unanimous-core fraction ranges 67 % (GM — fuzziest) to 87 % (WM — tightest).
-3. **Per-class τ** = 95th percentile of pairwise surface disagreement among the three tools (mm):
-   GM 1.77, basal ganglia 1.77, WM 1.25, ventricles 1.53, **cerebellum 7.56** (widest — the
-   cerebellar boundary is genuinely fuzzy at this resolution), brainstem 3.12.
-4. **Envelope** by leave-one-tool-out → per-class median (full marks) / worst (pass line). LOTO Dice
-   median/worst: GM 0.785/0.760, basal ganglia 0.881/0.880, WM 0.905/0.901, ventricles 0.816/0.805,
-   cerebellum 0.855/0.741, brainstem 0.858/0.836.
+The segmentations shipped with CEREBRUM-7T are fused by per-voxel majority vote into a six-class
+label map, with a companion map recording how many sources agreed on each voxel: unanimous voxels
+form the core, which is scored, and majority-only voxels form the boundary, which is not. The
+per-class surface tolerance and the pass and full-mark anchors are then taken from the sources'
+own leave-one-out spread, so each class is judged against how well they agree on that class
+rather than against a fixed number.
+
+Which sources, their agreement, the class volumes and every calibrated value are in
+`calibration/structural-tissue-segmentation-7t/PROVENANCE.md` in the gated reference dataset.
 
 ## Scoring
 
@@ -46,16 +48,10 @@ Per class: Dice, NSD (within τ), core-recall; each mapped through its envelope 
 Overall quality = mean of the six class qualities. Gates → `invalid`: `valid_labels`, `native_grid`,
 `no_class_collapse` (each class recovers ≥ 50 % of its unanimous core).
 
-## Validation
-
-Scored against the frozen pack: CEREBRUM7T `indistinguishable` (q99.4), FreeSurfer v6 / v7
-`indistinguishable` (q100), and the dropped **nighres `invalid`** (WM Dice 0.09 →
-`no_class_collapse`) — the outlier is rejected, confirming the grader discriminates.
-
 ## Reference data
 
 `reference/consensus_seg.nii.gz` + `consensus_agreement.nii.gz` are on the Hugging Face Hub
-(`neurodeskorg/skills-comm-ground-truth`, `structural_gt/structural-tissue-segmentation-7t/`). Fetch them before grading;
+(`neurodeskorg/skills-comm-ground-truth`, `structural_gt/structural-tissue-segmentation-7t/<subject>/`). Fetch them before grading;
 see `reference/README.md`. Everything else is in `rubric.json`.
 
 ## Caveats
@@ -65,4 +61,4 @@ see `reference/README.md`. Everything else is in `rubric.json`.
   must output this exact legend.
 - **The panel are DL/atlas segmentations, not a manual gold standard** — a curated consensus, not
   ground truth in the strict sense. Two of three are FreeSurfer versions, so the consensus leans
-  FreeSurfer-ward; CEREBRUM7T (7T-specialised) adds independent signal.
+  toward one lineage; the 7T-specialised member adds independent signal.

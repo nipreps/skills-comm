@@ -1,21 +1,19 @@
 # Reference data
 
-The frozen reference for this grader is on the Hugging Face Hub:
+Fetched here before grading, from the gated dataset
+`neurodeskorg/skills-comm-ground-truth`:
 
-- **Dataset:** `neurodeskorg/skills-comm-ground-truth`
-- **Path:** `diffusion_gt/diffusion-brain-mask/`
-- **Revision:** `f0229ea2b089`
-- **Files:**
-  - `consensus_mask.nii.gz` — STAPLE consensus of SynthStrip, HD-BET and AFNI 3dSkullStrip,
-    on the diffusion grid of ds001226 sub-CON02 ses-preop acq-AP
-  - `consensus_zones.nii.gz` — 0 = background, 1 = margin, 2 = core
+    python benchmark/harness/fetch_reference.py --task diffusion-brain-mask --subject <subject>
 
-Fetch them into this directory before grading:
+- `consensus_mask.nii.gz`
+- `consensus_zones.nii.gz`
+- `rubric.json` — written by the fetch, combining this pack's policy
+  with the subject's gated calibration
 
-    python benchmark/harness/fetch_reference.py --task diffusion-brain-mask
+The dataset path and the pinned revision live in
+[`benchmark/harness/run_manifest.json`](../../../harness/run_manifest.json), which is what
+the fetch reads; they are deliberately not repeated here.
 
-Access is gated: request it on the dataset page, then set `HF_TOKEN` to a token for the account
-that was granted access. Gating is what keeps the reference out of the plane where the agent works.
-Pinning the revision means a grading run scores against an exact, named reference set.
-
-`rubric.json` carries every calibrated number the grader needs.
+The dataset is gated, which is what keeps the reference out of the plane where the agent
+works. Grading reads a token from `HF_TOKEN`; in CI that comes from a repository secret.
+Ask the maintainers about access for local use.

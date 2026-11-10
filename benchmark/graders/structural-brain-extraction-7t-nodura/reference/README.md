@@ -1,21 +1,20 @@
 # Reference data
 
-The frozen reference for this grader is on the Hugging Face Hub:
+Fetched here before grading, from the gated dataset
+`neurodeskorg/skills-comm-ground-truth`:
 
-- **Dataset:** `neurodeskorg/skills-comm-ground-truth`
-- **Path:** `structural_gt/structural-brain-extraction-7t-nodura/`
-- **Revision:** `f0229ea2b089`
-- **Files:**
-  - `consensus_mask.nii.gz` — binary STAPLE consensus (native T1w grid)
-  - `consensus_zones.nii.gz` — 0 = background, 1 = margin, 2 = core
-  - `dura_envelope.nii.gz` — dura-out pial envelope; over-inclusion beyond it = dura
+    python benchmark/harness/fetch_reference.py --task structural-brain-extraction-7t-nodura --subject <subject>
 
-Fetch them into this directory before grading:
+- `consensus_mask.nii.gz`
+- `consensus_zones.nii.gz`
+- `dura_envelope.nii.gz`
+- `rubric.json` — written by the fetch, combining this pack's policy
+  with the subject's gated calibration
 
-    python benchmark/harness/fetch_reference.py --task structural-brain-extraction-7t-nodura
+The dataset path and the pinned revision live in
+[`benchmark/harness/run_manifest.json`](../../../harness/run_manifest.json), which is what
+the fetch reads; they are deliberately not repeated here.
 
-Access is gated: request it on the dataset page, then set `HF_TOKEN` to a token for the account
-that was granted access. Gating is what keeps the reference out of the plane where the agent works.
-Pinning the revision means a grading run scores against an exact, named reference set.
-
-`rubric.json` carries every calibrated number the grader needs.
+The dataset is gated, which is what keeps the reference out of the plane where the agent
+works. Grading reads a token from `HF_TOKEN`; in CI that comes from a repository secret.
+Ask the maintainers about access for local use.

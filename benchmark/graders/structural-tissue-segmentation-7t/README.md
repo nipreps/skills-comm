@@ -1,16 +1,27 @@
 # Grader: `structural-tissue-segmentation-7t`
 
 A **consensus-calibrated grader** for multi-class brain **parcellation** of a 7T MP2RAGE scan
-(CEREBRUM-7T `ds003642`, `sub-025`, 0.63 mm isotropic). It grades a six-structure label map —
+(CEREBRUM-7T `ds003642`, three subjects, 0.63 mm isotropic). It grades a six-structure label map —
 grey matter, basal ganglia, white matter, ventricles/CSF, cerebellum, brainstem — against a
-consensus of accepted segmentations. Companion to the binary `structural-brain-extraction-7t`
+consensus of the panel's segmentations. Companion to the binary `structural-brain-extraction-7t`
 tasks on the same subject.
 
 It is the multi-class analogue of the brain-extraction grader: instead of one binary mask scored
 against a STAPLE consensus, each of six classes is scored against a **majority-vote consensus** of
-accepted tools, split into per-class **unanimous-core** (all tools agree) and **majority-boundary**
+the panel's tools, split into per-class **unanimous-core** (all tools agree) and **majority-boundary**
 (partial-volume disagreement) zones. Every threshold is calibrated by leave-one-tool-out. See
 [`PROVENANCE.md`](PROVENANCE.md).
+
+## The reference
+
+Built from several independent sources rather than one, so that the agreement between
+them, and not any single tool's opinion, defines what counts as correct. Which sources,
+how they were combined, the surface tolerance and the calibrated caps are documented in
+`calibration/structural-tissue-segmentation-7t/PROVENANCE.md` inside the gated reference dataset
+[`neurodeskorg/skills-comm-ground-truth`](https://huggingface.co/datasets/neurodeskorg/skills-comm-ground-truth).
+
+Gated so that a submission cannot reproduce the reference instead of solving the
+task. Everything governing how a submission is *graded* stays here.
 
 ## Ships its own scorer
 
@@ -25,17 +36,6 @@ python3 score_tissue_seg.py --seg agent_dseg.nii.gz --pack . [--json result.json
 The agent must output an **integer label map** with the fixed legend
 `1=GM 2=basal_ganglia 3=WM 4=ventricles 5=cerebellum 6=brainstem` in native T1w space.
 
-## Reference panel
-
-- **Panel = CEREBRUM7T + FreeSurfer v6 + FreeSurfer v7** — the three whole-brain segmentations
-  shipped with the dataset that share a common label scheme (per-class Dice 0.75–0.92).
-- **Dropped: nighres** — a coherence outlier (its label-3/WM Dice vs the others is 0.09, a different
-  label protocol). It is retained as a scored **candidate** (comes out `invalid` on
-  `no_class_collapse`), which validates the grader.
-
-No tools are run to build the reference — the panel members are the dataset's own pre-computed
-segmentations, fused by majority vote.
-
 ## Scoring
 
 - **Per-class metrics:** Dice, NSD (surface agreement within a per-class tolerance `τ`), and
@@ -49,14 +49,31 @@ segmentations, fused by majority vote.
 
 ```
 structural-tissue-segmentation-7t/
-├── rubric.json              # per-class τ, LOTO envelope, weights, gates
+├── rubrics/policy.json      # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_tissue_seg.py      # the multi-class scorer
-├── reference/               # consensus NIfTIs — fetched from the Hub
+├── reference/               # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md
 │   └── .gitignore
 ├── README.md
 └── PROVENANCE.md
 ```
 
-Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structural_gt/structural-tissue-segmentation-7t/`.
+Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structural_gt/structural-tissue-segmentation-7t/<subject>/`.
 The pack is frozen once; scoring never re-calibrates.
+
+## Verdicts
+
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubric.json`.
+
+| verdict | meaning |
+|---|---|
+| `within_reference_variability` | inside the panel's own leave-one-tool-out spread — every metric is at least as good as the weakest the reference tools themselves achieve, so the submission cannot be told apart from a panel member |
+| `acceptable` | `quality >= 60` |
+| `marginal` | `quality >= 30` |
+| `unacceptable` | below that |
+| `invalid` | a validity gate failed; `quality` is forced to 0 |
+
+A submission passes when the verdict is `within_reference_variability` or `acceptable`.
+`within_reference_variability` is the top grade, not a hedge: it says the answer sits
+inside the disagreement the reference itself carries, which is as close as this task can
+measure.
