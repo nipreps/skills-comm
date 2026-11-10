@@ -1,7 +1,8 @@
 # Provenance — how this grader pack was calibrated
 
-One rubric per subject, in `rubrics/<subject>.json`, each the frozen output of a
-calibration on that subject's own panel. Scoring a submission never re-derives them.
+One rubric per subject, assembled at fetch time from the shared `rubrics/policy.json`
+and that subject's gated calibration, which is the frozen output of a calibration on its
+own panel. Scoring a submission never re-derives them.
 
 ## How the reference was built
 

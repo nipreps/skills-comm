@@ -1,7 +1,7 @@
 # Grader: `structural-brain-extraction-7t-nodura`
 
-A **consensus-calibrated grader with an added dura gate** for the *same* 7T MP2RAGE subject as
-`structural-brain-extraction-7t` (CEREBRUM-7T `ds003642`; sub-025, sub-045 and sub-075), but for an **explicit
+A **consensus-calibrated grader with an added dura gate** for the *same* 7T MP2RAGE subjects as
+`structural-brain-extraction-7t` (CEREBRUM-7T `ds003642`), but for an **explicit
 "remove the dura" prompt**. It tests **instruction-following**: does the submission not only extract
 the brain but also strip the dura the prompt asked for?
 
@@ -62,7 +62,7 @@ envelope, so the cap has to clear that before it can fail anything.
 
 ```
 structural-brain-extraction-7t-nodura/
-├── rubrics/<subject>.json  # per-subject -7t calibration + dura_max_cm3 + the no_dura_inclusion gate
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── reference/           # consensus + dura_envelope NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md
 │   └── .gitignore
@@ -75,7 +75,7 @@ The pack is frozen once; scoring never re-calibrates.
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

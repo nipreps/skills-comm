@@ -40,7 +40,7 @@ space. See PROVENANCE.
 
 ```
 structural-brain-extraction-stroke/
-├── rubrics/<subject>.json  # per-subject τ, envelope, weights, gate caps, lesion_retained_min, grid.raw_affine
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── reference/           # consensus + lesion NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md
 │   └── .gitignore
@@ -53,7 +53,7 @@ Companion lesion-segmentation task: `clinical-stroke-lesion-segmentation` (same 
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

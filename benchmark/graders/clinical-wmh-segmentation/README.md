@@ -47,17 +47,18 @@ masks are **grader-side only**; they are never in the agent's input.
 ## Subjects
 
 Five subjects from the challenge's training set, spanning its three scanner sites. Each
-is graded against its own rubric in `rubrics/<subject>.json`; there is no shared default,
-and the grader refuses to run if the selected rubric does not describe the fetched
-reference.
+is graded against its own rubric, merged at fetch time from the shared
+`rubrics/policy.json` and that subject's gated thresholds; there is no shared default, and
+the grader refuses to run if the merged rubric does not describe the fetched reference.
 
-| subject | scanner | grid |
+| scanner site | subjects | grid |
 |---|---|---|
-| `Amsterdam_GE3T_100` | Amsterdam GE3T | 132x256x83 |
-| `Amsterdam_GE3T_114` | Amsterdam GE3T | 132x256x83 |
-| `Singapore_52` | Singapore | 232x256x48 |
-| `Utrecht_33` | Utrecht | 240x240x48 |
-| `Utrecht_39` | Utrecht | 240x240x48 |
+| Amsterdam GE3T | 2 | 132x256x83 |
+| Singapore | 1 | 232x256x48 |
+| Utrecht | 2 | 240x240x48 |
+
+The three sites use different grids, which is why the scorer takes the shape from the
+fetched reference rather than assuming one.
 
 Lesion load, focus counts and each subject's thresholds are in the gated
 `calibration/clinical-wmh-segmentation/PROVENANCE.md`; the thresholds themselves ship with
@@ -79,7 +80,7 @@ segments the other pathology would be charged false positives for finding someth
 
 ```
 clinical-wmh-segmentation/
-├── rubrics/<subject>.json          # inter-rater-derived thresholds, weights, grid; records the O3/O4 metrics
+├── rubrics/policy.json          # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_lesion_seg.py  # Dice + lesion-wise F1 + volume error
 ├── reference/           # primary expert WMH mask — fetched from the Hub
 │   ├── README.md
@@ -92,7 +93,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `clinical_
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

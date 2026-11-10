@@ -16,10 +16,11 @@ grading job supplies a read token via the HF_TOKEN environment variable, and the
 agent works has none. Idempotent — files already present are left untouched.
 
     python fetch_reference.py --task clinical-wmh-segmentation
-    python fetch_reference.py --task structural-brain-extraction --subject sub-0004
+    python fetch_reference.py --task structural-brain-extraction --case case-042
 
-A task whose ref_dir carries {subject} keeps one reference directory per subject and needs
---subject; the manifest lists which subjects it has.
+A task graded per subject needs --subject, or --case with the case id a benchmark run
+names; the reference dataset's cases.json (see cases.py) says which subjects a task has
+and which subject a case is.
 """
 import argparse
 import json
@@ -28,6 +29,11 @@ import sys
 from pathlib import Path
 
 from huggingface_hub import hf_hub_download
+
+try:
+    from . import cases as cases_mod       # imported as benchmark.harness.fetch_reference
+except ImportError:
+    import cases as cases_mod              # run as a script from this directory
 
 
 def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
@@ -47,6 +53,7 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
     rev = revision or spec.get("reference_revision") or defaults.get("reference_revision")
     ref_dir = spec["ref_dir"]                        # e.g. clinical_gt/clinical-wmh-segmentation
     calib_dir = defaults.get("calibration_dir", "calibration")
+    rubrics_dir = defaults.get("rubrics_dir", "rubrics")
     # Whether a subject is required is decided by `per_subject`, not by the shape of
     # ref_dir. Most per-subject tasks keep one reference directory per subject and carry
     # {subject} in the path, but a registration task does not: its reference is a
@@ -54,8 +61,15 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
     # template per subject would add nothing to the Hub but weight.
     per_subject = spec.get("per_subject") or "{subject}" in ref_dir
     allowed = spec.get("subjects") or []
+    if per_subject and not allowed:
+        # The subjects live in the gated cases.json, not in the manifest: the allowed
+        # list comes from there, and a case id becomes its subject.
+        cs = cases_mod.load(m, rev)
+        allowed = cases_mod.subjects_of(cs, task_id)
+        if subject is not None:
+            subject = cases_mod.resolve(cs, task_id, subject)
     if per_subject:
-        # Checked against the manifest rather than interpolated blindly: a typo would
+        # Checked against the list rather than interpolated blindly: a typo would
         # otherwise come back as a confusing 404 from the Hub.
         if subject is None:
             raise SystemExit(
@@ -115,11 +129,31 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
     # off public GitHub, so that half ships with the gated reference instead and is
     # merged here, where the agent cannot reach it.
     if subject:
-        src = root / spec["pack_dir"] / "rubrics" / f"{subject}.json"
+        # The policy half is one file per task, with nothing about any subject in it: the
+        # subject's own part (item, prompt, grid) ships gated beside its reference, so the
+        # public repository names no subject anywhere.
+        src = root / spec["pack_dir"] / "rubrics" / "policy.json"
         if not src.is_file():
-            raise SystemExit(f"ERROR: no rubric for {subject} at {src}")
+            raise SystemExit(f"ERROR: no rubric policy at {src}")
         rubric = json.loads(src.read_text())
         merged_from = None
+        if rubric.pop("_subject", None) is not None:
+            remote = f"{rubrics_dir}/{task_id}/{subject}.json"
+            print(f"  [fetch] {repo_id}@{rev or 'main'}:{remote}")
+            try:
+                got = hf_hub_download(repo_id=repo_id, repo_type=repo_type,
+                                      filename=remote, revision=rev,
+                                      force_download=force)
+            except Exception as e:
+                raise SystemExit(
+                    f"ERROR: {src.name} expects the subject's gated rubric but {remote} could "
+                    f"not be fetched from {repo_id}\n{type(e).__name__}: {e}")
+            part = json.loads(Path(got).read_text())
+            clash = sorted(set(part) & set(rubric))
+            if clash:
+                raise SystemExit(f"ERROR: {remote} and {src.name} both define {clash}")
+            rubric.update(part)
+            merged_from = remote
         if rubric.pop("_calibration", None) is not None:
             remote = f"{calib_dir}/{task_id}/{subject}.json"
             print(f"  [fetch] {repo_id}@{rev or 'main'}:{remote}")
@@ -139,7 +173,7 @@ def fetch(task_id, manifest_path, graders_root=None, force=False, revision=None,
                 raise SystemExit(f"ERROR: {remote} and {src.name} both define {clash}; "
                                  "the split is supposed to be disjoint")
             rubric.update(calib)
-            merged_from = remote
+            merged_from = f"{merged_from} + {remote}" if merged_from else remote
         (dest / "rubric.json").write_text(json.dumps(rubric, indent=2) + "\n")
         print(f"  [rubric] {src.name}"
               + (f" + {merged_from}" if merged_from else "")
@@ -160,6 +194,8 @@ def main(argv=None):
     ap.add_argument("--revision", help="override the revision pinned in the manifest")
     ap.add_argument("--subject", help="which subject's reference to fetch, for the tasks "
                                       "that are graded per subject")
+    ap.add_argument("--case", dest="subject", help="the case id a run names; the reference "
+                                                   "dataset's cases.json maps it to the subject")
     a = ap.parse_args(argv)
     fetch(a.task, a.manifest, a.graders_root, a.force, a.revision, a.subject)
     return 0

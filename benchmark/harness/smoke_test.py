@@ -53,8 +53,27 @@ REPO = Path(__file__).resolve().parent.parent
 # so the test still runs usefully without it.
 BUILD = Path(os.environ.get("SKILLS_COMM_BUILD", "")).expanduser() if os.environ.get(
     "SKILLS_COMM_BUILD") else None
-STAGE = CAL = None
-MAN = json.load(open(REPO / "harness/run_manifest.json"))["tasks"]
+STAGE = CAL = RUB = None
+MANIFEST = json.load(open(REPO / "harness/run_manifest.json"))
+MAN = MANIFEST["tasks"]
+_SUBJECTS = {}   # task -> subjects from the gated cases.json, fetched once per run
+
+
+def subjects(task, spec):
+    """A task's subjects: the manifest's list if it still has one, else the reference
+    dataset's gated cases.json."""
+    if spec.get("subjects"):
+        return spec["subjects"]
+    if not spec.get("per_subject"):
+        return [None]
+    if not _SUBJECTS:
+        try:
+            from . import cases as cases_mod
+        except ImportError:
+            import cases as cases_mod
+        cs = cases_mod.load(MANIFEST)
+        _SUBJECTS.update({t: cases_mod.subjects_of(cs, t) for t in MAN})
+    return _SUBJECTS.get(task) or [None]
 
 # which reference file a submission is compared against, per scorer family
 GRADED = {"score_lesion_seg.py": "lesion_mask.nii.gz",
@@ -88,10 +107,8 @@ _mods = {}
 def _copy_gated(task):
     """True where the reference is an expert mask published beside the images, so an
     exact copy is a download and the scorer refuses it."""
-    for rub in sorted((REPO / "graders" / task / "rubrics").glob("*.json")):
-        if json.loads(rub.read_text()).get("copy_suspect_dice") is not None:
-            return True
-    return False
+    rub = REPO / "graders" / task / "rubrics" / "policy.json"
+    return rub.is_file() and json.loads(rub.read_text()).get("copy_suspect_dice") is not None
 
 
 def scorer(rel):
@@ -123,9 +140,15 @@ def build_pack(task, spec, subject, rubric_from=None):
             raise FileNotFoundError(f"{f}: not in {src} nor {fallback}")
         shutil.copy(p, t / "reference" / f)
     who = rubric_from or subject
-    rp = (REPO / "graders" / task / "rubrics" / f"{who}.json") if who else \
+    rp = (REPO / "graders" / task / "rubrics" / "policy.json") if who else \
          (REPO / "graders" / task / "rubric.json")
     r = json.loads(rp.read_text())
+    if r.pop("_subject", None) is not None:
+        g = RUB / task / f"{who}.json"
+        if not g.is_file():
+            shutil.rmtree(t)
+            raise FileNotFoundError(g)
+        r.update(json.loads(g.read_text()))
     if r.pop("_calibration", None) is not None:
         c = CAL / task / f"{who}.json"
         if not c.is_file():
@@ -147,7 +170,7 @@ def run_segmentation(task, spec, rows):
     name = Path(spec["scorer"]).name
     graded = GRADED[name]
     base = spec["ref_dir"].replace("/{subject}", "")
-    subs = spec.get("subjects") or [None]
+    subs = subjects(task, spec)
     for i, sub in enumerate(subs):
         src = (STAGE / base / sub if sub else STAGE / base) / graded
         # perfect
@@ -199,7 +222,7 @@ def run_registration(task, spec, rows):
     sc = scorer(spec["scorer"])
     # A per-subject registration task shares one template reference and varies only the
     # rubric, so each subject's panel is probed against its own envelope.
-    for sub in (spec.get("subjects") or [None]):
+    for sub in subjects(task, spec):
         run_registration_subject(task, spec, cfg, sc, sub, rows)
 
 
@@ -232,18 +255,18 @@ def run_registration_subject(task, spec, cfg, sc, subject, rows):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--task", action="append")
-    ap.add_argument("--build", help="the build tree holding hf_stage/, hf_calibration/ "
+    ap.add_argument("--build", help="the build tree holding hf_stage/, hf_calibration/, hf_rubrics/ "
                                     "and each task's working directory; defaults to "
                                     "$SKILLS_COMM_BUILD")
     a = ap.parse_args()
-    global BUILD, STAGE, CAL
+    global BUILD, STAGE, CAL, RUB
     if a.build:
         BUILD = Path(a.build).expanduser()
     if BUILD is None:
         print("No build tree given (--build or $SKILLS_COMM_BUILD). Only probes that "
               "read from each pack's own reference/ will run.", file=sys.stderr)
         BUILD = Path("/nonexistent")
-    STAGE, CAL = BUILD / "hf_stage", BUILD / "hf_calibration"
+    STAGE, CAL, RUB = BUILD / "hf_stage", BUILD / "hf_calibration", BUILD / "hf_rubrics"
     probes = BUILD / "smoke_probes.json"
     if probes.is_file():
         REG_PROBES.update(json.loads(probes.read_text()))

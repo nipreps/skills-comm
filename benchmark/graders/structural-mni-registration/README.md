@@ -68,7 +68,7 @@ nonlinear registration; else `acceptable`/`marginal`/`unacceptable` by weighted 
 
 `warped_on_template_grid`, `dseg_on_template_grid`, `warped_finite_in_brain`, `valid_labels`,
 `nonempty`, `brain_volume_plausible`, `brain_in_place` (propagated brain centre of mass close to
-the template's). Both caps are set per subject in `rubrics/<subject>.json`.
+the template's). Both caps are set per subject, and reach the scorer in the merged `reference/rubric.json`.
 
 `warped_finite_in_brain` rather than "no NaN anywhere": some resamplers write NaN
 outside the field of view by convention. Non-finite values are zeroed on load and judged only
@@ -84,7 +84,7 @@ different convention instead of warping the file it was given.
 
 ```
 structural-mni-registration/
-├── rubrics/<subject>.json    # weights, gate caps, label convention; envelope and grid merged from the Hub
+├── rubrics/policy.json    # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_registration.py     # the scorer
 ├── reference/                # template + priors — fetched from the Hub
 │   ├── README.md
@@ -98,7 +98,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structura
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

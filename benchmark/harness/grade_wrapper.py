@@ -44,6 +44,11 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from . import cases as cases_mod       # imported as benchmark.harness.grade_wrapper
+except ImportError:
+    import cases as cases_mod              # run as a script from this directory
+
 SCHEMA_VERSION = "1.0"
 
 # Ordering of the verdict vocabulary, worst -> best. Used only for display/tie context;
@@ -91,6 +96,13 @@ def grade(task_id, submission_dir, manifest_path, graders_root=None,
     # own; a task with one reference takes none. Checked here, not left to str.format,
     # where a missing subject is a KeyError and a wrong one a quiet path to nothing.
     allowed = spec.get("subjects") or []
+    if spec.get("per_subject") and not allowed:
+        # The subjects live in the gated cases.json, not in the manifest: the allowed
+        # list comes from there, and a case id becomes its subject.
+        cs = cases_mod.load(manifest, spec.get("reference_revision"))
+        allowed = cases_mod.subjects_of(cs, task_id)
+        if subject is not None:
+            subject = cases_mod.resolve(cs, task_id, subject)
     if spec.get("per_subject"):
         if subject is None:
             raise SystemExit(f"ERROR: '{task_id}' is graded per subject; pass --subject.\n"
@@ -108,12 +120,13 @@ def grade(task_id, submission_dir, manifest_path, graders_root=None,
     pack = root / spec["pack_dir"]
     if not scorer.exists():
         raise SystemExit(f"ERROR: scorer not found: {scorer}")
-    # A pack carries either one rubric, or a rubrics/ directory with one per subject that
-    # fetch_reference.py --subject selects into reference/. Requiring rubric.json of a
-    # per-subject pack would mean keeping a copy of one subject's calibration at the pack
-    # root, where nothing reads it and nothing says which subject it describes.
-    if not ((pack / "rubric.json").exists() or (pack / "rubrics").is_dir()):
-        raise SystemExit(f"ERROR: no rubric.json and no rubrics/ in pack: {pack}")
+    # A pack carries either one rubric, or rubrics/policy.json for the tasks graded per
+    # subject, which fetch_reference.py --subject merges with the subject's gated part
+    # into reference/rubric.json. Requiring rubric.json of a per-subject pack would mean
+    # keeping a copy of one subject's calibration at the pack root, where nothing reads
+    # it and nothing says which subject it describes.
+    if not ((pack / "rubric.json").exists() or (pack / "rubrics" / "policy.json").is_file()):
+        raise SystemExit(f"ERROR: no rubric.json and no rubrics/policy.json in pack: {pack}")
 
     # The contracted path: the task's own, else the manifest default for a task graded
     # per subject (submission_path, one level deeper) or for one with a single reference.
@@ -238,6 +251,9 @@ def main(argv=None):
     g.add_argument("--subject", help="the subject graded, for a task graded per subject "
                                      "(per_subject in the manifest); its output is read at "
                                      "submissions/<task_id>/<subject>/")
+    g.add_argument("--case", dest="subject", help="the case id a run names; the reference "
+                                                  "dataset's cases.json maps it to the subject, "
+                                                  "and the output is read under the subject")
     g.add_argument("--submission-dir", required=True, help="dir holding submission/output.nii.gz")
     g.add_argument("--manifest", default=str(Path(__file__).parent / "run_manifest.json"))
     g.add_argument("--graders-root", help="override; default = parent of the manifest's dir")

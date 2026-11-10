@@ -22,7 +22,7 @@ here and in [`rubrics/`](rubrics/).
 
 ```
 structural-brain-extraction/
-├── rubrics/<subject>.json            # per-subject calibration: τ, envelope, weights, gate caps, grid
+├── rubrics/policy.json            # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── brain_extraction_grading.png      # the explainer figure above
 ├── score_brain_mask.py               # the grader — importable score() + CLI
 ├── reference/                        # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
@@ -59,7 +59,7 @@ that rather than hard-coding anything here; [`benchmark/harness/README.md`](../.
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

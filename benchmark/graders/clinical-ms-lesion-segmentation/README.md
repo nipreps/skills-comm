@@ -66,7 +66,7 @@ answer.
 
 ```
 clinical-ms-lesion-segmentation/
-├── rubrics/<subject>.json  # per-subject fixed metric thresholds, weights, verdict thresholds, grid
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_lesion_seg.py  # the lesion scorer (shared with the stroke and WMH packs)
 ├── reference/           # expert consensus mask — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md

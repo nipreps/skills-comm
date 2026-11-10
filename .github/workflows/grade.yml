@@ -102,17 +102,17 @@ jobs:
           # perfect submission -- which is not a perfect answer to a registration.
           # Restoring that coverage needs a selftest those tasks can satisfy.
           - task: clinical-wmh-segmentation
-            graded_ref: lesion_mask.nii.gz          # expert reference, graded per subject
-            subject: Utrecht_39
+            graded_ref: lesion_mask.nii.gz          # expert reference, graded per case
+            case: case-302
           - task: structural-tissue-segmentation-7t
-            graded_ref: consensus_seg.nii.gz        # multiclass scorer, graded per subject
-            subject: sub-025
+            graded_ref: consensus_seg.nii.gz        # multiclass scorer, graded per case
+            case: case-118
           - task: structural-brain-extraction
-            graded_ref: consensus_mask.nii.gz       # binary scorer, graded per subject
-            subject: sub-0023
+            graded_ref: consensus_mask.nii.gz       # binary scorer, graded per case
+            case: case-532
           - task: clinical-ms-lesion-segmentation
-            graded_ref: lesion_mask.nii.gz          # expert reference, graded per subject
-            subject: patient08
+            graded_ref: lesion_mask.nii.gz          # expert reference, graded per case
+            case: case-619
     steps:
       - uses: actions/checkout@v4
 
@@ -128,7 +128,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python benchmark/harness/fetch_reference.py --task "${{ matrix.task }}" \
-            ${{ matrix.subject && format('--subject {0}', matrix.subject) || '' }}
+            ${{ matrix.case && format('--case {0}', matrix.case) || '' }}
 
       - name: Synthesise perfect + broken submissions from the reference
         run: |
@@ -136,7 +136,11 @@ jobs:
           import numpy as np, nibabel as nib
           from pathlib import Path
           task="${{ matrix.task }}"; graded="${{ matrix.graded_ref }}"
-          subject="${{ matrix.subject }}"
+          # The run names a case; the submission goes under the subject it stands for,
+          # which the fetch just recorded in reference/.subject. Reading it here keeps
+          # the workflow free of any subject id.
+          marker = Path("benchmark/graders")/task/"reference"/".subject"
+          subject = marker.read_text().strip() if marker.is_file() else ""
           ref = Path("benchmark/graders")/task/"reference"/graded
           img = nib.load(str(ref))
           # perfect = an exact copy of the graded reference -> must sit inside the
@@ -156,7 +160,7 @@ jobs:
           TASK: ${{ matrix.task }}
         run: |
           mkdir -p results
-          SUBJ="${{ matrix.subject && format('--subject {0}', matrix.subject) || '' }}"
+          SUBJ="${{ matrix.case && format('--case {0}', matrix.case) || '' }}"
           python benchmark/harness/grade_wrapper.py grade --task "${{ matrix.task }}" $SUBJ \
             --submission-dir run_perfect --model selftest --condition perfect \
             --out results/perfect.json || true
@@ -177,9 +181,9 @@ jobs:
           # is a download rather than an answer and the grader refuses it. The probe is
           # still worth running there: it is the only check that the reference and the
           # scorer sit on the same grid, which Dice 1.0 proves, and it exercises the gate.
-          copy_gated = any(
-              json.loads(r.read_text()).get("copy_suspect_dice") is not None
-              for r in Path("benchmark/graders", task, "rubrics").glob("*.json"))
+          policy = Path("benchmark/graders", task, "rubrics", "policy.json")
+          copy_gated = (policy.is_file()
+                        and json.loads(policy.read_text()).get("copy_suspect_dice") is not None)
 
           if copy_gated:
               ok = (p["verdict"] == "invalid" and not p["valid"]

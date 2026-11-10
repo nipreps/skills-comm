@@ -10,7 +10,7 @@ See [`PROVENANCE.md`](PROVENANCE.md).
 
 ## Shared scorer (no duplication)
 
-This pack ships only the calibration (`rubrics/<subject>.json`) + the reference pointer — **not** its own scorer.
+This pack ships only the policy (`rubrics/policy.json`) + the reference pointer — **not** its own scorer.
 Grade with the shared scorer from the sibling pack, pointing `--pack` here:
 
 ```bash
@@ -37,7 +37,7 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 ```
 structural-brain-extraction-pediatric/
-├── rubrics/<subject>.json  # per-subject frozen calibration: τ, envelope, weights, gate caps
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── reference/           # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md        #   dataset path + fetch command
 │   └── .gitignore
@@ -49,7 +49,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `structura
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

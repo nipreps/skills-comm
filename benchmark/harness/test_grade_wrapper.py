@@ -61,7 +61,7 @@ class GradeWrapperTests(unittest.TestCase):
             submission = root / "run"
             harness.mkdir()
             (pack / "rubrics").mkdir(parents=True)
-            (pack / "rubrics" / "sub-01.json").write_text("{}")
+            (pack / "rubrics" / "policy.json").write_text("{}")
 
             # A scorer that reports back which mask it was given.
             scorer = pack / "score.py"

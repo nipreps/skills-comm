@@ -1,7 +1,8 @@
 # Provenance — how this grader pack was calibrated
 
-One rubric per subject, in `rubrics/<subject>.json`, each the frozen output of a calibration
-on that subject's own panel. Scoring a submission never re-derives them.
+One rubric per subject, assembled at fetch time from the shared `rubrics/policy.json` and
+that subject's gated calibration, which is the frozen output of a calibration on its own
+panel. Scoring a submission never re-derives them.
 
 **ds002790**, T1w at 1 mm, registered to **MNI152NLin2009cAsym** (TemplateFlow, `res-01`,
 193 × 229 × 193 at 1 mm). The template is the same for every subject, so the reference is
@@ -49,7 +50,7 @@ are in the gated provenance.
 
 The supplied segmentation uses **1 = GM, 2 = WM, 3 = CSF**. This was verified from the data, not
 assumed: mean T1w intensity per label is 156 k / 233 k / 82 k, and WM is the brightest tissue on a
-T1w, which fixes the mapping. `rubrics/<subject>.json` carries it as `tissue_labels` so the scorer never
+T1w, which fixes the mapping. `rubrics/policy.json` carries it as `tissue_labels` so the scorer never
 guesses.
 
 The scorer additionally reports (never scores) `suspected_label_permutation` when some other

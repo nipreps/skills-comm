@@ -27,12 +27,7 @@
     "acceptable": 60,
     "marginal": 30
   },
-  "item": "mnireg_ds002790_sub-0041",
-  "prompt": "Register the T1w of sub-0041 (ds002790, OpenNeuro) to MNI152NLin2009cAsym and carry the supplied tissue segmentation through the same transform.",
-  "plausible_brain_volume_cm3": [
-    1290.0,
-    2440.0
-  ],
   "max_com_offset_mm": 5.0,
-  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py"
+  "_calibration": "gated: fetched from the reference dataset and merged by fetch_reference.py",
+  "_subject": "gated: the subject's own fields (item, prompt, grid, plausible_brain_volume_cm3) are fetched from the reference dataset, rubrics/<task>/<subject>.json, and merged by fetch_reference.py"
 }

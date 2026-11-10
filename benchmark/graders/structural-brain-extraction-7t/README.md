@@ -1,7 +1,7 @@
 # Grader: `structural-brain-extraction-7t`
 
 A **consensus-calibrated grader** for skull-stripping a **7 Tesla MP2RAGE** scan
-(CEREBRUM-7T `ds003642`; sub-025, sub-045 and sub-075, 0.63 mm isotropic). It is the companion to
+(CEREBRUM-7T `ds003642`, 0.63 mm isotropic). It is the companion to
 `structural-brain-extraction` (healthy 3T baseline) on the **field-strength / sequence axis**.
 
 Same design as the baseline: score a submission against a STAPLE consensus of a tool panel split
@@ -21,7 +21,7 @@ task. Everything governing how a submission is *graded* stays here.
 
 ## Shared scorer (no duplication)
 
-This pack carries **only the calibration** (`rubrics/<subject>.json`) and the reference pointer — it does
+This pack carries **only the policy** (`rubrics/policy.json`) and the reference pointer — it does
 **not** ship its own scorer. Grade with the shared scorer from the baseline pack, pointing `--pack`
 here:
 
@@ -35,7 +35,7 @@ python3 ../structural-brain-extraction/score_brain_mask.py \
 
 ```
 structural-brain-extraction-7t/
-├── rubrics/<subject>.json  # per-subject frozen calibration: τ, envelope, weights, gate caps, grid.raw_affine
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── reference/           # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md        #   dataset path + fetch command
 │   └── .gitignore
@@ -48,7 +48,7 @@ The pack is frozen once; scoring never re-calibrates.
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

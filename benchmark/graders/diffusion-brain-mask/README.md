@@ -62,7 +62,7 @@ voxel, 2.5 mm; a uniformly tighter boundary is priced by τ, NSD and HD95 instea
 
 ```
 diffusion-brain-mask/
-├── rubrics/<subject>.json   # per-subject calibrated numbers (tau, envelope, weights, gate caps, grid)
+├── rubrics/policy.json   # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_brain_mask.py   # shared scorer, unmodified
 ├── reference/            # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md
@@ -75,7 +75,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `diffusion
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

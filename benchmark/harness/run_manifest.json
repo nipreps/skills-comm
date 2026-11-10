@@ -1,12 +1,13 @@
 {
   "schema_version": "1.0",
-  "description": "Drives the automated grading plane. One entry per gradeable task. Paths are relative to graders_root (default: the parent of this file's dir, i.e. benchmark/) except submission paths, which are relative to --submission-dir and templated with {task_id}. The agent writes its result to submissions/<task_id>/output.nii.gz; the grader reads ONLY that path (no fuzzy file discovery). Tasks marked per_subject run once per entry in their `subjects` list; {subject} in ref_dir and in submission paths is substituted with that id.",
+  "description": "Drives the automated grading plane. One entry per gradeable task. Paths are relative to graders_root (default: the parent of this file's dir, i.e. benchmark/) except submission paths, which are relative to --submission-dir and templated with {task_id}. The agent writes its result to submissions/<task_id>/output.nii.gz; the grader reads ONLY that path (no fuzzy file discovery). Tasks marked per_subject run once per case of theirs in the reference dataset's cases.json (harness/cases.py): a run names the case, the gated file names the subject; {subject} in ref_dir and in submission paths is substituted with that id.",
   "defaults": {
     "submission_output_path": "submissions/{task_id}/output.nii.gz",
     "reference_repo": "neurodeskorg/skills-comm-ground-truth",
     "reference_repo_type": "dataset",
-    "reference_revision": "e3619b09778a",
-    "submission_path": "submissions/{task_id}/{subject}/output.nii.gz"
+    "reference_revision": "bb49fb08210d",
+    "submission_path": "submissions/{task_id}/{subject}/output.nii.gz",
+    "cases_file": "cases.json"
   },
   "tasks": {
     "structural-brain-extraction": {
@@ -23,14 +24,7 @@
         "consensus_zones.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-0004",
-        "sub-0008",
-        "sub-0023",
-        "sub-0025",
-        "sub-0039"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-brain-extraction-pediatric": {
       "pack_dir": "graders/structural-brain-extraction-pediatric",
@@ -46,14 +40,7 @@
         "consensus_zones.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-pixar005",
-        "sub-pixar008",
-        "sub-pixar012",
-        "sub-pixar016",
-        "sub-pixar017"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-brain-extraction-motion": {
       "pack_dir": "graders/structural-brain-extraction-motion",
@@ -69,14 +56,7 @@
         "consensus_zones.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-000103",
-        "sub-143104",
-        "sub-281888",
-        "sub-678878",
-        "sub-723372"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-brain-extraction-7t": {
       "pack_dir": "graders/structural-brain-extraction-7t",
@@ -92,12 +72,7 @@
         "consensus_zones.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-025",
-        "sub-045",
-        "sub-075"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-brain-extraction-7t-nodura": {
       "pack_dir": "graders/structural-brain-extraction-7t-nodura",
@@ -114,12 +89,7 @@
         "dura_envelope.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-025",
-        "sub-045",
-        "sub-075"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-brain-extraction-stroke": {
       "pack_dir": "graders/structural-brain-extraction-stroke",
@@ -136,14 +106,7 @@
         "lesion_mask.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-M2129",
-        "sub-M2191",
-        "sub-M2213",
-        "sub-M2262",
-        "sub-M2282"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-tissue-segmentation-7t": {
       "pack_dir": "graders/structural-tissue-segmentation-7t",
@@ -157,12 +120,7 @@
         "consensus_agreement.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-025",
-        "sub-045",
-        "sub-075"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "structural-mni-registration": {
       "pack_dir": "graders/structural-mni-registration",
@@ -181,14 +139,7 @@
         "template_probseg_CSF.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-0006",
-        "sub-0014",
-        "sub-0041",
-        "sub-0061",
-        "sub-0129"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "diffusion-brain-mask": {
       "pack_dir": "graders/diffusion-brain-mask",
@@ -204,14 +155,7 @@
         "consensus_zones.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-CON02",
-        "sub-CON03",
-        "sub-CON05",
-        "sub-CON08",
-        "sub-CON09"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "clinical-stroke-lesion-segmentation": {
       "pack_dir": "graders/clinical-stroke-lesion-segmentation",
@@ -224,14 +168,7 @@
         "lesion_mask.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "sub-M2129",
-        "sub-M2191",
-        "sub-M2213",
-        "sub-M2262",
-        "sub-M2282"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "clinical-ms-lesion-segmentation": {
       "pack_dir": "graders/clinical-ms-lesion-segmentation",
@@ -244,14 +181,7 @@
         "lesion_mask.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "patient01",
-        "patient03",
-        "patient08",
-        "patient12",
-        "patient14"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     },
     "clinical-wmh-segmentation": {
       "pack_dir": "graders/clinical-wmh-segmentation",
@@ -264,14 +194,7 @@
         "lesion_mask.nii.gz"
       ],
       "per_subject": true,
-      "subjects": [
-        "Amsterdam_GE3T_100",
-        "Amsterdam_GE3T_114",
-        "Singapore_52",
-        "Utrecht_33",
-        "Utrecht_39"
-      ],
-      "reference_revision": "e3619b09778a"
+      "reference_revision": "bb49fb08210d"
     }
   }
 }

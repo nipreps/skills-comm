@@ -61,7 +61,7 @@ answer.
 
 ```
 clinical-stroke-lesion-segmentation/
-├── rubrics/<subject>.json  # per-subject fixed metric thresholds, weights, verdict thresholds, grid
+├── rubrics/policy.json  # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_lesion_seg.py  # the lesion scorer
 ├── reference/           # expert lesion mask — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md
@@ -74,7 +74,7 @@ Reference: Hugging Face `neurodeskorg/skills-comm-ground-truth`, path `clinical_
 
 ## Verdicts
 
-Best to worst. `quality` is the weighted score in 0–100; the thresholds are in `rubrics/<subject>.json`.
+Best to worst. `quality` is the weighted score in 0–100; the thresholds are in the merged `reference/rubric.json`.
 
 | verdict | meaning |
 |---|---|

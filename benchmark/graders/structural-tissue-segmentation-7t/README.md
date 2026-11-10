@@ -49,7 +49,7 @@ The agent must output an **integer label map** with the fixed legend
 
 ```
 structural-tissue-segmentation-7t/
-├── rubrics/<subject>.json      # per-subject per-class τ, LOTO envelope, weights, gates
+├── rubrics/policy.json      # shared policy: weights, gates, verdict thresholds. The calibrated half and this subject's own fields are merged in from the gated dataset at fetch time
 ├── score_tissue_seg.py      # the multi-class scorer
 ├── reference/               # consensus NIfTIs — fetched from the Hub, plus the selected rubric.json
 │   ├── README.md

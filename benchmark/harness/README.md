@@ -103,15 +103,17 @@ carries `per_class`. `tiebreak` (mean Dice) breaks ties at equal `score`.
 python grade_wrapper.py list            # add --verbose for scorer + detail kind
 
 # fetch the grader-side reference for a task (gated dataset; export HF_TOKEN first).
-# Most tasks are graded per subject and need --subject; the manifest lists which, and
+# Most tasks are graded per subject: pass --case with the case id the run was given, or
+# --subject if you know it. The gated cases.json maps one to the other, and
 # fetch_reference names the available subjects if one is required and missing.
-python fetch_reference.py --task clinical-wmh-segmentation --subject Utrecht_39
+# (case-000 to case-099 are reserved for examples and are never real cases.)
+python fetch_reference.py --task clinical-wmh-segmentation --case case-042
 
 # grade one submission -> envelope JSON
 # --submission-dir is the working root; the grader looks for
 # <root>/submissions/<task_id>/output.nii.gz (so one root can hold many tasks)
 python grade_wrapper.py grade \
-  --task clinical-wmh-segmentation --subject Utrecht_39 --submission-dir ./run_qwen \
+  --task clinical-wmh-segmentation --case case-042 --submission-dir ./run_qwen \
   --model qwen --condition baseline --out results/qwen.json
 
 # rank many envelopes -> leaderboard.json (per-task ranking + model x task matrix)
