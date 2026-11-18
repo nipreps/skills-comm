@@ -7,7 +7,7 @@ description: >
   to Figshare", "export to Figshare", "make a shareable archive", or /datalad-export.
   Do NOT trigger for pushing to a sibling (use datalad-push) or creating a new remote
   (use datalad-siblings).
-argument-hint: [archive|figshare] [--filename path.tar.gz]
+argument-hint: "[archive|figshare] [--filename path.tar.gz]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

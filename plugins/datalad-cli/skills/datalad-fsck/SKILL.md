@@ -6,7 +6,7 @@ description: >
   Trigger on "check annex integrity", "verify dataset content", "annex fsck",
   "are my files corrupt", "check for missing content", "fsck", "data integrity check",
   or /datalad-fsck. Do NOT trigger for general DataLad status checks or `datalad status`.
-argument-hint: [--fast] [path]
+argument-hint: "[--fast] [path]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

@@ -9,7 +9,7 @@ description: >
   "create WebDAV sibling", "add OSF storage", "what siblings exist", "where is this data
   stored", or /datalad-siblings. Do NOT trigger for plain git remote operations outside
   a DataLad dataset.
-argument-hint: [create-github|create-gitlab|create-ria|create-gin|query|add|configure|remove|enable] [-s name] [--url url]
+argument-hint: "[create-github|create-gitlab|create-ria|create-gin|query|add|configure|remove|enable] [-s name] [--url url]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

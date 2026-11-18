@@ -5,7 +5,7 @@ description: >
   file states between revisions, commits, or branches. Trigger on "what changed between
   commits", "show diff", "compare revisions", "what was different", "changes since HEAD",
   or /datalad-diff. Read-only — never modifies any files.
-argument-hint: [revision-range] [paths...]
+argument-hint: "[revision-range] [paths...]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
