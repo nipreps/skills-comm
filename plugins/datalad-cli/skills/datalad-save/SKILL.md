@@ -6,7 +6,7 @@ description: >
   changes", "commit this", "record these edits", "checkpoint my work", or /datalad-save.
   Replaces git add + git commit inside DataLad datasets. Do NOT trigger in plain git
   repos without .datalad/ — use normal git there.
-argument-hint: [message] [paths...]
+argument-hint: "[message] [paths...]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

@@ -8,7 +8,7 @@ description: >
   is absent", "set subdataset property", "run on all subdatasets", "foreach dataset",
   "iterate over subdatasets", or /datalad-subdatasets. Do NOT trigger for plain git
   submodule commands outside a DataLad dataset.
-argument-hint: [--state absent|present] [-r] [--set-property name value path] [foreach-dataset]
+argument-hint: "[--state absent|present] [-r] [--set-property name value path] [foreach-dataset]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob

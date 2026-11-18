@@ -7,7 +7,7 @@ description: >
   from URLs", "bulk import from manifest", "create dataset from URL list", "ingest data
   from CSV", "addurls", "populate dataset from spreadsheet", or /datalad-addurls.
   Do NOT trigger for downloading a single file (use datalad-run with download-url instead).
-argument-hint: [manifest-file] [url-column] [filename-column]
+argument-hint: "[manifest-file] [url-column] [filename-column]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
