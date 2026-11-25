@@ -7,7 +7,7 @@ description: >
   "configure the dataset", "set annex backend", "check dataset config", "set datalad
   config", "change git config in this dataset", "configure credential", or
   /datalad-configuration. Do NOT trigger for global git config unrelated to DataLad.
-argument-hint: [get|set|unset] [section.key] [value] [--scope dataset|local|global]
+argument-hint: "[get|set|unset] [section.key] [value] [--scope dataset|local|global]"
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Bash, Glob
