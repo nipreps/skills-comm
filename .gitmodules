@@ -1,4 +1,4 @@
-[submodule "plugins/nipoppy-cli"]
-	path = plugins/nipoppy-cli
+[submodule "plugins/nipoppy-skills"]
+	path = plugins/nipoppy-skills
 	url = https://github.com/nipoppy/skills.git
 	branch = main

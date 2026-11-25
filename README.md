@@ -30,7 +30,7 @@ is either a full **Claude Code plugin** (with a `.claude-plugin/plugin.json` man
 | Plugin | What it operationalizes |
 |---|---|
 | [`plugins/datalad-cli`](plugins/datalad-cli) | DataLad / git-annex provenance and YODA-compliant analysis datasets |
-| [`plugins/nipoppy-cli`](plugins/nipoppy-cli) | The `nipoppy` dataset-management lifecycle (curation → BIDS → process → extract), plus Boutiques descriptor and argparse serialization skills. A git submodule of [nipoppy/skills](https://github.com/nipoppy/skills) |
+| [`plugins/nipoppy-skills`](plugins/nipoppy-skills) | The `nipoppy` dataset-management lifecycle (curation → BIDS → process → extract), plus Boutiques descriptor and argparse serialization skills. A git submodule of [nipoppy/skills](https://github.com/nipoppy/skills) |
 | [`plugins/brain-extraction`](plugins/brain-extraction) | Brain extraction (skull stripping) and its quality control |
 | [`plugins/combat-harmonization`](plugins/combat-harmonization) | ComBat-family harmonization strategy, execution, and QC |
 | [`plugins/fc-matrix-generation`](plugins/fc-matrix-generation) | Functional connectivity matrix generation from resting-state fMRI |
@@ -92,5 +92,5 @@ Apache License 2.0 — see [LICENSE](LICENSE). By contributing you agree your co
 is licensed under the same terms.
 
 Plugins included as git submodules are maintained in their upstream repository and keep
-that repository's license. `plugins/nipoppy-cli` is MIT-licensed by
+that repository's license. `plugins/nipoppy-skills` is MIT-licensed by
 [nipoppy/skills](https://github.com/nipoppy/skills).
