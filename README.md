@@ -30,7 +30,7 @@ is either a full **Claude Code plugin** (with a `.claude-plugin/plugin.json` man
 | Plugin | What it operationalizes |
 |---|---|
 | [`plugins/datalad-cli`](plugins/datalad-cli) | DataLad / git-annex provenance and YODA-compliant analysis datasets |
-| [`plugins/nipoppy-cli`](plugins/nipoppy-cli) | The `nipoppy` dataset-management lifecycle (curation → BIDS → process → extract) |
+| [`plugins/nipoppy-skills`](plugins/nipoppy-skills) | The `nipoppy` dataset-management lifecycle (curation → BIDS → process → extract), plus Boutiques descriptor and argparse serialization skills. A git submodule of [nipoppy/skills](https://github.com/nipoppy/skills) |
 | [`plugins/brain-extraction`](plugins/brain-extraction) | Brain extraction (skull stripping) and its quality control |
 | [`plugins/combat-harmonization`](plugins/combat-harmonization) | ComBat-family harmonization strategy, execution, and QC |
 | [`plugins/fc-matrix-generation`](plugins/fc-matrix-generation) | Functional connectivity matrix generation from resting-state fMRI |
@@ -59,6 +59,14 @@ should activate the skill. The body is a terse, imperative procedure — not a t
 
 ## Using these skills
 
+Some plugins are git submodules of their upstream repository. Clone with
+`--recurse-submodules`, or fetch them in an existing clone:
+
+```bash
+git clone --recurse-submodules https://github.com/nipreps/skills-comm.git
+git submodule update --init   # in an existing clone
+```
+
 Install a plugin into Claude Code (session-only for testing, or permanently):
 
 ```bash
@@ -82,3 +90,7 @@ read [AGENTS_CONTRIBUTING.md](AGENTS_CONTRIBUTING.md) and [AGENTS_GIT.md](AGENTS
 
 Apache License 2.0 — see [LICENSE](LICENSE). By contributing you agree your contribution
 is licensed under the same terms.
+
+Plugins included as git submodules are maintained in their upstream repository and keep
+that repository's license. `plugins/nipoppy-skills` is MIT-licensed by
+[nipoppy/skills](https://github.com/nipoppy/skills).

@@ -20,8 +20,10 @@ productive.
 **Contributions live under `plugins/<name>/`**, in one of two forms — both valid:
 
 - **Full plugin**: a `.claude-plugin/plugin.json` manifest + `README.md` + skills
-  (`plugins/datalad-cli`, `plugins/nipoppy-cli`). The manifest's `skills` array lists each
+  (`plugins/datalad-cli`, `plugins/nipoppy-skills`). The manifest's `skills` array lists each
   skill by relative path; `datalad-cli` also wires a `Stop` hook via `hooks/hooks.json`.
+  `plugins/nipoppy-skills` is a git submodule of `nipoppy/skills` (MIT): edit it upstream,
+  not here. Its manifest has no `skills` array and relies on default `skills/` discovery.
 - **Bare skill collection**: `SKILL.md` directories with no manifest
   (`plugins/brain-extraction`, `plugins/combat-harmonization`, `plugins/fc-matrix-generation`,
   `plugins/job-monitor`, `plugins/registration`).

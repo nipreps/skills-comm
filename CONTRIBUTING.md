@@ -26,7 +26,7 @@ A contribution is one directory under [`plugins/`](plugins/). Two forms are acce
 
 - **Full plugin** (preferred) — includes a `.claude-plugin/plugin.json` manifest listing
   its skills, plus a `README.md`. Installable via `claude plugin install`. See
-  `plugins/datalad-cli/` and `plugins/nipoppy-cli/` as models.
+  `plugins/datalad-cli/` as a model.
 - **Bare skill collection** — one or more `SKILL.md` directories without a manifest. Fine
   for a first or small contribution. See `plugins/brain-extraction/`, `plugins/job-monitor/`,
   or `plugins/registration/` as models.
@@ -107,3 +107,7 @@ Expect iteration — see `skill-iterations/` for the kinds of refinements that a
 
 By contributing you agree your contribution is licensed under the repository's
 [Apache License 2.0](LICENSE).
+
+Exception: a plugin included as a git submodule (`plugins/nipoppy-skills`) is maintained in
+its upstream repository and keeps that repository's license. Send changes to that plugin
+to its upstream repository, not to this one. A PR here only moves the submodule pin.

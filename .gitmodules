@@ -1,0 +1,4 @@
+[submodule "plugins/nipoppy-skills"]
+	path = plugins/nipoppy-skills
+	url = https://github.com/nipoppy/skills.git
+	branch = main
