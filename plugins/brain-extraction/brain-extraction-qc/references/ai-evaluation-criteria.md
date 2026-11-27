@@ -1,122 +1,161 @@
-# AI Visual Evaluation Criteria
+# Visual Evaluation Criteria
 
-This rubric defines how to visually evaluate brain extraction QC images. Load
-this file before completing Step 3 of the `brain-extraction-qc` skill.
+The visual layer of `brain-extraction-qc`. Read this **only if you can actually
+open images** — if you cannot, work from `numeric-criteria.md` and mark dura
+UNVERIFIED.
 
-The PNG mosaic shows three rows (Axial, Coronal, Sagittal) × nine columns
-(evenly-spaced slices). The brain mask is overlaid in red. Evaluate each
-criterion by scanning all three planes — some failures are only visible in
-one plane.
+Base visual ratings on the **AFNI outline PNG**. The mosaic PNG is supporting
+context. An outline is the more sensitive instrument: a translucent filled
+overlay looks equally acceptable whether its edge lies on the pial surface or
+four millimetres out in the dura, and that is exactly the distinction under
+test.
 
----
+## What vision adds
 
-## Evaluation Criteria
+The numeric battery covers most of the ground. Vision is worth the effort for
+the things measurement handles badly:
 
-### 1. No residual skull or scalp signal
+- **Dura and superior sagittal sinus** — the one criterion with no numeric
+  substitute at all. Dura is thin, overlaps cortex in T1 intensity, and sits
+  where a correct boundary also sits.
+- **Focal defects** — a single clipped temporal pole barely moves whole-mask
+  averages but is obvious in one coronal panel.
+- **Anatomy that explains a flagged number** — a stroke cavity, resection,
+  shift from mass effect, or a partial field of view turns "asymmetric mask" into
+  "correct mask of an asymmetric brain".
+- **Failures nothing anticipated** — wrap-around, bias field, motion ghosting,
+  a mask from the wrong subject.
 
-**What to look for:** Red mask extending into the bright ring of skull cortex
-or scalp fat visible in T1w. In axial slices, residual skull appears as a bright
-outer ring partially covered by red. In sagittal, look for red extending into
-the scalp above and behind the brain.
+Where the numbers are already decisive — hole volume, component count, mirror
+Dice — vision mostly confirms. Spend attention where it changes the answer.
 
-| Rating | Visual Description |
-|--------|--------------------|
-| **Pass** | Red mask boundary is tight to the brain surface; no skull or scalp voxels included |
-| **Borderline** | Small isolated patches of skull/scalp included at 1–2 locations; no large contiguous regions |
-| **Fail** | Continuous band of skull or scalp enclosed in the mask; clearly non-brain tissue included |
+## Reading the outline
 
----
+Across all three planes, the outline should:
 
-### 2. No excessive tissue loss at poles (frontal, temporal, occipital)
+- follow the cortical and cerebellar boundary closely
+- stay outside visible grey matter without cutting into it
+- track both hemispheres evenly rather than hugging one side
+- avoid skull, scalp, eyes, dura and large CSF regions
+- form one coherent boundary with no disconnected islands
 
-**What to look for:** Grey brain tissue visible in the image but NOT covered by
-the red mask. The most common failure sites are:
-- Frontal poles (anterior-most axial and sagittal slices)
-- Inferior temporal lobes (inferior coronal slices)
-- Occipital poles (posterior axial and sagittal slices)
-- Cerebellum (inferior axial and coronal slices)
-
-| Rating | Visual Description |
-|--------|--------------------|
-| **Pass** | All brain tissue covered; no uncovered grey matter visible at poles |
-| **Borderline** | Minor clipping at one pole (thin sliver of tissue outside mask); not affecting large regions |
-| **Fail** | Substantial brain tissue at one or more poles left outside the mask; would compromise downstream analysis |
-
----
-
-### 3. Symmetric left-right and anterior-posterior coverage
-
-**What to look for:** In axial slices, the red mask should appear roughly
-symmetric about the midline. In coronal slices, compare left vs. right
-hemisphere coverage. Asymmetry suggests the mask centre of mass was
-misaligned or the brain extraction failed on one side.
-
-| Rating | Visual Description |
-|--------|--------------------|
-| **Pass** | Coverage appears symmetric; no consistent L/R or A/P imbalance |
-| **Borderline** | Slight asymmetry at periphery; probably not affecting core brain volume |
-| **Fail** | Clear and consistent L/R or A/P asymmetry; one hemisphere or half substantially over/under-covered |
+Do not grade from a single slice. Scan the full row for a *consistent
+directional pattern* — one hemisphere repeatedly clipped, one end repeatedly
+over-included. A single odd panel is usually anatomy; a repeated bias is a mask
+error.
 
 ---
 
-### 4. No internal holes or disconnected mask regions
+## 1. No residual skull or scalp signal
 
-**What to look for:** Dark (unmasked) regions entirely enclosed within the red
-mask. Appears as black patches inside the red overlay in any plane. Also watch
-for small isolated red islands outside the main brain region (disconnected
-fragments — e.g., eyes, dural sinuses, cerebellum detached from the main mask).
+Look for the outline tracking the bright outer skull ring in axial panels, or
+extending into scalp above and behind the brain in sagittal.
 
-| Rating | Visual Description |
-|--------|--------------------|
-| **Pass** | Mask is continuous; no internal holes; no disconnected islands outside the main brain |
-| **Borderline** | 1–2 small internal holes or 1 small isolated island; not in critical regions |
-| **Fail** | Multiple large internal holes or multiple disconnected fragments; mask is not topologically valid |
+Ignore tiny isolated inferior or orbital-adjacent fragments unless they appear
+across multiple slices, connect to the main mask problematically, or would
+affect registration, segmentation or volumetry.
+
+| Rating | What it looks like |
+|---|---|
+| **Pass** | Outline tight to the brain surface; no meaningful skull or scalp inclusion |
+| **Borderline** | Small but definite skull/scalp inclusion at 1–2 locations, unlikely to affect core analysis |
+| **Fail** | Continuous band of skull or scalp enclosed; outline clearly traces non-brain tissue |
+
+## 2. No excessive tissue loss at poles
+
+The outline should run outside cortex, not through it. Common failure sites:
+frontal poles (anterior axial/sagittal), inferior temporal lobes (inferior
+coronal), occipital poles (posterior axial/sagittal), cerebellum (inferior
+axial/coronal).
+
+| Rating | What it looks like |
+|---|---|
+| **Pass** | All brain tissue covered; outline stays outside cortex at the poles |
+| **Borderline** | Minor clipping at one pole; a thin sliver of tissue outside the mask |
+| **Fail** | Substantial tissue at one or more poles left out; outline repeatedly cuts cortex |
+
+## 3. Symmetric left-right and anterior-posterior coverage
+
+Check that the outline tracks both hemispheres evenly about the midline in axial
+and coronal panels, and that anterior and posterior coverage is balanced.
+
+Cross-check against `lr_mirror_dice`, `lr_volume_asym_pct` and the axial-band
+breakdown. If the metric flags asymmetry and the image shows the outline
+correctly following an asymmetric brain, that is a **Pass with documentation** —
+name the anatomy. If the metric is clean but the image shows a consistent
+one-sided error, trust the image and say so.
+
+| Rating | What it looks like |
+|---|---|
+| **Pass** | Outline tracks the visible boundary evenly; any metric flag explained by anatomy |
+| **Borderline** | Mild repeatable peripheral asymmetry, or one unexplained flag that looks visually small |
+| **Fail** | Consistent L/R or A/P over- or under-coverage from mask error across multiple slices |
+
+## 4. No internal holes or disconnected mask regions
+
+Look for outline loops fully inside the brain (internal holes) and small
+isolated loops outside the main region (detached fragments — eyes, sinuses,
+detached cerebellum).
+
+| Rating | What it looks like |
+|---|---|
+| **Pass** | Continuous mask, one coherent boundary, no islands |
+| **Borderline** | 1–2 small internal holes or one small isolated loop, not in critical regions |
+| **Fail** | Multiple large holes or several disconnected fragments |
+
+## 5. Boundary tightness (not over-dilated into dura/CSF)
+
+The outline should follow the pial surface. Over-dilation appears as a bloated
+edge extending into the dark CSF space, commonly near the interhemispheric and
+Sylvian fissures.
+
+| Rating | What it looks like |
+|---|---|
+| **Pass** | Outline follows the brain surface; CSF ring visible outside the mask |
+| **Borderline** | Extends a few voxels into CSF/sulci; brain volume not substantially overestimated |
+| **Fail** | Clearly bloated; outline runs through CSF/dura rather than the brain edge |
+
+## 6. Dura / superior sagittal sinus inclusion
+
+**This criterion exists because it is the one thing the metrics cannot do.**
+Check the superior sagittal sinus along the vertex in sagittal and coronal
+panels, the transverse sinuses inferiorly, and the tentorium between cerebrum
+and cerebellum.
+
+| Rating | What it looks like |
+|---|---|
+| **Pass** | Outline excludes the sinuses and tentorium |
+| **Borderline** | Thin dural strip included along the vertex or tentorium |
+| **Fail** | Sinuses or a broad dural sheet enclosed in the mask |
+| **UNVERIFIED** | No visual inspection was performed — the only honest rating on a numeric-only run |
 
 ---
 
-### 5. Boundary tightness (not over-dilated into dura/CSF)
+## Overall verdict
 
-**What to look for:** The red boundary should follow the pial surface closely.
-Over-dilation appears as a soft/bloated mask edge extending well into the dark
-CSF space surrounding the brain. Common near the interhemispheric fissure and
-the Sylvian fissure.
+Start from the script's `NUMERIC_VERDICT`, which fails the mask on any single
+failing criterion. Adjust it only with a stated reason.
 
-| Rating | Visual Description |
-|--------|--------------------|
-| **Pass** | Mask boundary follows the brain surface; CSF ring visible outside the mask |
-| **Borderline** | Mask extends a few voxels into CSF/sulci; boundary not sharp but brain volume unlikely to be substantially overestimated |
-| **Fail** | Mask is clearly bloated; CSF included throughout; boundary tracking is poor |
+Overturning **downward** (numbers pass, you rate worse) needs no special
+justification beyond describing what you saw — dura inclusion and focal defects
+are exactly the cases the metrics miss.
 
----
+Overturning **upward** (numbers fail, you rate better) requires naming a
+concrete explanation: anatomy, pathology, acquisition, field of view, or a
+population mismatch with the reference ranges. "Looks fine to me" is not one.
+The failure mode this guards against — waving a bad mask through because the
+image gave a general impression of acceptability — is the most common way QC
+becomes ceremonial.
 
-## Overall Verdict
+## Common artefacts
 
-| Verdict | Criteria |
-|---------|---------|
-| **Pass** | All 5 criteria rated Pass or at most 1 Borderline; quantitative volume within expected range |
-| **Borderline** | 2–3 criteria rated Borderline, OR 1 criterion rated Fail with others Pass; may be usable with caution |
-| **Fail** | 2+ criteria rated Fail, OR 1 criterion rated Fail that affects core brain volume significantly |
-
----
-
-## Confidence Levels
-
-| Confidence | When to use |
-|-----------|-------------|
-| **High** | Image quality is good; criteria are clearly identifiable in all planes |
-| **Medium** | Image quality is moderate (motion, noise, low contrast) but criteria are mostly assessable |
-| **Low** | Image quality is poor, unusual anatomy, or pathology makes visual assessment genuinely uncertain |
-
----
-
-## Common Artefacts Reference
-
-| Artefact | Typical location | Which criterion |
-|---------|-----------------|----------------|
-| Temporal pole clipping | Inferior coronal, sagittal | Criterion 2 |
-| Frontal pole erosion | Anterior axial, sagittal | Criterion 2 |
-| Dural sinus inclusion | Superior sagittal sinus region | Criterion 5 |
-| Eye orbit inclusion | Inferior axial slices | Criterion 1 |
-| Disconnected cerebellar fragment | Inferior axial/coronal | Criterion 4 |
-| Interhemispheric fissure bloat | Mid-axial, coronal | Criterion 5 |
-| Scalp fat ring included | Outer ring, all axial | Criterion 1 |
+| Artefact | Typical location | Criterion |
+|---|---|---|
+| Temporal pole clipping | Inferior coronal, sagittal | 2 |
+| Frontal pole erosion | Anterior axial, sagittal | 2 |
+| Dural sinus inclusion | Superior sagittal sinus | 6 |
+| Eye orbit inclusion | Inferior axial | 1 |
+| Disconnected cerebellar fragment | Inferior axial/coronal | 4 |
+| Interhemispheric fissure bloat | Mid-axial, coronal | 5 |
+| Scalp fat ring included | Outer ring, all axial | 1 |
+| Tentorium included | Between cerebrum and cerebellum | 6 |

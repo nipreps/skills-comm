@@ -1,0 +1,11 @@
+{
+  "name": "brain-extraction",
+  "description": "Adult brain extraction and quantitative/visual quality control with reproducible neuroimaging workflows.",
+  "version": "0.2.0",
+  "author": { "name": "micmas" },
+  "keywords": ["neuroimaging", "brain-extraction", "skull-stripping", "MRI", "quality-control"],
+  "skills": [
+    "./brain-extraction",
+    "./brain-extraction-qc"
+  ]
+}

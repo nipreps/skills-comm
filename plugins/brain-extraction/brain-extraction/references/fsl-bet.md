@@ -1,79 +1,67 @@
-# FSL BET — Brain Extraction Tool
+# FSL BET
 
-**Module:** `fsl/6.0.7.22`
-**Command:** `bet`
+BET extracts a brain surface from an intensity image using a deformable model.
+Its behavior depends on image contrast and the fractional intensity parameter.
+This sheet documents the conventional invocation and exact mask filename
+without ranking it.
 
-## Basic Usage
+## Availability and resources
 
-```bash
-bet <input> <output> [options]
-```
-
-`<input>` — input NIfTI image (T1w recommended)
-`<output>` — output brain image path (without extension; BET adds `.nii.gz`)
-
-## Key Flags
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-f <val>` | 0.5 | Fractional intensity threshold (0–1). Lower = larger brain estimate. Try 0.3–0.4 for images with large scalp/neck. |
-| `-g <val>` | 0 | Vertical gradient (-1 to 1). Negative = larger at bottom (useful for neck-heavy FOV). |
-| `-R` | off | Robust brain centre estimation — iterates BET; slower but better for challenging images |
-| `-m` | off | Output binary brain mask as `<output>_mask.nii.gz` |
-| `-B` | off | Bias field correction + brain extraction (adds time; useful for field-inhomogeneous data) |
-| `-S` | off | Eye & optic nerve cleanup (use with `-B` for cleaner masks) |
-| `-F` | off | Functional data mode — applies to 4D EPI |
-
-## Output Files
-
-| File | Description |
-|------|-------------|
-| `<output>.nii.gz` | Brain-extracted image |
-| `<output>_mask.nii.gz` | Binary brain mask (requires `-m`) |
-
-**Brain mask path for QC handoff:** `<output>_mask.nii.gz`
-
-## Recommended Default Command
+- Module: `fsl/6.0.7.22`
+- Executable: `bet`
+- Input compatibility: conventional T1w is the documented V4 use. Computed or
+  noisy contrasts such as raw MP2RAGE UNI require particular caution.
+- Conservative Slurm starting request: 2 CPUs, 4 GB RAM, 30 minutes.
 
 ```bash
-bet "${INPUT}" "${OUTPUT}" -f 0.5 -m -R
-```
-
-`-R` improves robustness with minimal time cost for most structural T1w scans.
-Use `-B` additionally if field inhomogeneity is expected.
-
-## Tuning Guide
-
-| Problem observed | Adjustment |
-|-----------------|-----------|
-| Too much brain removed (over-stripping) | Lower `-f` (try 0.3) |
-| Skull/scalp remaining (under-stripping) | Raise `-f` (try 0.6–0.7) |
-| Poor result in inferior brain | Add `-g -0.1` |
-| Still failing | Switch to `-R` + reduce `-f`, or consider mri_synthstrip |
-
-## SLURM Resource Estimates
-
-```
-#SBATCH --time=00:15:00
-#SBATCH --mem=4G
-#SBATCH --cpus-per-task=1
-```
-
-## SLURM Script Template
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=brain_extraction
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
-#SBATCH --time=00:15:00
-#SBATCH --mem=4G
-#SBATCH --cpus-per-task=1
-
-mkdir -p logs/
-mkdir -p "${OUT_DIR}"
-
+set -o pipefail
+module -t avail fsl/6.0.7.22 2>&1 | grep -F 'fsl/6.0.7.22'
 module load fsl/6.0.7.22
-
-bet "${INPUT}" "${OUTPUT}" -f 0.5 -m -R
+command -v bet
+bet >logs/tool-probes/bet_help.log 2>&1 || test -s logs/tool-probes/bet_help.log
 ```
+
+## Invocation
+
+The conventional fixed invocation documented for this tool is:
+
+```bash
+module load fsl/6.0.7.22
+mkdir -p "${ATTEMPT_DIR}"
+BET_PREFIX="${ATTEMPT_DIR}/brain"
+bet "${INPUT}" "${BET_PREFIX}" -f 0.5 -m -R
+```
+
+Use that command unchanged. `-m` and `-R` are boolean flags. `-S` is also a
+boolean optional cleanup mode, is not part of this validated invocation, and
+must never be written as `-S 1` (BET interprets `1` as an unexpected argument
+and exits after printing usage). Do not add `-S`, `-B`, or another variation
+without an explicit method decision.
+
+Do not select this conventional BET sheet for a high-resolution 7T or raw
+MP2RAGE/UNI input merely because the module is available. Choose only a tool
+whose own reference documents compatibility with that contrast.
+
+## Outputs
+
+| Output | Meaning | Use |
+|---|---|---|
+| `${BET_PREFIX}_mask.nii.gz` | Binary mask created by `-m` | Publication candidate |
+| `${BET_PREFIX}.nii.gz` | Brain-extracted intensity image | Never publish as the mask |
+
+Do not give the prefix a `_mask` suffix and then select the prefix image; BET
+always appends `_mask` to create the binary candidate.
+
+## Known signatures and limitations
+
+| Signature | Interpretation |
+|---|---|
+| BET wrote a binary mask, followed by an ad hoc Nibabel exception | Wrapper failure, not tool failure |
+| Logged values `[0. 1.]` followed by a custom non-binary error | Wrapper/output-validation failure |
+| Prefix intensity image handed off | Output-contract violation |
+| Publisher rejects topology, grid, emptiness, or volume | Candidate/output-quality failure |
+
+Parameter tuning changes the operating point and should be recorded as a
+scientific choice rather than silently tried in a loop. Publisher volume
+rejection is not permission to lower `-f` repeatedly until the gate passes.
+Retain command, job logs, both outputs, and publisher JSON.

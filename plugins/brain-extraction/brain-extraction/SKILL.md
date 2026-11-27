@@ -1,221 +1,156 @@
 ---
 name: brain-extraction
 description: >
-  Perform brain extraction (skull stripping) on an MRI image in the Neurodesk
-  environment. Invoke on "skull strip", "brain extraction", "remove skull",
-  "strip the brain", "BET", "antsBrainExtraction", "mri_synthstrip", "HD-BET",
-  "3dSkullStrip", "synthstrip", "brain mask", "create brain mask",
-  "whole brain mask", "mask the brain", "strip the skull",
-  or "brain-extraction". Also invoke when the user says they want to isolate
-  brain tissue, remove non-brain voxels, or prepare a brain mask for
-  downstream registration or segmentation.
+  Perform adult brain extraction or skull stripping and publish a
+  publication-gated whole-brain MRI mask. Invoke on "skull strip", "brain extraction", "remove
+  skull", "brain mask", "whole brain mask", or a request to isolate brain
+  tissue for downstream analysis.
 ---
 
-# Skill: brain-extraction
+# Brain extraction
 
-Guide the user through brain extraction (skull stripping) in the Neurodesk
-environment: identify the input, present tool options without bias, write a
-SLURM-compliant bash script, submit it, and hand off to QC on completion.
+This skill supplies anatomical task knowledge and the execution/publication
+contract. Tool references are neutral capability sheets, not a preferred order.
 
-## Nipoppy datasets
+## 1. Check the anatomical target
 
-If the input lives in a Nipoppy dataset (a `config.json` and `manifest.tsv` are present at the
-dataset root), prefer **scaffolding a tool-specific `brainextraction` Nipoppy pipeline** into
-the user's project instead of running a standalone SLURM script. The user then owns a
-Nipoppy-tracked pipeline they can version and share, and outputs land in the standard
-derivatives layout where `track-processing` and QC Studio find them.
+A whole-brain extraction mask should include cerebral and cerebellar tissue,
+brainstem to a defensible inferior cutoff, and the intracranial CSF boundary
+appropriate to the requested downstream use. It should exclude scalp, skull,
+orbits, nasal tissue, and neck. Inspect difficult boundaries at frontal poles,
+inferior temporal lobes, posterior fossa, superior sagittal sinus, and around
+large lesions or postoperative change.
 
-Run this as a sub-flow of the steps below — still present the tool menu (Step 3) and let the
-user choose; the choice selects the recipe rather than a `module load`:
+The mask must be a coherent brain-shaped component. A binary file can still be
+wrong through scalp inclusion, clipped cortex, an inferior leak, or selection
+of an intensity-valued “brain image” instead of the mask output.
 
-1. **Confirm naming.** Ask for the pipeline **name** (default `brainextraction-<tool>`) and
-   **version** (default `1.0.0`) so the user can version and share it.
-2. **Render the bundle.** Read `../nipoppy-pipelines/template/` and the chosen tool's section in
-   `../nipoppy-pipelines/tool-recipes.md`, substitute every `{{TOKEN}}`, and write the five files
-   (`config`, `descriptor`, `invocation`, `tracker`, `hpc`) into the user's project, e.g.
-   `<dataset>/pipelines/<name>/`. The rendered files MUST be valid JSON (no trailing commas, no
-   leftover `{{...}}`). Keep the standardized output names — never tool-specific names.
-3. **Validate & install.**
-   ```bash
-   nipoppy pipeline validate <dataset>/pipelines/<name>
-   nipoppy pipeline install  <dataset>/pipelines/<name>
-   ```
-4. **Run & track.**
-   ```bash
-   nipoppy process          --pipeline <name> --pipeline-version <version>
-   nipoppy track-processing --pipeline <name> --pipeline-version <version>
-   ```
-5. **Hand off to QC.** Outputs land at
-   `derivatives/<name>/<version>/output/<sub>/<ses>/anat/<sub>_<ses>_desc-brain_mask.nii.gz`
-   (and `_desc-brain_T1w.nii.gz`). Invoke `brain-extraction-qc` with those paths; it renders the
-   matching QC Studio view from `../qc-studio/template/qc.json`.
+## 2. Establish the input and output contract
 
-See `../nipoppy-pipelines/README.md` for the template, tokens, and the package/version/share
-path. The standalone SLURM workflow below remains the fallback for data that is not in a Nipoppy
-dataset.
+The bundled publisher accepts adult brain masks of 900–1900 cm3 and has no
+override. If the input is paediatric, neonatal, rodent, markedly atrophic, or
+post-resection anatomy, do not invoke this publisher; report that this skill's
+publication contract does not support the case. QC's adjustable numeric range
+does not override the publisher's gate.
 
-## Steps
+Require a readable 3D extraction input, an explicit final mask path, and an
+explicit `REFERENCE_GRID`. The reference defaults to the extraction input, but
+downstream lesion QC may require a different already-coregistered anatomical
+grid (for example FLAIR). Inspect modality, shape, affine, voxel size,
+dimensionality, dtype, and finite-value range for both. For a 4D input,
+establish the reference volume first. Do not overwrite an existing final result
+unless replacement was requested and the old result was preserved.
 
-1. **Identify the input image**
+## 3. Select a documented compatible tool
 
-   Read the invocation arguments or current user request for a NIfTI path. If
-   none is given, ask the user:
-   > "Please provide the path to your input NIfTI image (e.g., `sub-01/anat/sub-01_T1w.nii.gz`)."
+Start from modality compatibility and the task's compute constraints. Read only
+the references for plausible tools; read `references/tool-comparison.md` only
+if it changes the choice. Read `references/troubleshooting.md` only when its
+failure signature matches. Choose autonomously based on documented fit,
+availability, live Slurm capacity, output contract, and validation evidence.
+Record the selected method and reason in one line. Do not ask the user to
+choose.
 
-   Once a path is provided, verify it exists:
-   ```bash
-   ls "<input_path>"
-   ```
-   If missing, stop and report the exact path that was not found. Do not proceed.
+Run and retain these probes before writing Slurm directives:
 
-   Check the file extension ends in `.nii` or `.nii.gz`. If not, warn the user
-   that the file may not be a valid NIfTI and ask them to confirm.
+```bash
+mkdir -p logs/tool-probes
+nvidia-smi >logs/tool-probes/00_nvidia-smi.log 2>&1 || true
+{
+  sinfo -h -o 'partition=%P state=%a time=%l cpus=%c memory_mb=%m gres=%G'
+  sinfo -N -h -o 'node=%N state=%T cpus=%c memory_mb=%m gres=%G'
+  scontrol show partition
+} >logs/tool-probes/00_slurm_resources.log 2>&1
+```
 
-   Check that the input is a 3D volume, not a 4D timeseries:
-   ```bash
-   python3 -c "import nibabel as nib; img = nib.load('<input_path>'); d4 = img.shape[3] if len(img.shape) > 3 else 1; print('dim4=' + str(d4))"
-   ```
-   If `dim4 > 1`, warn the user:
-   > "This appears to be a 4D volume (dim4 = N). Brain extraction expects a 3D
-   > anatomical image. Please confirm you intended this file, or select a
-   > single-volume NIfTI before proceeding."
-   Do not proceed past Step 1 until the user confirms the correct input.
+Use only a reference-documented method whose availability probe succeeds.
+Record failures and consider another documented compatible tool. Exhausting
+the documented tools is reportable failure; intensity thresholding, masks from
+nonzero voxels, and handwritten morphology are not substitutes.
 
-2. **Identify the output location**
+Copy the selected reference's validated invocation exactly. Do not add optional
+flags from memory, attach numeric values to boolean flags, or tune parameters in
+a retry loop. A different invocation is a new scientific choice and must not be
+silently substituted for the documented operating point.
 
-   If an output prefix was given as the second argument, use it. Otherwise,
-   default to the same directory as the input with `_brain` appended before the
-   extension (e.g., `sub-01/anat/sub-01_T1w_brain`). Confirm with the user or
-   infer silently if the context is clear.
+## 4. Execute and publish
 
-   Determine the output directory and set `OUT_DIR` for use in the script.
+Put substantive work in a retained `src/analysis_<step>_brain_extraction.sh`,
+pin the documented module, use a job-specific attempt directory, and submit
+through Slurm with resources fitting the live report. Require captured job ID,
+`sacct` `COMPLETED` with `ExitCode 0:0`, inspected logs, and the exact candidate
+filename documented for the selected tool.
 
-3. **Present tool options**
+Submit one job per selected method. Capture `JOB_ID=$(sbatch --parsable
+<script>)`, monitor that ID with `squeue -j "${JOB_ID}"`, and inspect it with
+`sacct -j "${JOB_ID}"`. Never run `sbatch --wait "${JOB_ID}"` (sbatch treats
+the ID as a script path). If a job fails, inspect its logs and resubmit only
+after correcting a demonstrated cause, using a new attempt directory.
 
-   Load `references/tool-comparison.md` from this skill directory and present
-   the comparison table to the user. Include columns: Tool, Method, Speed,
-   Template Required, GPU Optional, Best For.
+Resolve the installed skill directory before writing the retained Slurm script
+and store its absolute path in `SKILL_DIR`; it is not automatically defined:
 
-   After presenting the table, ask:
-   > "Which tool would you like to use? If you'd like a recommendation based on
-   > your data type or constraints, let me know."
+```bash
+SKILL_DIR="/absolute/path/to/brain-extraction" # Replace with the installed path before submission.
+: "${SKILL_DIR:?Set SKILL_DIR to this skill's installed directory before submission}"
+test -f "${SKILL_DIR}/scripts/publish_mask.py"
+HELPER_PYTHON="${HELPER_PYTHON:-$(command -v python3)}"
+test -x "${HELPER_PYTHON}"
+```
 
-   Do not express a preference unprompted. If the user asks for a recommendation:
-   - Default anatomy T1w, no special constraints → FSL BET (fast, universal)
-   - Difficult anatomy, low contrast, or high accuracy required → FreeSurfer mri_synthstrip or HD-BET
-   - Multi-modal (T2, FLAIR, DWI) → mri_synthstrip or SynthStrip
-   - Need maximum accuracy and have time → ANTs antsBrainExtraction
-   - Functional / EPI data → AFNI 3dSkullStrip
+Capture `HELPER_PYTHON` before loading the imaging module so a container wrapper
+cannot replace the host interpreter needed to read bundled helper scripts.
+Check the script dependencies against
+`${SKILL_DIR}/../python-requirements.txt`; report an environment mismatch
+and do not install packages during the analysis job.
 
-   Wait for the user to confirm a tool before proceeding.
+If the tool candidate does not exactly match `REFERENCE_GRID`, map it only when
+the extraction input and requested reference have a declared valid spatial
+relationship. This helper is nearest-neighbour resampling, not registration:
 
-   After the user selects a tool, verify it is available on this cluster and
-   capture the exact installed version:
-   ```bash
-   module spider <tool_name>
-   ```
-   Parse the output for the version string matching the tool reference. If a
-   newer version is available, note it to the user. If the reference version is
-   absent, ask the user which available version to use. Update the `module load`
-   line in the script to match the confirmed version before proceeding.
+```bash
+"${HELPER_PYTHON}" "${SKILL_DIR}/scripts/resample_mask.py" \
+  --candidate "${CANDIDATE_MASK}" --reference "${REFERENCE_GRID}" \
+  --output "${ATTEMPT_DIR}/brain_mask_on_reference.nii.gz"
+CANDIDATE_MASK="${ATTEMPT_DIR}/brain_mask_on_reference.nii.gz"
+```
 
-4. **Write the SLURM script**
+If no valid relationship exists, stop and report the grid handoff as
+unavailable. Never copy only the header between meaningfully different grids.
+Publish only with:
 
-   **ANTs special case (check first, before writing anything):** If the user
-   selected ANTs, immediately verify the template exists at the path specified
-   in `references/ants-brain-extraction.md`:
-   ```bash
-   ls "<template_path>"
-   ```
-   If it does not exist, pause and offer to add a DataLad or wget download step
-   for the OASIS-30 template. Do not proceed to write the ANTs script until the
-   template is confirmed present.
+```bash
+"${HELPER_PYTHON}" "${SKILL_DIR}/scripts/publish_mask.py" \
+  --kind brain --candidate "${CANDIDATE_MASK}" \
+  --reference "${REFERENCE_GRID}" --output "${FINAL_MASK}"
+```
 
-   Load the reference file for the chosen tool:
-   - FSL BET → `references/fsl-bet.md`
-   - ANTs → `references/ants-brain-extraction.md`
-   - FreeSurfer mri_synthstrip or SynthStrip → `references/synthstrip.md`
-   - HD-BET → `references/hd-bet.md`
-   - AFNI 3dSkullStrip → `references/afni-3dskullstrip.md`
+The publisher requires binary non-empty data, exact reference grid, one
+6-connected component, no internal holes, and adult brain volume 900–1900 cm3.
+It writes exact `uint8` `{0,1}`, copies the reference affine/header, clears
+NIfTI scaling, verifies the stored file, and renames atomically.
+It refuses an existing output by default. Do not pass `--replace` unless the
+task explicitly authorized replacement and the previous output was preserved.
 
-   Determine the next available script number with zero-padded two-digit numbering:
-   ```bash
-   LAST=$(ls analysis_[0-9][0-9]_*.sh 2>/dev/null | sort | tail -1)
-   N=$([ -z "$LAST" ] && echo "01" || printf "%02d" $(( ${LAST:9:2} + 1 )))
-   ```
-   Use `$N` as the script number (e.g., `01`, `02`, `03`).
+After publication invoke `brain-extraction-qc` with an anatomical image on
+`REFERENCE_GRID`. Inspect volume, symmetry,
+centring, topology, scalp inclusion, boundary tightness, the real PNG encoding,
+and the rendered outline before claiming anatomical quality.
 
-   Ask the user:
-   > "Does your cluster require `--partition` or `--account` in the SLURM header?
-   > If so, please provide the values; otherwise I'll omit them."
-
-   Write a script named `analysis_<N>_brain_extraction.sh` containing:
-   - Full SLURM header with resource values from the tool reference (add
-     `--partition` / `--account` if provided by the user)
-   - `mkdir -p logs/` and `mkdir -p "$OUT_DIR"/`
-   - `module load <tool>/<pinned-version>` (exact version confirmed in Step 3)
-   - The extraction command with recommended default parameters
-   - A clear comment above each command block explaining what it does
-
-   Show the complete script to the user and ask:
-   > "Does this script look correct? Reply 'yes' to submit or request changes."
-
-5. **Submit the job**
-
-   After the user confirms the script is correct, ask:
-   > "Would you like to record this analysis with DataLad for provenance? If
-   > so, I can add the appropriate DataLad provenance step. Reply 'yes' to use
-   > DataLad, or 'no' to submit directly."
-
-   If yes, use the local DataLad workflow available in the current environment
-   before proceeding. If no, submit directly:
-   ```bash
-   sbatch analysis_<N>_brain_extraction.sh
-   ```
-   Capture and report the job ID. Tell the user:
-   > "Job submitted — ID: <jobid>
-   > Monitor: `squeue -j <jobid>`
-   > Logs: `tail -f logs/brain_extraction_<jobid>.out`"
-
-6. **Wait for completion and hand off to QC**
-
-   Tell the user to notify you when the job finishes. Once they confirm,
-   first verify the job exited cleanly:
-   ```bash
-   sacct -j <jobid> --format=JobID,State,ExitCode --noheader
-   ```
-   If State is not `COMPLETED` or ExitCode is not `0:0`, do not proceed to QC.
-   Instead show the last 30 lines of the error log:
-   ```bash
-   tail -30 logs/brain_extraction_<jobid>.err
-   ```
-   Report the failure to the user and stop.
-
-   If the job completed successfully, verify the expected output file exists:
-   ```bash
-   ls "<expected_mask_path>"
-   ```
-   If the output is absent, stop and instruct the user to check the SLURM log
-   for errors before proceeding.
-
-   Once both checks pass:
-   - Identify the brain mask output path from the tool reference (it varies by tool)
-   - Invoke the brain-extraction-qc workflow with the original image and brain mask:
-     > Run `brain-extraction-qc <original_input> <brain_mask> <output_prefix>`
+If the image is in a Nipoppy dataset and human visualization in QC Studio is
+needed, read
+`${SKILL_DIR}/../brain-extraction-qc/references/qcstudio-integration.md`.
+This optional view supplements the mask QC report. If QC is Fail, Borderline,
+or incomplete, retain the report with the mask and do not hand the mask to
+downstream analysis as approved.
 
 ## Constraints
 
-- NEVER run extraction commands directly in the shell. Always write a `.sh`
-  script and submit it via `sbatch`.
-- ALWAYS show the full script to the user before running `sbatch`.
-- ALWAYS name scripts `analysis_<N>_brain_extraction.sh`.
-- ALWAYS zero-pad script numbers to two digits (e.g., `01`, `02`, `03`).
-- ALWAYS use explicitly versioned `module load` (e.g., `fsl/6.0.7.22`, not `fsl`).
-- ALWAYS create `logs/` before submitting so the SLURM output path resolves.
-- Do not express tool preference unless explicitly asked.
-- If the input is inside a Nipoppy dataset, prefer scaffolding a tool-specific Nipoppy pipeline
-  (render from `../nipoppy-pipelines/template/`) over a standalone SLURM script — see the Nipoppy
-  datasets section. Always keep the standardized `_desc-brain_mask.nii.gz` /
-  `_desc-brain_T1w.nii.gz` output names so the tracker and QC view stay tool-agnostic.
-- Do not proceed past Step 1 if the input file does not exist.
-- ANTs: never write a script with a template path that has not been verified to exist.
+- Do not choose by user preference or request an interactive tool selection;
+  use the documented compatibility and availability evidence.
+- Run image reads and neuroimaging tools inside the retained, version-pinned
+  SLURM script. Never infer a mask from nonzero voxels or handwritten
+  morphology.
+- Preserve existing outputs unless replacement was explicitly authorized.
+- Report publication success separately from anatomical QC; a valid NIfTI
+  mask is not by itself evidence of a correct extraction.

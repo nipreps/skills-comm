@@ -1,132 +1,65 @@
-# ANTs — antsBrainExtraction.sh
+# ANTs BrainExtraction
 
-**Module:** `ants/2.6.5`
-**Command:** `antsBrainExtraction.sh`
+`antsBrainExtraction.sh` performs template-based brain extraction by registering
+an anatomical template and its brain-probability mask to the subject. It is not
+turnkey without compatible template resources. This sheet documents the
+installed interface and exact outputs without ranking it.
 
-## Basic Usage
+## Availability and resources
 
-```bash
-antsBrainExtraction.sh \
-  -d 3 \
-  -a <input.nii.gz> \
-  -e <template.nii.gz> \
-  -m <template_prob_mask.nii.gz> \
-  -o <output_prefix>
-```
-
-## Required Arguments
-
-| Flag | Description |
-|------|-------------|
-| `-d 3` | Image dimensionality (3 for 3D structural MRI) |
-| `-a <input>` | Input NIfTI image |
-| `-e <template>` | Brain extraction template (T1w atlas in MNI or OASIS space) |
-| `-m <prob_mask>` | Probability brain mask corresponding to the template |
-| `-o <prefix>` | Output prefix (directory + subject label) |
-
-## Optional Flags
-
-| Flag | Description |
-|------|-------------|
-| `-f <mask>` | Registration mask to restrict moving-image region |
-| `-u 0` | Disable random seeding (set for reproducibility) |
-| `-k 1` | Keep all intermediate files (useful for debugging) |
-
-## Template Requirements
-
-ANTs brain extraction requires a co-registered template + probability mask.
-The standard choice is the **OASIS-30 template** shipped with the ANTs scripts
-package or downloadable from the ANTs GitHub releases.
-
-**Verify template paths exist before writing the script:**
-```bash
-ls "${ANTS_DATA}/OASIS-30_Atropos_template_stripped.nii.gz"
-ls "${ANTS_DATA}/OASIS-30_Atropos_template_stripped_priors_2.nii.gz"
-```
-
-If `${ANTS_DATA}` is not set, check:
-```bash
-find /usr /opt /neurodesk -name "OASIS*template*" 2>/dev/null | head -5
-```
-
-If templates are not found, download via DataLad or direct wget:
-```bash
-# OASIS-30 templates from ANTs GitHub (record provenance with DataLad if in a dataset)
-wget -q https://github.com/ANTsX/ANTs/releases/download/v2.5.0/antsBrainExtractionTemplates.zip
-unzip antsBrainExtractionTemplates.zip -d templates/
-```
-Record the download command in a `00_download_templates.sh` script for reproducibility.
-
-## Output Files
-
-| File | Description |
-|------|-------------|
-| `<prefix>BrainExtractionBrain.nii.gz` | Brain-extracted image |
-| `<prefix>BrainExtractionMask.nii.gz` | Binary brain mask |
-| `<prefix>BrainExtractionPrior*.nii.gz` | Intermediate warped priors |
-
-**Brain mask path for QC handoff:** `<prefix>BrainExtractionMask.nii.gz`
-
-## Recommended Default Command
+- Module: `ants/2.6.5`
+- Executable: `antsBrainExtraction.sh`
+- Required external resources: anatomical extraction template and matching
+  probability mask.
+- Conservative Slurm starting request: 4 CPUs, 16 GB RAM, 4 hours.
 
 ```bash
-antsBrainExtraction.sh \
-  -d 3 \
-  -a "${INPUT}" \
-  -e "${TEMPLATE}" \
-  -m "${TEMPLATE_MASK}" \
-  -o "${OUTPUT_PREFIX}" \
-  -u 0
-```
-
-`-u 0` disables random seeding for reproducibility.
-
-## SLURM Resource Estimates
-
-```
-#SBATCH --time=01:30:00
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=8
-```
-
-ANTs parallelises internally — providing more CPUs significantly reduces runtime.
-Set `ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS` to match `--cpus-per-task`:
-
-```bash
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=8
-```
-
-## SLURM Script Template
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=brain_extraction
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
-#SBATCH --time=01:30:00
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=8
-
-mkdir -p logs/
-mkdir -p "${OUT_DIR}"
-
+set -o pipefail
+module -t avail ants/2.6.5 2>&1 | grep -F 'ants/2.6.5'
 module load ants/2.6.5
-
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=8
-
-antsBrainExtraction.sh \
-  -d 3 \
-  -a "${INPUT}" \
-  -e "${TEMPLATE}" \
-  -m "${TEMPLATE_MASK}" \
-  -o "${OUTPUT_PREFIX}" \
-  -u 0
+command -v antsBrainExtraction.sh
+antsBrainExtraction.sh -h >logs/tool-probes/ants_brain_extraction_help.log 2>&1
+test -r "${TEMPLATE}"
+test -r "${TEMPLATE_PROBABILITY_MASK}"
 ```
 
-## Common Failures
+The tool is compatible only when the two template files are already available
+and their provenance is recorded. Module availability alone is insufficient.
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| Template not found | `ANTS_DATA` not set or templates not downloaded | Verify and set template paths explicitly |
-| Registration diverges | Large orientation mismatch | Ensure input is in standard orientation (`fslreorient2std`) before running |
-| Very slow even with 8 CPUs | `ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS` not set | Export the variable explicitly in the script |
+## Invocation
+
+```bash
+module load ants/2.6.5
+mkdir -p "${ATTEMPT_DIR}"
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS="${SLURM_CPUS_PER_TASK:-4}"
+OUTPUT_PREFIX="${ATTEMPT_DIR}/ants_"
+antsBrainExtraction.sh \
+  -d 3 -a "${INPUT}" \
+  -e "${TEMPLATE}" -m "${TEMPLATE_PROBABILITY_MASK}" \
+  -o "${OUTPUT_PREFIX}" -u 0
+```
+
+`-u 0` fixes the random seed. Exact bitwise reproducibility additionally
+requires controlling thread count.
+
+## Outputs
+
+| Output | Meaning | Use |
+|---|---|---|
+| `${OUTPUT_PREFIX}BrainExtractionMask.nii.gz` | Binary brain mask on the subject grid | Publication candidate |
+| `${OUTPUT_PREFIX}BrainExtractionBrain.nii.gz` | Brain-extracted intensity image | Not the requested mask |
+| `${OUTPUT_PREFIX}BrainExtractionPrior*.nii.gz` | Warped prior/intermediate files | Diagnostic only |
+| registration transforms/warps | Template-to-subject alignment | Retain for diagnosis |
+
+## Known signatures and limitations
+
+| Signature | Interpretation |
+|---|---|
+| Template or probability mask absent | Prerequisite incompatibility; do not submit |
+| Registration divergence or implausible warp | Template/input incompatibility or orientation problem |
+| Very long runtime with no configured threads | Resource configuration issue |
+| Template-space or prior file handed off | Output-contract violation |
+| Publisher rejects grid, topology, emptiness, or volume | Candidate/output-quality failure |
+
+Do not download an unpinned template opportunistically during task execution.
+Retain template provenance, exact command, transforms, logs, and publisher JSON.

@@ -1,7 +1,10 @@
 # Brain Extraction Tool Comparison
 
-Present this table to the user when they request brain extraction. Do not
-recommend a tool unprompted — let the user choose based on their priorities.
+Use this table internally to shortlist methods. Do not present a tool menu or
+ask the user to choose; select the compatible documented method using the
+modality, availability, output-grid requirement, compute resources, and
+validation evidence. Read the selected method's reference before writing the
+SLURM script.
 
 ## Side-by-Side Comparison
 
