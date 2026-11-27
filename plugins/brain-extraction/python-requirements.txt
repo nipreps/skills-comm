@@ -1,0 +1,6 @@
+# Host-side helpers validated in the Neurodesk environment; do not install at job time.
+nibabel==5.4.2
+numpy==2.5.4
+scipy==1.18.1
+matplotlib==3.11.2
+pillow==13.0.0

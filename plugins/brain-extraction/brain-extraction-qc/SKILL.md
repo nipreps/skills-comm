@@ -1,217 +1,257 @@
 ---
 name: brain-extraction-qc
 description: >
-  Validate brain extraction / skull stripping results. Generate a QC PNG mosaic,
-  perform AI visual evaluation against a structured rubric, and produce a matching
-  human verification form for reliability comparison. Invoke after brain extraction
-  completes, or standalone on any existing brain mask with "check brain extraction",
-  "QC the mask", "validate skull strip", "review brain extraction", "evaluate
-  the mask", or "brain-extraction-qc". Also invoke when the user references a
-  file ending in `_brain.nii.gz`, `_mask.nii.gz`, or `_brain_mask.nii.gz`
-  and asks to check, review, or validate it.
+  Validate brain extraction / skull stripping results, with or without image
+  vision. Computes a quantitative metric battery (volume, left-right mirror
+  symmetry, mask centring, topology, scalp inclusion, boundary tightness),
+  renders an AFNI @chauffeur_afni outline PNG, writes a structured QC report,
+  and saves a paired human verification form. Invoke after brain extraction
+  completes, or standalone on any existing brain mask with "check brain
+  extraction", "QC the mask", "validate skull strip", "review brain
+  extraction", "evaluate the mask", or "brain-extraction-qc". Also invoke when
+  the user references a file ending in `_brain.nii.gz`, `_mask.nii.gz`, or
+  `_brain_mask.nii.gz` and asks to check, review, or validate it.
+metadata:
+  short-description: QC a brain mask (numeric battery + outline PNG)
 ---
 
 # Skill: brain-extraction-qc
 
-Validate brain extraction results through three steps: generate a PNG mosaic
-with mask overlay, visually evaluate the PNG using AI vision, and save a paired
-human verification form so that AI-human agreement can be measured over time.
+Validate a brain mask on measured evidence, then look at it if you can.
 
-## Steps
+Almost everything a human checks in a skull-strip QC image has a numeric
+signature: whether the mask is centred, whether it covers both hemispheres
+evenly, whether it swallows scalp, whether it is riddled with holes, whether it
+is bloated into CSF. `scripts/qc_metrics.py` measures those directly. This
+matters because a QC image is worthless to a model that cannot open it, and a
+report written from filenames and hope is worse than no report at all.
 
-1. **Identify inputs**
+One thing genuinely resists measurement: **dura and superior sagittal sinus
+inclusion**. Dura is thin, its T1 intensity overlaps cortex, and it sits exactly
+where a correct boundary also sits. Report it as UNVERIFIED rather than guessing.
 
-   Read the invocation arguments or current user request for: (1) original
-   NIfTI path, (2) brain mask NIfTI path, (3) optional output prefix (used for
-   naming QC files). If arguments are missing, ask the user to provide them.
+## Workflow
 
-   Verify both files exist:
-   ```bash
-   ls "<original_path>" "<mask_path>"
-   ```
-   Stop and report any missing file. Do not proceed.
+1. Identify the anatomical image and brain mask.
+2. Run the numeric battery and save `metrics.json`.
+3. Render the AFNI outline PNG for human review.
+4. Render the mosaic PNG when it adds context.
+5. If image vision is available, inspect the outline and reconcile it with the
+   numbers; otherwise mark dura inclusion UNVERIFIED.
+6. Write the AI report and blank human verification form.
+7. Summarise the numeric verdict and unresolved visual checks.
 
-   Infer the tool name from context or the mask filename if possible (used for
-   output file naming). Default to `unknown-tool` if not determinable.
+### 1. Identify inputs
 
-2. **Generate the QC PNG**
+Use the original anatomical NIfTI, the brain mask NIfTI, and any supplied
+output prefix and tool name. If a required file is missing, report the exact
+missing input and stop without requesting it from the user.
 
-   Load `references/qc-generation.md` from this skill directory for the full
-   Python script. Write it to a temporary file `qc_brain_extraction.py` in the
-   current directory (overwrite if it exists already).
+```bash
+ls "<anat>" "<mask>"
+```
 
-   Create the output directory:
-   ```bash
-   mkdir -p qc/
-   ```
+Stop and report if either is missing. Infer the tool name from the path when you
+can (`derivatives/synthstrip_*/...` → `synthstrip`); fall back to `unknown-tool`.
 
-   Before running the script, verify required Python dependencies are available:
-   ```bash
-   python3 -c "import nibabel, matplotlib"
-   ```
-   If this fails, tell the user to run `pip install nibabel matplotlib` and
-   verify the import succeeds before proceeding.
+Create the run timestamp inside the retained Slurm script, not in the
+interactive submission shell. Save it under the Slurm job ID so the report and
+human form can reuse the exact same value after the job completes.
 
-   Capture the timestamp once and store it — this exact value must be reused
-   verbatim in Steps 4 and 5 to ensure all three output files share the same
-   timestamp:
-   ```bash
-   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-   echo "$TIMESTAMP"
-   ```
+### 2. Run the numeric battery
 
-   Construct the output filename using `$TIMESTAMP`:
-   ```
-   qc/<output_prefix>_<tool>_${TIMESTAMP}_qc.png
-   ```
+Before loading the imaging module, set `SKILL_DIR` to this skill's resolved
+installed directory and resolve the host Python interpreter. Do not rely on
+agent environment variables being passed to Slurm. Verify required imports
+inside the retained SLURM script. Keep all image reads and metrics in that job.
 
-   Run the script:
-   ```bash
-   python3 qc_brain_extraction.py "<original_path>" "<mask_path>" "<qc_png_path>"
-   ```
+```bash
+# Resolve the skill directory and host interpreter before module wrappers can
+# change PATH.
+SKILL_DIR="/absolute/path/to/brain-extraction-qc" # Replace with the installed path before submission.
+: "${SKILL_DIR:?Set SKILL_DIR to this skill's installed directory before submission}"
+test -f "${SKILL_DIR}/scripts/qc_metrics.py"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+mkdir -p qc logs
+printf '%s\n' "${TIMESTAMP}" | tee "logs/qc_timestamp_${SLURM_JOB_ID}.txt"
+HELPER_PYTHON="${HELPER_PYTHON:-$(command -v python3)}"
+test -x "${HELPER_PYTHON}"
+"${HELPER_PYTHON}" -c "import numpy, nibabel, scipy, matplotlib, PIL"
+export HELPER_PYTHON
 
-   The script prints quantitative stats (brain volume cm³, voxel count, coverage
-   fraction) to stdout — capture and retain these for the evaluation report.
+"${HELPER_PYTHON}" "${SKILL_DIR}/scripts/qc_metrics.py" "<anat>" "<mask>" \
+  --label "<prefix>_<tool>" \
+  --json "qc/<prefix>_<tool>_${TIMESTAMP}_metrics.json"
+```
 
-   Verify the PNG was produced:
-   ```bash
-   ls "<qc_png_path>"
-   ```
-   If the file is absent or empty, stop and report that the QC script failed to
-   produce output. Do not proceed to Step 3.
+Use the same Slurm script for the metrics, AFNI outline, and optional mosaic
+steps so each artifact uses this timestamp.
 
-3. **AI visual evaluation**
+The anatomical image and brain mask are positional arguments in that order.
+This script does not accept lesion QC's `--brain-mask` option and does not use a
+generic `--mask` flag. Run the bundled script with `--help` rather
+than transferring flags between the two QC skills.
 
-   Load `references/ai-evaluation-criteria.md` from this skill directory to
-   review the rubric definitions before evaluating.
+Requires the pinned `numpy`, `nibabel`, and `scipy` versions from
+`${SKILL_DIR}/../python-requirements.txt`. Resolve
+`HELPER_PYTHON` with `command -v python3` before loading the imaging module,
+then check the imports in the SLURM script. If a dependency is missing, report
+the environment limitation; do not install packages during the QC run.
 
-   The PNG was verified to exist at the end of Step 2. Open and visually inspect
-   it using the image-viewing capability available in the current agent/runtime.
+It prints a metric table, a per-criterion PASS/BORDERLINE/FAIL roll-up, and a
+`NUMERIC VERDICT`, and writes the same as JSON. Read
+`references/numeric-criteria.md` for what each metric means, where the
+thresholds came from, and which failure each one is good and bad at catching —
+you need that to interpret a result rather than just transcribe it.
+Read `references/qc-generation.md` for the bundled script and output contract.
 
-   Examine the image carefully: check each plane (axial, coronal, sagittal),
-   inspect the mask boundary (red overlay), and assess each criterion below.
-   Do not infer from metadata alone — the visual read is required.
+Two habits worth keeping: quote the actual numbers in your report, and treat
+`--vol-range` as adjustable. The 900–1900 cm³ default is adult T1w; paediatric,
+neonatal or rodent data needs a different range, and a volume flag against the
+wrong range is noise.
 
-   Produce the following structured report, filling in all fields:
+For an image in a Nipoppy dataset, read
+`references/qcstudio-integration.md` when an additional human-facing QC Studio
+view is useful. Keep the structured report and verification form as the
+portable QC record.
 
-   ```markdown
-   ## AI Brain Extraction QC
+### 3. Render the AFNI outline PNG
 
-   **Subject:** <output_prefix>
-   **Tool:** <tool>
-   **Timestamp:** <YYYYMMDD-HHMMSS>
-   **Original image:** <original_path>
-   **Brain mask:** <mask_path>
+Always produce this, even with no vision — the human reviewer needs it, and it
+is the artefact the human form is filled in against.
 
-   ### Quantitative
-   | Metric | Value | Reference range |
-   |--------|-------|-----------------|
-   | Brain volume | X cm³ | 900–1800 cm³ (adult T1w) |
-   | Voxel count | N | — |
-   | Coverage fraction | X% | 95–105% of expected |
+Before writing the job script, confirm the tested AFNI version rather than
+assuming that every version listed by the module system is runnable:
 
-   ### Visual Criteria
-   | Criterion | Rating | Notes |
-   |-----------|--------|-------|
-   | No residual skull or scalp signal | Pass / Borderline / Fail | <observation> |
-   | No excessive tissue loss at poles (frontal, temporal, occipital) | Pass / Borderline / Fail | <observation> |
-   | Symmetric left-right and anterior-posterior coverage | Pass / Borderline / Fail | <observation> |
-   | No internal holes or disconnected mask regions | Pass / Borderline / Fail | <observation> |
-   | Boundary tightness (not over-dilated into dura/CSF) | Pass / Borderline / Fail | <observation> |
+```bash
+module spider afni     # or: module -t avail afni
+module spider afni/26.0.07
+```
 
-   ### Overall Verdict
-   **<Pass / Borderline / Fail>** — Confidence: <High / Medium / Low>
+In the retained `analysis_<N>_<description>.sh` job, resolve the host Python
+before loading AFNI, export it for the helper, then load the pinned module.
+The bundled script is parameterised, so run it directly instead of editing a
+copy. Do not run the rendering step on the login node.
 
-   ### Notes
-   <Free-text observations about image quality, unusual features, or artefacts>
+```bash
+export HELPER_PYTHON
+module load afni/26.0.07
+bash "${SKILL_DIR}/scripts/afni_outline_qc.sh" \
+  -a "<anat>" \
+  -m "<mask>" \
+  -o "qc/<prefix>_<tool>_${TIMESTAMP}_afni_outline_qc.png"
+```
 
-   ### Recommended action
-   <none | re-run with adjusted parameters: <suggest specific flag changes> | manual mask editing recommended>
-   ```
+The calling job pins `afni/26.0.07`; the helper checks for the loaded
+`@chauffeur_afni` executable and exposes no version-override flag. Do not edit
+the script or add a guessed `-v` option merely because an older version appears
+in `module spider`; Neurodesk can retain module entries
+for containers later disabled for a security or runtime defect. If 26.0.07 is
+unavailable, stop and report the outline dependency rather than guessing a
+replacement.
 
-4. **Save AI evaluation**
+An outline beats a filled overlay here: a translucent blob looks equally fine
+whether its edge is on the pial surface or four millimetres out in the dura,
+which is precisely the distinction being checked. The script crops to the mask
+bounding box first so montage panels are not wasted on empty air, and converts
+2dcat's output to real PNG — some AFNI builds cannot write PNG and quietly emit
+`.ppm` instead, which most viewers and vision models will not open.
 
-   Write the completed report to:
-   ```
-   qc/<output_prefix>_<tool>_<timestamp>_ai_eval.md
-   ```
+Verify it landed: `ls -lh "<outline_png>"`. If it is missing, say so; the numeric
+QC still stands on its own, but the human review step is blocked.
 
-5. **Write human verification form**
+### 4. Render the mosaic PNG (optional)
 
-   Load `references/human-verification-form.md` from this skill directory for
-   the template. Write a blank (unfilled) instance to:
-   ```
-   qc/<output_prefix>_<tool>_<timestamp>_human_eval.md
-   ```
-   The criterion labels must be identical to those in the AI evaluation table
-   so that agreement can be computed later.
+Supporting context for a human — filled mask plus cyan contour, three planes.
 
-   Tell the user:
-   > "Please open `qc/<...>_qc.png` to review the extraction visually, then
-   > fill in `qc/<...>_human_eval.md` with your assessment. The AI evaluation
-   > is at `qc/<...>_ai_eval.md` for comparison. Use identical ratings
-   > (Pass / Borderline / Fail) so agreement can be scored."
+```bash
+"${HELPER_PYTHON}" "${SKILL_DIR}/scripts/qc_mosaic.py" "<anat>" "<mask>" \
+  "qc/<prefix>_<tool>_${TIMESTAMP}_qc.png"
+```
 
-6. **QC Studio handoff (optional — interactive human review)**
+### 5. Visual review — only if you can actually see images
 
-   When the brain mask lives in (or can be copied into) a Nipoppy `derivatives/` tree, offer
-   QC Studio for interactive human rating in addition to the markdown human form. This
-   augments — it does not replace — the AI eval and the human form. Load
-   `references/qcstudio-integration.md` for the full schema and field mapping.
+**If you have image-viewing capability:** open the outline PNG at high detail
+and read `references/ai-evaluation-criteria.md` for the visual rubric. Check
+each plane. Then reconcile what you see with the numbers.
 
-   Write the montage and IQM sidecar to deterministic, BIDS-style paths in the derivatives
-   `anat/` directory so QC Studio's template paths resolve (QC Studio substitutes no
-   timestamp). Use the same pipeline `<name>`/`<version>` that `brain-extraction` rendered
-   (default `brainextraction-<tool>` / `1.0.0`). This is in addition to the timestamped `qc/`
-   copies from Step 2:
-   ```bash
-   DERIV="derivatives/<name>/<version>/output/<sub>/<ses>/anat"
-   mkdir -p "${DERIV}"
-   python3 qc_brain_extraction.py \
-     "<original_path>" "<mask_path>" \
-     "${DERIV}/<sub>_<ses>_desc-brain_qc.png" \
-     "${DERIV}/<sub>_<ses>_desc-brain_iqm.tsv"
-   ```
+When vision and metrics disagree, neither automatically wins — say which you
+trusted and why. Vision is better at dura, vessels, focal pathology and
+anything where anatomy explains an odd number. Metrics are better at small
+consistent biases, subtle centring errors, and anything requiring counting.
+A documented disagreement is a useful QC result; a silently overridden one is not.
 
-   Render the QC view from the template `../qc-studio/template/qc.json`, substituting
-   `{{PIPELINE_NAME}}` / `{{PIPELINE_VERSION}}` (and `{{INPUT_IMAGE_ENTITIES}}` to match the
-   pipeline's `invocation.json`), and write it into the user's project (e.g.
-   `<dataset>/qc-studio/<name>/qc.json`). The rendered file MUST be valid JSON with no leftover
-   `{{...}}`. Then print the launch command for the user (do NOT start the Streamlit server
-   yourself):
-   ```bash
-   python ui/main.py \
-     --dataset_dir <dataset_root> \
-     --participant_list <dataset_root>/qc_participants.tsv \
-     --qc_pipeline <name> --qc_task brain_extraction_qc \
-     --qc_json <dataset_root>/qc-studio/<name>/qc.json \
-     --output_dir <qc_out> --session_list <ses>
-   # then: streamlit run ui/app.py
-   ```
-   Raters score the same five criteria as the AI eval so agreement stays computable.
+**If you cannot open images:** say so plainly and write the report from the
+metrics. Do not fill visual criteria from filenames, logs, memory, or the fact
+that a file exists. Rate every numerically-testable criterion, mark dura
+UNVERIFIED, cap confidence at Medium, and record `Evidence basis: numeric-only`.
+This is a complete numeric QC report. Visual boundary review remains pending
+for criteria the numeric battery cannot assess, including dura.
 
-7. **Summarise**
+### 6. Write the reports
 
-   Report:
-   - Overall AI verdict and confidence
-   - Path to the QC PNG
-   - Any criteria rated Borderline or Fail, with the specific recommendation
-   - Reminder that the human form needs to be filled in
-   - If QC Studio inputs were written, the derivatives paths and the launch command
+Save the AI report to `qc/<prefix>_<tool>_<timestamp>_ai_eval.md` using the
+template in `references/report-template.md`, then write a blank human form from
+`references/human-verification-form.md` to
+`qc/<prefix>_<tool>_<timestamp>_human_eval.md`.
+
+The criterion labels must match word-for-word across the numeric output, the AI
+report and the human form. Agreement between AI and human ratings is scored on
+those labels later, and a renamed criterion silently drops out of that analysis.
+
+Verify both exist and are non-empty before reporting done:
+
+```bash
+TIMESTAMP="$(cat "logs/qc_timestamp_${JOB_ID}.txt")"
+test -s "qc/<prefix>_<tool>_${TIMESTAMP}_ai_eval.md" \
+  && test -s "qc/<prefix>_<tool>_${TIMESTAMP}_human_eval.md"
+```
+
+Leave the human form blank and report that human verification remains pending.
+Provide the form and outline paths without soliciting a response.
+
+### 7. Summarise
+
+Report the verdict and confidence, the evidence basis (numeric-only or
+numeric+visual), paths to every artefact, each Borderline/Fail criterion with
+the number that drove it and a specific recommended action, and the standing
+dura caveat.
+
+## Interpreting the verdict
+
+The script fails the whole mask on any single failing criterion. That is
+deliberate — each criterion maps to a defect that propagates into registration,
+segmentation or volumetry, so "fails one but is otherwise fine" is not a
+meaningful state. You may overturn it, but only in writing and only with a
+concrete reason.
+
+The reason that matters most in practice is **real anatomy**. Stroke,
+resection, mass effect, focal atrophy, large ventricles and a partial field of
+view all produce genuine asymmetry, and a mask that correctly follows an
+asymmetric brain is a good mask. The metrics cannot tell that apart from a
+lateralised extraction failure; you often can, from the clinical context, the
+referring request, or the image itself. When you overturn a rating on those
+grounds, name the anatomy and say what evidence you used.
+
+The reverse error is worse and more common: waving through a bad mask because
+the numbers were not quite over a threshold. Thresholds are conservative
+defaults calibrated on adult 1mm T1w data, not physical constants.
 
 ## Constraints
 
-- ALWAYS visually inspect the PNG before writing the evaluation — never fill in
-  criteria from metadata or quantitative stats alone.
-- ALWAYS save both `_ai_eval.md` and `_human_eval.md` before reporting complete.
-- The criterion labels in the AI eval and the human form MUST be identical word-
-  for-word — this is required for downstream agreement scoring.
-- If brain volume is outside 900–1800 cm³ for an adult T1w scan, flag it
-  explicitly in the Quantitative section notes even if the visual rating is Pass.
-- Confidence should reflect actual uncertainty: use Low when image quality,
-  contrast, or unusual anatomy makes visual criteria hard to assess.
-- Do not delete `qc_brain_extraction.py` after running — it serves as a
-  reproducible record of exactly which QC script was used.
-- QC Studio (Step 6) is optional and augments the AI eval + markdown human form; never
-  treat it as a replacement, and never start the Streamlit server yourself — only print the
-  launch command for the user.
+- Never write a criterion rating you did not measure or see. Numeric ratings
+  come from the script; visual ratings require actually opening the image.
+- Always produce the outline PNG, even with no vision — it is what the human
+  reviewer signs off against.
+- Keep the AFNI step in a numbered `analysis_<N>_*.sh` script with a pinned
+  `module load afni/<version>`, per the project's execution rules.
+- Report dura / superior sagittal sinus inclusion as UNVERIFIED on any run
+  without visual inspection. Do not infer it from boundary metrics.
+- Cap confidence at Medium for numeric-only runs, and state the evidence basis
+  explicitly in the report.
+- Quote actual metric values in the report, not just ratings — the numbers are
+  what make the assessment checkable by someone else later.
+- Save the metrics JSON alongside the reports; it is the reproducible record of
+  what was measured.
+- If metrics and vision disagree, state the disagreement and which you trusted.
+  Do not silently drop either.

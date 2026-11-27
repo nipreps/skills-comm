@@ -1,0 +1,15 @@
+{
+  "name": "brain-lesion",
+  "description": "Identify, route, segment, and quality-control brain lesions using reproducible neuroimaging workflows.",
+  "version": "0.1.0",
+  "author": { "name": "micmas" },
+  "keywords": ["neuroimaging", "brain-lesion", "stroke", "wmh", "segmentation", "quality-control"],
+  "skills": [
+    "./skills/lesion-identification",
+    "./skills/lesion-segmentation",
+    "./skills/acute-stroke-segmentation",
+    "./skills/chronic-stroke-segmentation",
+    "./skills/wmh-segmentation",
+    "./skills/lesion-segmentation-qc"
+  ]
+}

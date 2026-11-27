@@ -1,114 +1,58 @@
 # AFNI 3dSkullStrip
 
-**Module:** `afni/26.0.07`
-**Command:** `3dSkullStrip`
+`3dSkullStrip` uses iterative surface expansion to extract brain from
+surrounding tissue. It accepts AFNI datasets and NIfTI inputs and is primarily
+documented for human T1-weighted MRI. This sheet describes the installed
+interface and outputs without ranking it.
 
-3dSkullStrip is an AFNI tool that uses surface expansion to separate brain from
-non-brain tissue. It works on T1w structural data and EPI/functional volumes, and
-is the natural choice when working within an AFNI-based pipeline.
+## Availability and resources
 
-## Basic Usage
-
-```bash
-3dSkullStrip \
-  -input <input+orig.HEAD or input.nii.gz> \
-  -prefix <output>
-```
-
-Both AFNI-format (HEAD/BRIK) and NIfTI inputs are accepted.
-
-## Key Options
-
-| Option | Description |
-|--------|-------------|
-| `-input <file>` | Input dataset (required) |
-| `-prefix <name>` | Output prefix (required) |
-| `-orig_vol` | Output in the same grid/space as the input (recommended for NIfTI workflows) |
-| `-rat` | Rat brain mode — adjusts parameters for rodent data |
-| `-monkey` | Non-human primate mode |
-| `-push_to_edge` | Aggressive expansion — use if too much brain is removed |
-| `-no_avoid_eyes` | Include eye orbits in mask (off by default) |
-| `-shrink_fac <val>` | Shrinkage factor (default 0.6); lower = larger mask |
-| `-ld <val>` | Level of detail (default 20); increase for more precise boundary |
-
-## Output Files
-
-By default, 3dSkullStrip writes AFNI format (HEAD/BRIK). To write NIfTI:
-- Use `-prefix <name>.nii.gz` directly, or
-- Convert afterwards: `3dAFNItoNIFTI -prefix <name>.nii.gz <name>+orig`
-
-To also output the binary mask:
-```bash
-3dcalc -a <output>.nii.gz -expr 'step(a)' -prefix <output>_mask.nii.gz
-```
-
-**Brain mask path for QC handoff:** `<output>_mask.nii.gz` (after the 3dcalc step)
-
-## Recommended Default Command
+- Module: `afni/26.0.07`
+- Executables: `3dSkullStrip`, `3dcalc`
+- Conservative Slurm starting request: 2 CPUs, 4 GB RAM, 1 hour.
 
 ```bash
-3dSkullStrip \
-  -input "${INPUT}" \
-  -prefix "${OUTPUT}.nii.gz" \
-  -orig_vol
-
-# Generate binary mask from stripped brain
-3dcalc \
-  -a "${OUTPUT}.nii.gz" \
-  -expr 'step(a)' \
-  -prefix "${MASK}"
-```
-
-## SLURM Resource Estimates
-
-```
-#SBATCH --time=00:20:00
-#SBATCH --mem=4G
-#SBATCH --cpus-per-task=1
-```
-
-## SLURM Script Template
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=brain_extraction
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
-#SBATCH --time=00:20:00
-#SBATCH --mem=4G
-#SBATCH --cpus-per-task=1
-
-mkdir -p logs/
-mkdir -p "${OUT_DIR}"
-
+set -o pipefail
+module -t avail afni/26.0.07 2>&1 | grep -F 'afni/26.0.07'
 module load afni/26.0.07
-
-3dSkullStrip \
-  -input "${INPUT}" \
-  -prefix "${OUTPUT}.nii.gz" \
-  -orig_vol
-
-# Create binary mask
-3dcalc \
-  -a "${OUTPUT}.nii.gz" \
-  -expr 'step(a)' \
-  -prefix "${MASK}"
+command -v 3dSkullStrip
+command -v 3dcalc
+3dSkullStrip -help >logs/tool-probes/afni_3dskullstrip_help.log 2>&1
 ```
 
-## Tuning Guide
+## Invocation
 
-| Problem | Adjustment |
-|---------|-----------|
-| Over-stripping (brain tissue removed) | Lower `-shrink_fac` (e.g., 0.4) or add `-push_to_edge` |
-| Under-stripping (skull remaining) | Raise `-shrink_fac` (e.g., 0.7) |
-| Slow on complex data | Increase `-ld` (e.g., 40) — more accurate but slower |
-| Functional EPI data | Use with EPI reference volume; consider also `3dAutomask` for 4D data |
-
-## Note on Functional Data
-
-For 4D EPI time series, `3dAutomask` is often preferred over `3dSkullStrip`:
 ```bash
-3dAutomask -prefix "${EPI_MASK}" "${EPI_INPUT}"
+module load afni/26.0.07
+mkdir -p "${ATTEMPT_DIR}"
+3dSkullStrip -input "${INPUT}" \
+  -prefix "${ATTEMPT_DIR}/brain.nii.gz" -orig_vol
+3dcalc -a "${ATTEMPT_DIR}/brain.nii.gz" \
+  -expr 'step(a)' -prefix "${ATTEMPT_DIR}/brain_mask.nii.gz"
 ```
-This is faster and avoids the surface-fitting approach which can fail on EPI
-contrast. Use `3dSkullStrip` when working with a high-res anatomical reference.
+
+`3dcalc` binarizes the documented skull-stripped output, not the original input.
+
+## Outputs
+
+| Output | Meaning | Use |
+|---|---|---|
+| `brain.nii.gz` | Skull-stripped intensity image | Intermediate, not the requested mask |
+| `brain_mask.nii.gz` | Binary mask derived from the stripped output | Publication candidate |
+
+Providing a `.nii.gz` prefix prevents an unexpected AFNI HEAD/BRIK output.
+`-orig_vol` retains input-grid geometry.
+
+## Known signatures and limitations
+
+| Signature | Interpretation |
+|---|---|
+| HEAD/BRIK files but no NIfTI | Prefix omitted a NIfTI suffix |
+| Eye/orbit or inferior leakage | Candidate-quality limitation |
+| Frontal or inferior brain clipping | Candidate-quality limitation |
+| Empty/whole-volume mask after `3dcalc` | Wrong intermediate or failed extraction |
+| Publisher rejects grid, topology, emptiness, or volume | Candidate/output-quality failure |
+
+Options such as `-push_to_edge`, `-shrink_fac`, and `-ld` change the operating
+point and must be recorded rather than tried silently in a loop. Retain both
+images, the exact command, logs, and publisher JSON.

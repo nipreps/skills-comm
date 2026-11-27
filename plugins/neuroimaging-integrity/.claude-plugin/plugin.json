@@ -1,0 +1,8 @@
+{
+  "name": "neuroimaging-integrity",
+  "description": "Read-only integrity checks for neuroimaging inputs, including DICOM series and NIfTI data.",
+  "version": "0.1.0",
+  "author": { "name": "micmas" },
+  "keywords": ["neuroimaging", "dicom", "nifti", "data-integrity", "bids"],
+  "skills": ["./skills/data-integrity"]
+}

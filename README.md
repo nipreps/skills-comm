@@ -32,6 +32,8 @@ is either a full **Claude Code plugin** (with a `.claude-plugin/plugin.json` man
 | [`plugins/datalad-cli`](plugins/datalad-cli) | DataLad / git-annex provenance and YODA-compliant analysis datasets |
 | [`plugins/nipoppy-skills`](plugins/nipoppy-skills) | The `nipoppy` dataset-management lifecycle (curation → BIDS → process → extract), plus Boutiques descriptor and argparse serialization skills. A git submodule of [nipoppy/skills](https://github.com/nipoppy/skills) |
 | [`plugins/brain-extraction`](plugins/brain-extraction) | Brain extraction (skull stripping) and its quality control |
+| [`plugins/neuroimaging-integrity`](plugins/neuroimaging-integrity) | Neuroimaging input integrity checks for DICOM and NIfTI |
+| [`plugins/brain-lesion`](plugins/brain-lesion) | Brain-lesion identification, stroke/WMH segmentation, and QC |
 | [`plugins/combat-harmonization`](plugins/combat-harmonization) | ComBat-family harmonization strategy, execution, and QC |
 | [`plugins/fc-matrix-generation`](plugins/fc-matrix-generation) | Functional connectivity matrix generation from resting-state fMRI |
 | [`plugins/job-monitor`](plugins/job-monitor) | SLURM/PBS/LSF job monitoring and fast failure detection |

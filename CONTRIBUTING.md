@@ -28,7 +28,7 @@ A contribution is one directory under [`plugins/`](plugins/). Two forms are acce
   its skills, plus a `README.md`. Installable via `claude plugin install`. See
   `plugins/datalad-cli/` as a model.
 - **Bare skill collection** — one or more `SKILL.md` directories without a manifest. Fine
-  for a first or small contribution. See `plugins/brain-extraction/`, `plugins/job-monitor/`,
+  for a first or small contribution. See `plugins/job-monitor/`,
   or `plugins/registration/` as models.
 
 Pick a clear, lowercase, hyphenated directory name (the tool or domain, e.g.

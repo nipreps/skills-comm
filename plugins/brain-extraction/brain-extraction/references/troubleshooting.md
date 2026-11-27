@@ -2,15 +2,17 @@
 
 ## Module not found
 
-**Symptom:** `module load fsl/6.0.7.22` fails with "module not found" or similar.
+**Symptom:** the documented pinned module fails to load.
 
 **Cause:** The pinned version in the reference file may be stale — the cluster may have upgraded or removed it.
 
-**Fix:**
+**Action:**
 ```bash
-module spider fsl
+module spider fsl/6.0.7.22
 ```
-Identify the available version(s), select the closest one, and update the `module load` line in your script before resubmitting.
+Record that the pinned dependency is unavailable. Do not silently substitute a
+different version; use an alternative only when its reference documents a
+compatible invocation.
 
 ---
 
@@ -20,18 +22,9 @@ Identify the available version(s), select the closest one, and update the `modul
 
 **Cause:** The OASIS-30 MNI152 template required by ANTs is not present at the expected path.
 
-**Fix — download via DataLad:**
-```bash
-datalad install https://github.com/stnava/ANTs/releases/download/v2.3.4/ANTs_template_OASIS30.tar.gz
-```
-
-**Fix — download via wget:**
-```bash
-wget -q https://github.com/stnava/ANTs/releases/download/v2.3.4/ANTs_template_OASIS30.tar.gz
-tar -xzf ANTs_template_OASIS30.tar.gz
-```
-
-Update `TEMPLATE_DIR` in your script to point to the extracted directory.
+**Action:** report that the required template is unavailable. Do not fetch data
+or substitute a different template unless the task explicitly requests it and
+the source and version are documented.
 
 ---
 
@@ -45,7 +38,8 @@ sacct -j <jobid> --format=JobID,State,ExitCode,MaxRSS --noheader
 ```
 A `MaxRSS` close to the requested `--mem` confirms OOM.
 
-**Fix:** Increase `--mem` in the SLURM header and resubmit:
+**Action:** record the failure and accounting. For an explicitly authorized
+retry, adjust `--mem` using the measured `MaxRSS`; do not resubmit repeatedly:
 - FSL BET: 8–16 GB is typically sufficient for T1w
 - ANTs: 32–64 GB for whole-brain registration
 - HD-BET: 8–16 GB (CPU mode); GPU mode needs a GPU partition
@@ -62,9 +56,11 @@ python3 -c "import nibabel as nib; img = nib.load('<input_path>'); print(img.sha
 ```
 If the shape has 4 elements and the 4th is > 1, the input is a 4D timeseries.
 
-**Fix:** Extract a single volume before running brain extraction:
+**Action:** report the dimension mismatch and stop. Create a single-volume
+derivative only when the task explicitly calls for it, in a separate retained
+SLURM job:
 ```bash
 module load fsl/<version>
 fslroi <input_4d.nii.gz> <output_3d.nii.gz> 0 1
 ```
-Then re-run brain extraction on `<output_3d.nii.gz>`.
+Then use the derived 3D image only when that matches the requested analysis.
